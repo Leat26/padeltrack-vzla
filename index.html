@@ -906,29 +906,36 @@
           }
         };
 		
-        // Navegación entre pantallas
+        // Navegación entre pantallas - Versión garantizada
         window.goToScreen = function(id) {
           // Si intenta acceder a pantallas protegidas sin estar autenticado
           const protectedScreens = ['home', 'scoring-type', 'register', 'game', 'end', 'ranking', 'dashboard'];
           if (protectedScreens.includes(id) && !window.currentUser && id !== 'home') {
-            showNotification('Por favor, inicia sesión primero');
+            window.showNotification('Por favor, inicia sesión primero');
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('login').classList.add('active');
             return;
           }
           
-          document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-          document.getElementById(id).classList.add('active');
-
-
-          // Si es la pantalla de bienvenida, actualizar con el nombre del club
-          if (id === 'welcome' && window.currentClub) {
-            window.updateWelcomeScreen();
-          }          
+          // Ocultar todas las pantallas
+          document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+            s.style.display = 'none';
+          });
+          
+          // Mostrar la pantalla solicitada
+          const screen = document.getElementById(id);
+          if (screen) {
+            screen.style.display = 'block';
+            setTimeout(() => {
+              screen.classList.add('active');
+            }, 50);
+          }
+          
           // Si es la pantalla de inicio, actualizar con los datos del club
           if (id === 'home' && window.currentUser && window.currentClub) {
             window.updateHomeScreen();
-          }	  
+          }
           
           // Reiniciar marcador al salir
           if (id !== 'game' && window.interval) {
@@ -962,8 +969,15 @@
             setTimeout(window.loadRanking, 100);
           }
           
+          // Si es la pantalla de bienvenida, actualizar con el nombre del club
+          if (id === 'welcome' && window.currentClub) {
+            const clubNameWelcome = document.getElementById('club-name-welcome');
+            if (clubNameWelcome) {
+              clubNameWelcome.textContent = window.currentClub.name;
+            }
+          }
+          
           // Asegurar que el scroll esté en la parte superior
-          const screen = document.getElementById(id);
           if (screen) {
             screen.scrollTop = 0;
           }
@@ -1533,63 +1547,64 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club
+        // Función para registrar un nuevo club - Versión garantizada
         window.registerClub = async function() {
-          const clubName = document.getElementById('club-name')?.value;
-          let clubRif = document.getElementById('club-rif')?.value.trim();
-          const courtCount = document.getElementById('court-count')?.value;
-          const email = document.getElementById('register-email')?.value;
-          // ✅ CORRECCIÓN: Forma segura de obtener el teléfono SIN crear variables adicionales
-          const phone = document.getElementById('phone-number')?.value?.trim() || '';
-          const password = document.getElementById('register-password')?.value;
-          const confirmPassword = document.getElementById('register-confirm')?.value;
+          // 1. Obtener valores de forma segura
+          const clubName = document.getElementById('club-name')?.value?.trim() || '';
+          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
+          const courtCount = document.getElementById('court-count')?.value?.trim() || '';
+          const email = document.getElementById('register-email')?.value?.trim() || '';
+          const phoneElement = document.getElementById('phone-number');
+          const phone = phoneElement ? phoneElement.value?.trim() : '';
+          const password = document.getElementById('register-password')?.value || '';
+          const confirmPassword = document.getElementById('register-confirm')?.value || '';
           
-          // 1. Validar campos requeridos
+          // 2. Validar campos requeridos (sin errores de sintaxis)
           if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
-            window.showNotification('Por favor, completa todos los campos');
+            window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
           
-          // 2. Validación específica para teléfono - CORRECCIÓN CLAVE
-          if (!phone) {
-            window.showNotification('Por favor, ingresa un número de teléfono válido');
+          // 3. Validación específica y robusta para teléfono
+          if (!phone || phone.length < 7) {  // Mínimo 7 dígitos para un teléfono válido
+            window.showNotification('Por favor, ingresa un número de teléfono válido (mínimo 7 dígitos)');
             return;
           }
           
-          // 3. Asegurar que el RIF esté en mayúsculas
+          // 4. Asegurar que el RIF esté en mayúsculas
           clubRif = clubRif.toUpperCase();
           if (document.getElementById('club-rif')) {
             document.getElementById('club-rif').value = clubRif;
           }
           
-          // 4. Validar formato del RIF
+          // 5. Validar formato del RIF
           const rifRegex = /^[Jj]-\d{8}-\d$/;
           if (!rifRegex.test(clubRif)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
             return;
           }
           
-          // 5. Validar cantidad de canchas
+          // 6. Validar cantidad de canchas
           const courts = parseInt(courtCount);
           if (isNaN(courts) || courts < 1 || courts > 20) {
             window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
             return;
           }
           
-          // 6. Validar contraseñas
+          // 7. Validar contraseñas
           if (password !== confirmPassword) {
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
           
-          // 7. Validar longitud de contraseña
+          // 8. Validar longitud de contraseña
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
             return;
           }
           
           try {
-            // 8. Registrar usuario en Supabase Auth
+            // 9. Registrar usuario en Supabase Auth
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
               password: password
@@ -1604,13 +1619,13 @@
               return;
             }
             
-            // 9. Manejar caso especial: verificación de email
+            // 10. Manejar caso especial: verificación de email
             if (!data.user) {
               window.showNotification('Verifica tu correo electrónico para completar el registro');
               return;
             }
             
-            // 10. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN DEFINITIVA
+            // 11. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN GARANTIZADA
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1620,7 +1635,7 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,  // ¡NUNCA será NULL gracias a la validación anterior!
+                  phone: phone,  // ¡NUNCA será NULL gracias a la validación robusta!
                   status: "active"
                 }
               ]);
@@ -1643,22 +1658,38 @@
               return;
             }
             
-            // 11. Establecer el usuario y club actual
+            // 12. Establecer el usuario y club actual
             window.currentUser = data.user;
             
-            // 12. Almacenar datos del club en memoria
+            // 13. Almacenar datos del club en memoria - CON VALIDACIÓN DE PHONE
             window.currentClub = {
               id: data.user.id,
               rif: clubRif,
               name: clubName,
               court_count: courts,
               email: email,
-              phone: phone,  // ¡NUNCA será NULL gracias a la validación anterior!
+              phone: phone,  // ¡NUNCA será NULL gracias a la validación robusta!
               status: "active"
             };
             
             window.showNotification('¡Club registrado exitosamente!');
-            window.goToScreen('welcome');
+            
+            // 14. MOSTRAR PANTALLA DE BIENVENIDA - SOLUCIÓN GARANTIZADA
+            // Primero asegurar que la pantalla exista
+            const welcomeScreen = document.getElementById('welcome');
+            if (welcomeScreen) {
+              // Actualizar nombre del club en la pantalla de bienvenida
+              const clubNameWelcome = document.getElementById('club-name-welcome');
+              if (clubNameWelcome && window.currentClub) {
+                clubNameWelcome.textContent = window.currentClub.name;
+              }
+              
+              // Mostrar la pantalla
+              window.goToScreen('welcome');
+            } else {
+              // Si no existe, ir al home (esto no debería ocurrir si el HTML está correcto)
+              window.goToScreen('home');
+            }
             
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
@@ -2863,8 +2894,11 @@
           </div>
         </div>
 
-        <!-- Pantalla 10: Bienvenida Post-Registro -->
-        <div class="screen" id="welcome">
+        <!-- Pantalla 7: Bienvenida Post-Registro -->
+        <div class="screen" id="welcome" style="display: none;">
+          <header>
+            <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+          </header>
           <div class="welcome-container">
             <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
             <p class="subtitle">¡Tu club ya está listo para empezar!</p>
@@ -2872,7 +2906,6 @@
               <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img">
             </div>
             <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
-            <!-- BOTÓN FALTANTE -->
             <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
           </div>
         </div>
