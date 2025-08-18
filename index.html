@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>PadelTrack - Sistema Profesional</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />  
   <style>
     * {
       margin: 0;
@@ -769,26 +769,6 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
-	
-    /* Estilos para el icono de cancha */
-    .cancha-icon {
-      width: 16px;
-      height: 16px;
-      margin-right: 5px;
-      vertical-align: middle;
-      filter: var(--icon-filter, none); /* Para cambiar el color si es SVG */
-    }	
-	
-    /* Para cuando el icono está en un botón */
-    .btn .cancha-icon {
-      margin-right: 8px;
-    }
-    
-    /* Si quieres que el icono cambie de color en hover */
-    .btn:hover .cancha-icon {
-      filter: brightness(0.8);
-    }
-	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -924,10 +904,10 @@
           if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
           
           // ✅ CAMBIO 3: Reemplazar spinner por icono de cancha
-          if (canchasStatus) canchasStatus.innerHTML = '<img src="assets/cancha-icon.svg" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> Cargando canchas...';
+          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-stadium"></i> Cargando canchas...';
           if (courtsContainer) courtsContainer.innerHTML = `
             <p style="display: flex; align-items: center; justify-content: center; height: 60px;">
-              <img src="assets/cancha-icon.svg" style="width: 16px; height: 16px; margin-right: 10px; vertical-align: middle;"> Cargando canchas...
+              <i class="fas fa-stadium" style="margin-right: 10px;"></i> Cargando canchas...
             </p>
           `;
           
@@ -1007,9 +987,6 @@
               if (courtCount <= 0) {
                 if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
                 // Mensaje específico para 0 canchas
-              if (courtCount <= 0) {
-                if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
-                // Mensaje específico para 0 canchas
                 if (courtsContainer) courtsContainer.innerHTML = `
                   <div class="alert" style="margin: 20px auto; width: 90%;">
                     <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
@@ -1021,8 +998,7 @@
               } else {
                 // ✅ CAMBIO 5: Mostrar icono de cancha junto al contador
                 if (canchasStatus) canchasStatus.innerHTML = `
-                  <img src="assets/cancha-icon.svg" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> 
-                  ${courtCount} cancha${courtCount === 1 ? '' : 's'} disponible${courtCount === 1 ? '' : 's'}
+                  <i class="fas fa-stadium"></i> ${courtCount} cancha${courtCount === 1 ? '' : 's'} disponible${courtCount === 1 ? '' : 's'}
                 `;
                 
                 // Generar botones de canchas
@@ -1032,7 +1008,7 @@
                     const courtBtn = document.createElement('button');
                     courtBtn.className = 'btn';
                     // ✅ CAMBIO 6: Añadir icono de cancha en los botones
-                    courtBtn.innerHTML = `<img src="assets/cancha-icon.svg" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> Cancha ${i}`;
+                    courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
                     courtBtn.onclick = function() {
                       window.selectedCourt = `Cancha ${i}`;
                       window.goToScreen('scoring-type');
