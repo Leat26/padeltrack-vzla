@@ -1942,10 +1942,14 @@
 				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
 			}
 			} catch (error) {
-			// ✅ Este bloque catch es esencial
+			// Este bloque catch es esencial y debe estar presente
 			console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
 			}
 		}
+		
+		console.log("Estadísticas actualizadas correctamente");
+		window.loadRanking();
+		};
 		
 		console.log("Estadísticas actualizadas correctamente");
 		window.loadRanking();
