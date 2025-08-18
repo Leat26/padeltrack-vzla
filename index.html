@@ -1001,6 +1001,7 @@
                     name: "Nuevo Club",
                     court_count: 0,
                     email: window.currentUser.email,
+					phone: "N/A",
                     status: "active"
                   }
                 ]);
@@ -1538,7 +1539,7 @@
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
-          const phone = document.getElementById('phone-number')?.value; // ¡Este campo es obligatorio!
+          const phone = document.getElementById('phone-number')?.value;
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
@@ -1610,7 +1611,7 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,  // ¡Este campo es obligatorio!
+                  phone: phone,
                   status: "active"
                 }
               ]);
@@ -1643,7 +1644,7 @@
               name: clubName,
               court_count: courts,
               email: email,
-              phone: phone,  // ¡Este campo es obligatorio!
+              phone: phone,
               status: "active"
             };
             
@@ -2862,7 +2863,7 @@
             <h2 id="welcome-message">¡Bienvenido a PadelTrack!</h2>
             <p class="subtitle">Tu club ya está listo para comenzar</p>
             <div class="handshake-container">
-              <img src="https://i.ibb.co/6Q8D4Yw/handshake.png" alt="Manos entrelazadas" class="handshake-img">
+              <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img">
             </div>
             <p id="club-name-welcome" style="font-weight: bold; font-size: 22px; color: #016B3A; margin: 15px 0;"></p>
             <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
