@@ -772,10 +772,8 @@
 	
     /* Estilos para la pantalla de bienvenida */
     .welcome-container {
-      max-width: 400px;
-      margin: 0 auto;
-      padding: 20px;
-      text-align: center;
+      opacity: 1 !important;
+      visibility: visible !important;
     }
     
     #welcome h2 {
@@ -834,6 +832,8 @@
     #welcome {
       display: block !important;
       opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 1000 !important;
     }
     
     .handshake-container {
@@ -1561,6 +1561,8 @@
         };
 
         // Función para registrar un nuevo club - Versión garantizada
+
+        // Función para registrar un nuevo club - Versión definitiva y segura
         window.registerClub = async function() {
           // 1. Obtener valores de forma segura
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1648,12 +1650,11 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,  // ¡NUNCA será NULL gracias a la validación robusta!
+                  phone: phone,
                   status: "active"
                 }
               ]);
-            console.log("currentClub después de creación:", window.currentClub);
-			
+            
             if (clubError) {
               console.error("Error DETALLADO al crear club:", {
                 code: clubError.code,
@@ -1672,44 +1673,24 @@
               return;
             }
             
-            // 12. Establecer el usuario y club actual
+            // 12. Establecer el usuario actual
             window.currentUser = data.user;
             
-            // 13. Almacenar datos del club en memoria - CON VALIDACIÓN DE PHONE
-            window.currentClub = {
-              id: data.user.id,
-              rif: clubRif,
-              name: clubName,
-              court_count: courts,
-              email: email,
-              phone: phone,  // ¡NUNCA será NULL gracias a la validación robusta!
-              status: "active"
-            };
-			
-            // AGREGAR ESTO: Esperar 500ms para permitir que el DOM se actualice
-            setTimeout(() => {
-              window.showNotification('¡Club registrado exitosamente!');
-              window.goToScreen('welcome');
-            }, 500);			
-            
+            // 13. MOSTRAR PANTALLA DE BIENVENIDA - SOLUCIÓN DEFINITIVA
             window.showNotification('¡Club registrado exitosamente!');
             
-            // 14. MOSTRAR PANTALLA DE BIENVENIDA - SOLUCIÓN GARANTIZADA
-            // Primero asegurar que la pantalla exista
-            const welcomeScreen = document.getElementById('welcome');
-            if (welcomeScreen) {
-              // Actualizar nombre del club en la pantalla de bienvenida
-              const clubNameWelcome = document.getElementById('club-name-welcome');
-              if (clubNameWelcome && window.currentClub) {
-                clubNameWelcome.textContent = window.currentClub.name;
-              }
-              
-              // Mostrar la pantalla
+            // ✅ CORRECCIÓN DEFINITIVA: Eliminado el doble llamado y usado el nombre directamente
+            setTimeout(() => {
+              // Mostrar la pantalla de bienvenida
               window.goToScreen('welcome');
-            } else {
-              // Si no existe, ir al home (esto no debería ocurrir si el HTML está correcto)
-              window.goToScreen('home');
-            }
+              
+              // ✅ ACTUALIZAR DIRECTAMENTE EL NOMBRE DEL CLUB (sin depender de currentClub)
+              const clubNameWelcome = document.getElementById('club-name-welcome');
+              if (clubNameWelcome) {
+                clubNameWelcome.textContent = clubName;
+                console.log("Nombre del club actualizado directamente en pantalla de bienvenida");
+              }
+            }, 100);
             
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
