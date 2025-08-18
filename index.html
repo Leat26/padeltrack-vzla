@@ -1889,7 +1889,7 @@
 			if (!player.cedula) continue;
 			
 			try {
-			// Verificar si el jugador existe
+			// Verificar si el jugador existe y obtener sus estadísticas actuales
 			const { data: existingPlayer, error } = await window.supabase
 				.from('players')
 				.select('matches_played, matches_won')
@@ -1903,9 +1903,10 @@
 			}
 			
 			// Calcular nuevos valores
-			let newMatchesPlayed = 1;
+			let newMatchesPlayed = 1; // Siempre se juega un partido
 			let newMatchesWon = 0;
 			
+			// Si el jugador existe, usar sus valores actuales
 			if (existingPlayer) {
 				newMatchesPlayed = existingPlayer.matches_played + 1;
 				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
@@ -1915,6 +1916,7 @@
 				newMatchesWon = existingPlayer.matches_won;
 				}
 			} else {
+				// Si no existe, pero es un jugador nuevo que debería existir
 				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
 					(winnerTeam === 'teamB' && key[0] === 'B')) {
 				newMatchesWon = 1;
@@ -1942,10 +1944,13 @@
 				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
 			}
 			} catch (error) {
-			// Este bloque catch es esencial y debe estar presente
 			console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
 			}
 		}
+		
+		console.log("Estadísticas actualizadas correctamente");
+		window.loadRanking();
+		};
 		
 		console.log("Estadísticas actualizadas correctamente");
 		window.loadRanking();
