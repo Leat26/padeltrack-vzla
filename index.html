@@ -49,7 +49,7 @@
     header #logo {
       cursor: pointer;
       width: 100%;
-      height: 100px;
+      height: 130px;
       background: url('logo-padeltrack.png') no-repeat center center;
       background-size: contain;
       margin-bottom: 20px;
@@ -770,21 +770,20 @@
       height: calc(var(--vh, 1vh) * 100);
     }
   </style>
-  <!-- Carga SIMPLE del SDK de Supabase (funciona en Vercel) -->
+  <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    // Inicialización SIMPLE de Supabase (¡funciona en Vercel!)
-    document.addEventListener('DOMContentLoaded', async function() {
+    // Inicialización CORRECTA de Supabase
+    document.addEventListener('DOMContentLoaded', function() {
       console.log("Inicializando aplicación con Supabase...");
       
       // Configuración de Supabase (REEMPLAZA CON TUS CREDENCIALES)
-        const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg';
+      const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
       
       try {
         // Forma CORRECTA de inicializar Supabase
-        const { createClient } = supabase;
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         window.supabase = supabase;
         
         console.log("Supabase client creado exitosamente");
@@ -894,92 +893,141 @@
         };
         
         // Actualizar la pantalla de inicio con los datos del club
-        window.updateHomeScreen = async function() {
-          if (!window.currentUser) return;
-          
-          // Mostrar estado de carga inicial
-          const clubNameDisplay = document.getElementById('club-name-display');
-          const canchasStatus = document.getElementById('canchas-status');
-          const courtsContainer = document.getElementById('courts-container');
-          
-          if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
-          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
-          if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
-          
-          // Obtener los datos del club desde Supabase
-          const { data, error } = await window.supabase
-            .from('clubs')
-            .select('*')
-            .eq('id', window.currentUser.id)
-            .single();
-          
-          if (error) {
-            console.error("Error al obtener datos del club:", error);
-            if (clubNameDisplay) clubNameDisplay.textContent = "Club";
-            if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.code}`;
-            if (courtsContainer) courtsContainer.innerHTML = `
-              <div class="alert" style="margin: 20px auto; width: 90%;">
-                <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${error.message}
-              </div>
-              <button class="btn btn-blue" onclick="window.updateHomeScreen()">
-                <i class="fas fa-sync"></i> Reintentar
-              </button>
-            `;
-            return;
-          }
-          
-          if (data) {
-            const clubData = data;
-            const clubName = clubData.name || "Club";
-            const courtCount = window.safeNumber(clubData.court_count, 0);
-            
-            // Actualizar nombre del club
-            if (clubNameDisplay) clubNameDisplay.textContent = clubName;
-            
-            // Almacenar los datos del club
-            window.currentClub = clubData;
-            
-            // Actualizar estado de canchas
-            if (courtCount <= 0) {
-              if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
-              // Mensaje específico para 0 canchas
-              if (courtsContainer) courtsContainer.innerHTML = `
-                <div class="alert" style="margin: 20px auto; width: 90%;">
-                  <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
-                </div>
-                <button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
-                  <i class="fas fa-cog"></i> Configurar canchas
-                </button>
-              `;
-            } else {
-              // Mostrar cantidad correcta de canchas
-              if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
-              // Generar botones de canchas
-              if (courtsContainer) {
-                courtsContainer.innerHTML = '';
-                for (let i = 1; i <= courtCount; i++) {
-                  const courtBtn = document.createElement('button');
-                  courtBtn.className = 'btn';
-                  courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
-                  courtBtn.onclick = function() {
-                    window.selectedCourt = `Cancha ${i}`;
-                    window.goToScreen('scoring-type');
-                  };
-                  courtsContainer.appendChild(courtBtn);
-                }
-              }
-            }
-          } else {
-            // El club no existe (caso improbable con Supabase)
-            if (clubNameDisplay) clubNameDisplay.textContent = "Club";
-            if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
-            if (courtsContainer) courtsContainer.innerHTML = `
-              <div class="alert" style="margin: 20px auto; width: 90%;">
-                <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró información del club.
-              </div>
-            `;
-          }
-        };
+		window.updateHomeScreen = async function() {
+		if (!window.currentUser) return;
+		
+		// Mostrar estado de carga inicial
+		const clubNameDisplay = document.getElementById('club-name-display');
+		const canchasStatus = document.getElementById('canchas-status');
+		const courtsContainer = document.getElementById('courts-container');
+		
+		if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
+		if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
+		if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
+		
+		try {
+			// Obtener los datos del club desde Supabase
+			const { data, error } = await window.supabase
+			.from('clubs')
+			.select('*')
+			.eq('id', window.currentUser.id)
+			.single();
+			
+			if (error) {
+			console.error("Error DETALLADO al obtener datos del club:", {
+				code: error.code,
+				message: error.message,
+				details: error.details,
+				hint: error.hint
+			});
+			
+			// Si es un error de no encontrado (PGRST116), crear el club automáticamente
+			if (error.code === 'PGRST116') {
+				console.log("Club no encontrado, creando automáticamente...");
+				
+				const { error: createError } = await window.supabase
+				.from('clubs')
+				.insert([
+					{
+					id: window.currentUser.id,
+					name: "Mi Club de Pádel",
+					court_count: 1,
+					email: window.currentUser.email,
+					status: "active"
+					}
+				]);
+				
+				if (createError) {
+				console.error("Error al crear club automáticamente:", createError);
+				
+				if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+				if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${createError.code}`;
+				if (courtsContainer) courtsContainer.innerHTML = `
+					<div class="alert" style="margin: 20px auto; width: 90%;">
+					<i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}
+					</div>
+				`;
+				return;
+				}
+				
+				// Intentar de nuevo
+				window.updateHomeScreen();
+				return;
+			}
+			
+			// Otros errores
+			if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+			if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.code}`;
+			if (courtsContainer) courtsContainer.innerHTML = `
+				<div class="alert" style="margin: 20px auto; width: 90%;">
+				<i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${error.message}
+				</div>
+			`;
+			return;
+			}
+			
+			if (data) {
+			const clubData = data;
+			const clubName = clubData.name || "Club";
+			const courtCount = window.safeNumber(clubData.court_count, 0);
+			
+			// Actualizar nombre del club
+			if (clubNameDisplay) clubNameDisplay.textContent = clubName;
+			
+			// Almacenar los datos del club
+			window.currentClub = clubData;
+			
+			// Actualizar estado de canchas
+			if (courtCount <= 0) {
+				if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
+				// Mensaje específico para 0 canchas
+				if (courtsContainer) courtsContainer.innerHTML = `
+				<div class="alert" style="margin: 20px auto; width: 90%;">
+					<i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
+				</div>
+				<button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
+					<i class="fas fa-cog"></i> Configurar canchas
+				</button>
+				`;
+			} else {
+				// Mostrar cantidad correcta de canchas
+				if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
+				// Generar botones de canchas
+				if (courtsContainer) {
+				courtsContainer.innerHTML = '';
+				for (let i = 1; i <= courtCount; i++) {
+					const courtBtn = document.createElement('button');
+					courtBtn.className = 'btn';
+					courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
+					courtBtn.onclick = function() {
+					window.selectedCourt = `Cancha ${i}`;
+					window.goToScreen('scoring-type');
+					};
+					courtsContainer.appendChild(courtBtn);
+				}
+				}
+			}
+			} else {
+			// El club no existe (caso improbable con Supabase)
+			if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+			if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
+			if (courtsContainer) courtsContainer.innerHTML = `
+				<div class="alert" style="margin: 20px auto; width: 90%;">
+				<i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró información del club.
+				</div>
+			`;
+			}
+		} catch (error) {
+			console.error("Error crítico al actualizar pantalla de inicio:", error);
+			if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+			if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error crítico';
+			if (courtsContainer) courtsContainer.innerHTML = `
+			<div class="alert" style="margin: 20px auto; width: 90%;">
+				<i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}
+			</div>
+			`;
+		}
+		};
         
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
@@ -1428,100 +1476,128 @@
         };
         
         // Función para registrar un nuevo club
-        window.registerClub = async function() {
-          const clubName = document.getElementById('club-name')?.value;
-          let clubRif = document.getElementById('club-rif')?.value.trim();
-          const courtCount = document.getElementById('court-count')?.value;
-          const email = document.getElementById('register-email')?.value;
-          const phone = document.getElementById('phone-number')?.value;
-          const password = document.getElementById('register-password')?.value;
-          const confirmPassword = document.getElementById('register-confirm')?.value;
-          
-          // Validar campos requeridos
-          if (!clubName || !clubRif || !courtCount || !email || !phone || !password || !confirmPassword) {
-            window.showNotification('Por favor, completa todos los campos');
-            return;
-          }
-          
-          // Asegurar que el RIF esté en mayúsculas
-          clubRif = clubRif.toUpperCase();
-          if (document.getElementById('club-rif')) {
-            document.getElementById('club-rif').value = clubRif;
-          }
-          
-          // Validar formato del RIF
-          if (!window.validateRifFormat(clubRif)) {
-            window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
-            return;
-          }
-          
-          // Validar cantidad de canchas
-          const courts = parseInt(courtCount);
-          if (isNaN(courts) || courts < 1 || courts > 20) {
-            window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
-            return;
-          }
-          
-          // Validar contraseñas
-          if (password !== confirmPassword) {
-            window.showNotification('Las contraseñas no coinciden');
-            return;
-          }
-          
-          // Validar longitud de contraseña
-          if (password.length < 6) {
-            window.showNotification('La contraseña debe tener al menos 6 caracteres');
-            return;
-          }
-          
-          // Registrar usuario en Supabase Auth
-          const { data, error } = await window.supabase.auth.signUp({
-            email: email,
-            password: password
-          });
-          
-          if (error) {
-            if (error.message.includes('email already exists')) {
-              window.showNotification('Este correo electrónico ya está registrado');
-            } else {
-              window.showNotification(`Error: ${error.message}`);
-            }
-            return;
-          }
-          
-          if (!data.user) {
-            window.showNotification('Verifica tu correo electrónico');
-            return;
-          }
-          
-          // Crear club en la tabla clubs
-          const { error: clubError } = await window.supabase
-            .from('clubs')
-            .insert([
-              {
-                id: data.user.id,  // Usamos el UUID de Auth como ID
-                rif: clubRif,
-                name: clubName,
-                court_count: courts,
-                email: email,
-                phone: phone,
-                status: "active"
-              }
-            ]);
-          
-          if (clubError) {
-            // Si el RIF ya existe (error de unicidad)
-            if (clubError.code === '23505') {  // Código de error de PostgreSQL para unicidad
-              window.showNotification('Este RIF ya está registrado');
-            } else {
-              window.showNotification(`Error al registrar club: ${clubError.message}`);
-            }
-            return;
-          }
-          
-          window.showNotification('¡Club registrado exitosamente!');
-          window.goToScreen('home');
-        };
+		window.registerClub = async function() {
+		const clubName = document.getElementById('club-name')?.value;
+		let clubRif = document.getElementById('club-rif')?.value.trim();
+		const courtCount = document.getElementById('court-count')?.value;
+		const email = document.getElementById('register-email')?.value;
+		const phone = document.getElementById('phone-number')?.value;
+		const password = document.getElementById('register-password')?.value;
+		const confirmPassword = document.getElementById('register-confirm')?.value;
+		
+		// 1. Validar campos requeridos
+		if (!clubName || !clubRif || !courtCount || !email || !phone || !password || !confirmPassword) {
+			window.showNotification('Por favor, completa todos los campos');
+			return;
+		}
+		
+		// 2. Asegurar que el RIF esté en mayúsculas
+		clubRif = clubRif.toUpperCase();
+		document.getElementById('club-rif').value = clubRif;
+		
+		// 3. Validar formato del RIF
+		if (!window.validateRifFormat(clubRif)) {
+			window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
+			return;
+		}
+		
+		// 4. Validar cantidad de canchas
+		const courts = parseInt(courtCount);
+		if (isNaN(courts) || courts < 1 || courts > 20) {
+			window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
+			return;
+		}
+		
+		// 5. Validar contraseñas
+		if (password !== confirmPassword) {
+			window.showNotification('Las contraseñas no coinciden');
+			return;
+		}
+		
+		// 6. Validar longitud de contraseña
+		if (password.length < 6) {
+			window.showNotification('La contraseña debe tener al menos 6 caracteres');
+			return;
+		}
+		
+		try {
+			// 7. Registrar usuario en Supabase Auth
+			const { data, error } = await window.supabase.auth.signUp({
+			email: email,
+			password: password
+			});
+			
+			if (error) {
+			if (error.message.includes('email already exists')) {
+				window.showNotification('Este correo electrónico ya está registrado');
+			} else {
+				window.showNotification(`Error: ${error.message}`);
+			}
+			return;
+			}
+			
+			// 8. Manejar caso especial: verificación de email
+			if (!data.user) {
+			window.showNotification('Verifica tu correo electrónico para completar el registro');
+			return;
+			}
+			
+			// 9. CREAR CLUB EN LA TABLA CLUBS (CORREGIDO)
+			const { error: clubError } = await window.supabase
+			.from('clubs')
+			.insert([
+				{
+				id: data.user.id,  // ID del usuario autenticado
+				rif: clubRif,
+				name: clubName,
+				court_count: courts,
+				email: email,
+				phone: phone,
+				status: "active"
+				}
+			]);
+			
+			if (clubError) {
+			// 10. Manejar errores específicos
+			console.error("Error DETALLADO al crear club:", {
+				code: clubError.code,
+				message: clubError.message,
+				details: clubError.details,
+				hint: clubError.hint
+			});
+			
+			if (clubError.code === '23505') {  // Error de unicidad
+				window.showNotification('Este RIF ya está registrado');
+			} else if (clubError.code === '42501') {  // Error de permisos RLS
+				window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+			} else {
+				window.showNotification(`Error al registrar club: ${clubError.message}`);
+			}
+			return;
+			}
+			
+			// 11. Establecer el usuario y club actual
+			window.currentUser = data.user;
+			
+			// 12. Almacenar datos del club en memoria
+			window.currentClub = {
+			id: data.user.id,
+			rif: clubRif,
+			name: clubName,
+			court_count: courts,
+			email: email,
+			phone: phone,
+			status: "active"
+			};
+			
+			window.showNotification('¡Club registrado exitosamente!');
+			window.goToScreen('home');
+			
+		} catch (error) {
+			console.error("Error inesperado al registrar club:", error);
+			window.showNotification(`Error inesperado: ${error.message}`);
+		}
+		};
         
         // Iniciar sesión
         window.loginUser = async function() {
@@ -2174,9 +2250,15 @@
         });
         
         // Verificar estado actual de autenticación
-        window.supabase.auth.getSession().then(({  { session } }) => {
-          if (session) {
-            window.currentUser = session.user;
+        window.supabase.auth.getSession().then(({ data, error }) => {
+          if (error) {
+            console.error("Error al obtener sesión:", error);
+            window.goToScreen('login');
+            return;
+          }
+          
+          if (data.session) {
+            window.currentUser = data.session.user;
             // Obtener datos del club
             window.supabase
               .from('clubs')
@@ -2187,10 +2269,34 @@
                 if (error) {
                   console.error("Error al obtener datos del club:", error);
                   window.currentClub = null;
+                  // Crear documento del club con valores por defecto
+                  window.supabase
+                    .from('clubs')
+                    .insert([
+                      {
+                        id: window.currentUser.id,
+                        name: "Nuevo Club",
+                        court_count: 0,
+                        email: window.currentUser.email,
+                        status: "active"
+                      }
+                    ])
+                    .then(({ error: insertError }) => {
+                      if (insertError) {
+                        console.error("Error al crear club:", insertError);
+                      } else {
+                        window.currentClub = {
+                          id: window.currentUser.id,
+                          name: "Nuevo Club",
+                          court_count: 0
+                        };
+                        window.updateHomeScreen();
+                      }
+                    });
                 } else {
                   window.currentClub = data;
+                  window.updateHomeScreen();
                 }
-                window.goToScreen('home');
               });
           } else {
             window.goToScreen('login');
@@ -2283,7 +2389,6 @@
     </header>
     <!-- Pantalla 1: Login -->
     <div class="screen" id="login">
-      <header><i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK</header>
       <h2>Inicia sesión</h2>
       <div class="stats" style="margin: 20px auto; width: 90%;">
         <p><strong>Correo electrónico</strong></p>
@@ -2304,7 +2409,6 @@
     <!-- Pantalla 2: Registro de Club -->
     <div class="screen" id="register-screen">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.goToScreen('login')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2354,7 +2458,6 @@
     <!-- Pantalla 4: Tipo de Puntuación -->
     <div class="screen" id="scoring-type">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.goToScreen('home')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2389,7 +2492,6 @@
     <!-- Pantalla 5: Registro de Jugadores -->
     <div class="screen" id="register">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.goToScreen('scoring-type')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2472,7 +2574,6 @@
     <!-- Pantalla 6: Marcador en Vivo -->
     <div class="screen" id="game">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.resetGame(); window.goToScreen('register')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2513,7 +2614,6 @@
     <!-- Pantalla 7: Partido Finalizado -->
     <div class="screen" id="end">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.resetGame(); window.goToScreen('home')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2541,7 +2641,6 @@
     <!-- Pantalla 8: Ranking -->
     <div class="screen" id="ranking">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.goToScreen('home')">
           <i class="fas fa-arrow-left"></i>
         </button>
@@ -2558,7 +2657,7 @@
     <!-- Pantalla 9: Dashboard -->
     <div class="screen" id="dashboard">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK - DASHBOARD
+        <i class="fas fa-table-tennis-paddle-ball"></i> DASHBOARD
         <button class="back-btn btn-header" onclick="window.goToScreen('home')">
           <i class="fas fa-arrow-left"></i>
         </button>
