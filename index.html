@@ -1879,23 +1879,14 @@
           window.goToScreen('end');
         };
         
-		// Función para actualizar estadísticas (versión de depuración)
+		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
 		if (!window.currentUser) return;
-		
-		console.log("Actualizando estadísticas para ganador:", winnerTeam);
 		
 		// Actualizar cada jugador
 		for (const key in window.playersData) {
 			const player = window.playersData[key];
 			if (!player.cedula) continue;
-			
-			console.log(`Procesando jugador ${key}:`, {
-			cedula: player.cedula,
-			firstName: player.firstName,
-			lastName: player.lastName,
-			exists: player.exists
-			});
 			
 			try {
 			// Verificar si el jugador existe
@@ -1906,16 +1897,16 @@
 				.eq('club_id', window.currentUser.id)
 				.single();
 			
-			console.log(`Datos existentes para ${player.cedula}:`, {
-				existingPlayer,
-				error
-			});
+			if (error && error.code !== 'PGRST116') { // PGRST116 = no encontrado
+				console.error(`Error al obtener jugador ${player.cedula}:`, error);
+				continue;
+			}
 			
+			// Calcular nuevos valores
 			let newMatchesPlayed = 1;
 			let newMatchesWon = 0;
 			
 			if (existingPlayer) {
-				console.log(`Valores actuales: played=${existingPlayer.matches_played}, won=${existingPlayer.matches_won}`);
 				newMatchesPlayed = existingPlayer.matches_played + 1;
 				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
 					(winnerTeam === 'teamB' && key[0] === 'B')) {
@@ -1923,13 +1914,14 @@
 				} else {
 				newMatchesWon = existingPlayer.matches_won;
 				}
-			} else if ((winnerTeam === 'teamA' && key[0] === 'A') || 
-						(winnerTeam === 'teamB' && key[0] === 'B')) {
+			} else {
+				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
+					(winnerTeam === 'teamB' && key[0] === 'B')) {
 				newMatchesWon = 1;
+				}
 			}
 			
-			console.log(`Nuevos valores: played=${newMatchesPlayed}, won=${newMatchesWon}`);
-			
+			// Actualizar o crear jugador
 			const { error: updateError } = await window.supabase
 				.from('players')
 				.upsert([
@@ -1948,13 +1940,16 @@
 			
 			if (updateError) {
 				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
-			} else {
-				console.log(`Jugador ${player.cedula} actualizado exitosamente`);
 			}
 			} catch (error) {
+			// ✅ Este bloque catch es esencial
 			console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
 			}
 		}
+		
+		console.log("Estadísticas actualizadas correctamente");
+		window.loadRanking();
+		};
 		
 		console.log("Estadísticas actualizadas correctamente");
 		window.loadRanking();
