@@ -1544,10 +1544,16 @@
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
           // 1. Validar campos requeridos
-          if (!clubName || !clubRif || !courtCount || !email || !phone || !password || !confirmPassword) {
+          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos');
             return;
           }
+		  
+          // Validación específica para teléfono
+          if (!phone || phone.trim() === '') {
+            window.showNotification('Por favor, ingresa un número de teléfono válido');
+            return;
+          }		  
           
           // 2. Asegurar que el RIF esté en mayúsculas
           clubRif = clubRif.toUpperCase();
@@ -1611,7 +1617,7 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,  // ¡Este campo es obligatorio!
+                  phone: phone.trim() !== '' ? phone : 'N/A', // Asegura que nunca sea NULL
                   status: "active"
                 }
               ]);
