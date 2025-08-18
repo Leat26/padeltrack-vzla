@@ -1560,9 +1560,7 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión garantizada
-
-        // Función para registrar un nuevo club - Versión definitiva y segura
+        // Función para registrar un nuevo club - Versión 100% funcional
         window.registerClub = async function() {
           // 1. Obtener valores de forma segura
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1640,7 +1638,7 @@
               return;
             }
             
-            // 11. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN GARANTIZADA
+            // 11. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN DEFINITIVA
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1679,7 +1677,7 @@
             // 13. MOSTRAR PANTALLA DE BIENVENIDA - SOLUCIÓN DEFINITIVA
             window.showNotification('¡Club registrado exitosamente!');
             
-            // ✅ CORRECCIÓN DEFINITIVA: Eliminado el doble llamado y usado el nombre directamente
+            // ✅ CORRECCIÓN CRÍTICA: Eliminado el doble llamado y usado el nombre directamente
             setTimeout(() => {
               // Mostrar la pantalla de bienvenida
               window.goToScreen('welcome');
@@ -1689,6 +1687,8 @@
               if (clubNameWelcome) {
                 clubNameWelcome.textContent = clubName;
                 console.log("Nombre del club actualizado directamente en pantalla de bienvenida");
+              } else {
+                console.error("No se encontró el elemento club-name-welcome");
               }
             }, 100);
             
@@ -1696,7 +1696,7 @@
             console.error("Error inesperado al registrar club:", error);
             window.showNotification(`Error inesperado: ${error.message}`);
           }
-        };
+        };		
 
         // Iniciar sesión
         window.loginUser = async function() {
