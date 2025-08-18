@@ -1788,8 +1788,28 @@
             ]);
           
           if (error) {
-            console.error("Error al guardar partido: ", error);
-            window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
+            console.error("Error al guardar partido: ", {
+				code: error.code,
+				message: error.message,
+				details: error.details,
+				hint: error.hint,
+				data: {
+					club_id: window.currentUser.id,
+					court: window.selectedCourt,
+					scoring_type: window.scoringType,
+					team_a_name: teamAName,
+					team_b_name: teamBName,
+					winner: winner === 'A' ? 'teamA' : 'teamB'
+				}
+            });
+
+            // Mensaje más específico para errores de RLS
+            if (error.code === '42501') {
+              window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
+            } else {
+              window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
+            }	
+
             window.goToScreen('end');
             return;
           }
