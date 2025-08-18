@@ -1324,125 +1324,126 @@
           });
         }
         
-        // Validar formato de cédula venezolana
-        window.validateCedulaFormat = function(cedula) {
-          // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-          const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
-          return cedulaRegex.test(cedula);
-        };
-        
-        // Validar cédula (buscar en Supabase)
-        window.validateCedula = async function(input) {
-          let cedula = input.value.trim();
-          const team = input.dataset.team;
-          const player = input.dataset.player;
-          const id = team + player;
-          
-          // Limpiar validación previa
-          const statusElement = document.getElementById(`cedula-status-${id}`);
-          const playerStatusElement = document.getElementById(`player-status-${id}`);
-          const errorElement = document.getElementById(`error-${id}`);
-          
-          if (statusElement) statusElement.innerHTML = '';
-          if (playerStatusElement) playerStatusElement.textContent = '';
-          if (errorElement) errorElement.style.display = 'none';
-          
-          // Si está vacío, no validar
-          if (!cedula) return;
-          
-          // Asegurar que la cédula esté en mayúsculas
-          cedula = cedula.toUpperCase();
-          input.value = cedula;
-          
-          // Validar formato
-          if (!window.validateCedulaFormat(cedula)) {
-            if (statusElement) {
-              statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-              statusElement.className = 'cedula-validation invalid';
-            }
-            if (playerStatusElement) {
-              playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
-            }
-            return;
-          }
-          
-          // Mostrar estado de carga
-          if (statusElement) {
-            statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
-            statusElement.className = 'cedula-validation loading';
-          }
-          
-          // Buscar en Supabase (solo en el club actual)
-          const { data, error } = await window.supabase
-            .from('players')
-            .select('*')
-            .eq('cedula', cedula)
-            .eq('club_id', window.currentUser.id)
-            .single();
-          
-          if (error) {
-            if (error.code === 'PGRST116') {  // No se encontraron resultados
-              // Nuevo jugador PARA ESTE CLUB
-              if (statusElement) {
-                statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
-                statusElement.className = 'cedula-validation valid';
-              }
-              if (playerStatusElement) {
-                playerStatusElement.textContent = 'Nuevo jugador en este club';
-              }
-              
-              // Habilitar campos de nombre y apellido
-              const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
-              const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-              
-              if (firstNameInput) firstNameInput.disabled = false;
-              if (lastNameInput) lastNameInput.disabled = false;
-              
-              // Guardar datos
-              window.playersData[id] = {
-                cedula: cedula,
-                firstName: '',
-                lastName: '',
-                exists: false
-              };
-            } else {
-              console.error("Error al validar cédula:", error);
-              if (statusElement) {
-                statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-                statusElement.className = 'cedula-validation invalid';
-              }
-              if (playerStatusElement) {
-                playerStatusElement.textContent = 'Error al verificar';
-              }
-            }
-          } else {
-            // Jugador existe EN ESTE CLUB
-            if (statusElement) {
-              statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
-              statusElement.className = 'cedula-validation valid';
-            }
-            if (playerStatusElement) {
-              playerStatusElement.textContent = 'Jugador existente en este club';
-            }
-            
-            // Rellenar nombre y apellido
-            const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
-            const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-            
-            if (firstNameInput) firstNameInput.value = data.first_name;
-            if (lastNameInput) lastNameInput.value = data.last_name;
-            if (firstNameInput) firstNameInput.disabled = true;
-            if (lastNameInput) lastNameInput.disabled = true;
-            
-            // Guardar datos
-            window.playersData[id] = {
-              cedula: cedula,
-              firstName: data.first_name,
-              lastName: data.last_name,
-              exists: true
-            };
-          }
-        };
+		// Validar formato de cédula venezolana
+		window.validateCedulaFormat = function(cedula) {
+		// Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
+		const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
+		return cedulaRegex.test(cedula);
+		};
+
+		// Validar cédula (buscar en Supabase)
+		window.validateCedula = async function(input) {
+		let cedula = input.value.trim();
+		const team = input.dataset.team;
+		const player = input.dataset.player;
+		const id = team + player;
+		
+		// Limpiar validación previa
+		const statusElement = document.getElementById(`cedula-status-${id}`);
+		const playerStatusElement = document.getElementById(`player-status-${id}`);
+		const errorElement = document.getElementById(`error-${id}`);
+		
+		if (statusElement) statusElement.innerHTML = '';
+		if (playerStatusElement) playerStatusElement.textContent = '';
+		if (errorElement) errorElement.style.display = 'none';
+		
+		// Si está vacío, no validar
+		if (!cedula) return;
+		
+		// Asegurar que la cédula esté en mayúsculas
+		cedula = cedula.toUpperCase();
+		input.value = cedula;
+		
+		// Validar formato
+		if (!window.validateCedulaFormat(cedula)) {
+			if (statusElement) {
+			statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+			statusElement.className = 'cedula-validation invalid';
+			}
+			if (playerStatusElement) {
+			playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
+			}
+			return;
+		}
+		
+		// Mostrar estado de carga
+		if (statusElement) {
+			statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
+			statusElement.className = 'cedula-validation loading';
+		}
+		
+		// Buscar en Supabase (solo en el club actual)
+		const { data, error } = await window.supabase
+			.from('players')
+			.select('*')
+			.eq('cedula', cedula)
+			.eq('club_id', window.currentUser.id)
+			.single();
+		
+		if (error) {
+			if (error.code === 'PGRST116') {  // No se encontraron resultados
+			// Nuevo jugador PARA ESTE CLUB
+			if (statusElement) {
+				statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
+				statusElement.className = 'cedula-validation valid';
+			}
+			if (playerStatusElement) {
+				playerStatusElement.textContent = 'Nuevo jugador en este club';
+			}
+			
+			// Habilitar campos de nombre y apellido
+			const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+			const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+			
+			if (firstNameInput) firstNameInput.disabled = false;
+			if (lastNameInput) lastNameInput.disabled = false;
+			
+			// Guardar datos (solo cédula por ahora)
+			window.playersData[id] = {
+				cedula: cedula,
+				firstName: '',
+				lastName: '',
+				exists: false
+			};
+			} else {
+			console.error("Error al validar cédula:", error);
+			if (statusElement) {
+				statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+				statusElement.className = 'cedula-validation invalid';
+			}
+			if (playerStatusElement) {
+				playerStatusElement.textContent = 'Error al verificar';
+			}
+			}
+		} else {
+			// Jugador existe EN ESTE CLUB
+			if (statusElement) {
+			statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+			statusElement.className = 'cedula-validation valid';
+			}
+			if (playerStatusElement) {
+			playerStatusElement.textContent = 'Jugador existente en este club';
+			}
+			
+			// Rellenar nombre y apellido
+			const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+			const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+			
+			if (firstNameInput) firstNameInput.value = data.first_name || '';
+			if (lastNameInput) lastNameInput.value = data.last_name || '';
+			if (firstNameInput) firstNameInput.disabled = true;
+			if (lastNameInput) lastNameInput.disabled = true;
+			
+			// Guardar datos
+			window.playersData[id] = {
+			cedula: cedula,
+			firstName: data.first_name || '',
+			lastName: data.last_name || '',
+			exists: true
+			};
+		}
+		};
+		
         
         // Resetear validación de jugadores
         window.resetPlayerValidation = function() {
@@ -1653,73 +1654,94 @@
           }
         };
         
-        // Función para registrar jugadores
-        window.startGame = async function() {
-          // Validar que todos los jugadores tengan datos completos
-          const missingData = [];
-          Object.keys(window.playersData).forEach(key => {
-            const data = window.playersData[key];
-            if (!data.cedula) {
-              missingData.push(`Jugador ${key}`);
-            } else if (!data.exists && (!data.firstName || !data.lastName)) {
-              const firstName = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
-              const lastName = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
-              if (!firstName || !lastName) {
-                missingData.push(`Jugador ${key}`);
-              }
-            }
-          });
-          
-          if (missingData.length > 0) {
-            window.showNotification(`Faltan datos de: ${missingData.join(', ')}`);
-            return;
-          }
-          
-          if (!window.currentUser) {
-            window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
-            window.goToScreen('login');
-            return;
-          }
-          
-          // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
-          for (const key in window.playersData) {
-            const player = window.playersData[key];
-            if (player.exists) continue; // Ya existe en este club
-            
-            const firstName = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
-            const lastName = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
-            
-            // Intentar insertar el jugador (cedula + club_id debe ser único)
-            const { error: insertError } = await window.supabase
-              .from('players')
-              .insert([
-                {
-                  club_id: window.currentUser.id,
-                  cedula: player.cedula,
-                  first_name: firstName,
-                  last_name: lastName,
-                  matches_played: 0,
-                  matches_won: 0,
-                  created_at: new Date().toISOString(),  // ⭐⭐⭐ ESTA LÍNEA ES CRÍTICA
-                  last_match_date: new Date().toISOString() // También recomendado				  
-                }
-              ]);
-            
-            if (insertError) {
-              // Manejar error de unicidad (esto no debería ocurrir por nuestra validación previa)
-              if (insertError.code === '23505') {
-                console.error("Error de unicidad inesperado:", insertError);
-              } else {
-                console.error("Error al registrar jugador:", insertError);
-                window.showNotification(`Error al registrar ${firstName} ${lastName}`);
-                return;
-              }
-            }
-          }
-          
-          // Continuar al marcador
-          window.goToScreen('game');
-        };
+		// Función para registrar jugadores
+		window.startGame = async function() {
+		// Validar que todos los jugadores tengan datos completos
+		const missingData = [];
+		Object.keys(window.playersData).forEach(key => {
+			const data = window.playersData[key];
+			if (!data.cedula) {
+			missingData.push(`Jugador ${key}`);
+			} else if (!data.exists) {
+			// Para jugadores nuevos, obtener los nombres del DOM
+			const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			
+			const firstName = firstNameInput?.value?.trim() || '';
+			const lastName = lastNameInput?.value?.trim() || '';
+			
+			if (!firstName || !lastName) {
+				missingData.push(`Jugador ${key}`);
+			}
+			}
+		});
+		
+		if (missingData.length > 0) {
+			window.showNotification(`Faltan datos de: ${missingData.join(', ')}`);
+			return;
+		}
+		
+		if (!window.currentUser) {
+			window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
+			window.goToScreen('login');
+			return;
+		}
+		
+		// Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
+		for (const key in window.playersData) {
+			const player = window.playersData[key];
+			if (player.exists) continue; // Ya existe en este club
+			
+			// Obtener los valores del DOM
+			const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			
+			const firstName = firstNameInput?.value?.trim() || '';
+			const lastName = lastNameInput?.value?.trim() || '';
+			
+			// Validar que los nombres no estén vacíos
+			if (!firstName || !lastName) {
+			window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
+			return;
+			}
+			
+			// Intentar insertar el jugador
+			const { error: insertError } = await window.supabase
+			.from('players')
+			.insert([
+				{
+				club_id: window.currentUser.id,
+				cedula: player.cedula,
+				first_name: firstName,
+				last_name: lastName,
+				matches_played: 0,
+				matches_won: 0,
+				created_at: new Date().toISOString(),
+				last_match_date: new Date().toISOString()
+				}
+			]);
+			
+			if (insertError) {
+			if (insertError.code === '23505') {
+				console.error("Error de unicidad inesperado:", insertError);
+			} else {
+				console.error("Error al registrar jugador:", insertError);
+				window.showNotification(`Error al registrar ${firstName} ${lastName}`);
+				return;
+			}
+			}
+			
+			// Actualizar playersData con los nombres reales
+			window.playersData[key] = {
+			...window.playersData[key],
+			firstName: firstName,
+			lastName: lastName
+			};
+		}
+		
+		// Continuar al marcador
+		window.goToScreen('game');
+		};
         
         // Función para finalizar partido
         window.finalizeGame = async function() {
