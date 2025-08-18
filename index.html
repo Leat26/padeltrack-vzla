@@ -1539,6 +1539,7 @@
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
+          const phoneInput = document.getElementById('phone-number');
           const phone = phoneInput ? phoneInput.value.trim() : '';
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
@@ -1548,45 +1549,47 @@
             window.showNotification('Por favor, completa todos los campos');
             return;
           }
-		  
-          // Validación específica para teléfono
-          if (!phone || phone.trim() === '') {
+          
+          // 2. Validación específica para teléfono - CORRECCIÓN CLAVE
+          if (!phone || phone === '') {
             window.showNotification('Por favor, ingresa un número de teléfono válido');
             return;
-          }		  
+          }
           
-          // 2. Asegurar que el RIF esté en mayúsculas
+          // 3. Asegurar que el RIF esté en mayúsculas
           clubRif = clubRif.toUpperCase();
-          document.getElementById('club-rif').value = clubRif;
+          if (document.getElementById('club-rif')) {
+            document.getElementById('club-rif').value = clubRif;
+          }
           
-          // 3. Validar formato del RIF
+          // 4. Validar formato del RIF
           const rifRegex = /^[Jj]-\d{8}-\d$/;
           if (!rifRegex.test(clubRif)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
             return;
           }
           
-          // 4. Validar cantidad de canchas
+          // 5. Validar cantidad de canchas
           const courts = parseInt(courtCount);
           if (isNaN(courts) || courts < 1 || courts > 20) {
             window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
             return;
           }
           
-          // 5. Validar contraseñas
+          // 6. Validar contraseñas
           if (password !== confirmPassword) {
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
           
-          // 6. Validar longitud de contraseña
+          // 7. Validar longitud de contraseña
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
             return;
           }
           
           try {
-            // 7. Registrar usuario en Supabase Auth
+            // 8. Registrar usuario en Supabase Auth
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
               password: password
@@ -1601,13 +1604,13 @@
               return;
             }
             
-            // 8. Manejar caso especial: verificación de email
+            // 9. Manejar caso especial: verificación de email
             if (!data.user) {
               window.showNotification('Verifica tu correo electrónico para completar el registro');
               return;
             }
             
-            // 9. CREAR CLUB EN LA TABLA CLUBS
+            // 10. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN DEFINITIVA
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1617,7 +1620,7 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone.trim() !== '' ? phone : 'N/A', // Asegura que nunca sea NULL
+                  phone: phone,  // ¡NUNCA será NULL gracias a la validación anterior!
                   status: "active"
                 }
               ]);
@@ -1650,15 +1653,10 @@
               name: clubName,
               court_count: courts,
               email: email,
-              phone: phone,  // ¡Este campo es obligatorio!
+              phone: phone,  // ¡NUNCA será NULL gracias a la validación anterior!
               status: "active"
             };
-
-            // ✅ AÑADIR ESTO: Actualizar inmediatamente la pantalla de bienvenida
-            if (document.getElementById('welcome')?.classList.contains('active')) {
-              window.updateWelcomeScreen();
-            }      
-			
+            
             window.showNotification('¡Club registrado exitosamente!');
             window.goToScreen('welcome');
             
