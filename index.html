@@ -899,13 +899,8 @@
 		
         // Añade esta función para actualizar el mensaje de bienvenida
         window.updateWelcomeScreen = function() {
-          const welcomeMessage = document.getElementById('welcome-message');
           const clubNameWelcome = document.getElementById('club-name-welcome');
-          
-          if (welcomeMessage) {
-            welcomeMessage.textContent = "¡Bienvenido a PadelTrack!";
-          }
-          
+                   
           if (clubNameWelcome && window.currentClub) {
             clubNameWelcome.textContent = window.currentClub.name;
           }
@@ -924,7 +919,12 @@
           
           document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
           document.getElementById(id).classList.add('active');
-          
+
+
+          // Si es la pantalla de bienvenida, actualizar con el nombre del club
+          if (id === 'welcome' && window.currentClub) {
+            window.updateWelcomeScreen();
+          }          
           // Si es la pantalla de inicio, actualizar con los datos del club
           if (id === 'home' && window.currentUser && window.currentClub) {
             window.updateHomeScreen();
@@ -1653,7 +1653,12 @@
               phone: phone,  // ¡Este campo es obligatorio!
               status: "active"
             };
-            
+
+            // ✅ AÑADIR ESTO: Actualizar inmediatamente la pantalla de bienvenida
+            if (document.getElementById('welcome')?.classList.contains('active')) {
+              window.updateWelcomeScreen();
+            }      
+			
             window.showNotification('¡Club registrado exitosamente!');
             window.goToScreen('welcome');
             
@@ -2869,6 +2874,7 @@
               <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img">
             </div>
             <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
+            <!-- BOTÓN FALTANTE -->
             <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
           </div>
         </div>
