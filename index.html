@@ -1001,7 +1001,7 @@
                     name: "Nuevo Club",
                     court_count: 0,
                     email: window.currentUser.email,
-					phone: "N/A",
+                    phone: "N/A",  // ¡Este campo es obligatorio!
                     status: "active"
                   }
                 ]);
@@ -1539,7 +1539,7 @@
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
-          const phone = document.getElementById('phone-number')?.value;
+          const phone = document.getElementById('phone-number')?.value; // ¡Este campo es obligatorio!
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
@@ -1611,7 +1611,7 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,
+                  phone: phone,  // ¡Este campo es obligatorio!
                   status: "active"
                 }
               ]);
@@ -1644,7 +1644,7 @@
               name: clubName,
               court_count: courts,
               email: email,
-              phone: phone,
+              phone: phone,  // ¡Este campo es obligatorio!
               status: "active"
             };
             
