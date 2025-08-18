@@ -1816,6 +1816,42 @@
           
           // Actualizar estadísticas de jugadores
           await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
+
+          // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
+          try {
+            // Intentar llamar a la función RPC
+            const { error: courtError } = await window.supabase
+              .rpc('increment_court_usage', {
+                p_club_id: window.currentUser.id,
+                p_court: window.selectedCourt
+              });
+            
+            if (courtError) {
+              console.error("Error DETALLADO al actualizar uso de canchas:", {
+                code: courtError.code,
+                message: courtError.message,
+                details: courtError.details,
+                hint: courtError.hint
+              });
+              
+              // Verificar si la tabla court_usage existe
+              const { error: tableCheck } = await window.supabase
+                .from('court_usage')
+                .select('count(*)', { count: 'exact' })
+                .limit(1);
+              
+              if (tableCheck) {
+                window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
+              } else {
+                window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
+              }
+            } else {
+              console.log("Uso de canchas actualizado correctamente");
+            }
+          } catch (error) {
+            console.error("Error CRÍTICO al actualizar uso de canchas:", error);
+            window.showNotification('Error crítico al actualizar uso de canchas.');
+          }
           
           // Mostrar pantalla de finalización
           window.goToScreen('end');
