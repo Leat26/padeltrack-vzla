@@ -1879,76 +1879,77 @@
           window.goToScreen('end');
         };
         
-        // Función para actualizar estadísticas
-        window.updatePlayerStats = async function(winnerTeam) {
-          if (!window.currentUser) return;
-          
-          // Actualizar cada jugador
-          for (const key in window.playersData) {
-            const player = window.playersData[key];
-            if (!player.cedula) continue;
-            
-            // Verificar si el jugador existe
-            const {  existingPlayer, error } = await window.supabase
-              .from('players')
-              .select('matches_played, matches_won')
-              .eq('cedula', player.cedula)
-              .eq('club_id', window.currentUser.id)
-              .single();
-            
-            let newMatchesPlayed = 1;
-            let newMatchesWon = 0;
-            
-            if (existingPlayer) {
-              newMatchesPlayed = existingPlayer.matches_played + 1;
-              if ((winnerTeam === 'teamA' && key[0] === 'A') || 
-                  (winnerTeam === 'teamB' && key[0] === 'B')) {
-                newMatchesWon = existingPlayer.matches_won + 1;
-              } else {
-                newMatchesWon = existingPlayer.matches_won;
-              }
-            } else {
-              if ((winnerTeam === 'teamA' && key[0] === 'A') || 
-                  (winnerTeam === 'teamB' && key[0] === 'B')) {
-                newMatchesWon = 1;
-              }
-            }
-            
-            // Actualizar o crear jugador
-            const { error: updateError } = await window.supabase
-              .from('players')
-              .upsert([
-                {
-                  cedula: player.cedula,
-                  club_id: window.currentUser.id,
-                  first_name: player.firstName,
-                  last_name: player.lastName,
-                  matches_played: newMatchesPlayed,
-                  matches_won: newMatchesWon,
-                  last_match_date: new Date().toISOString() // ⭐⭐⭐ IMPORTANTE
-                }
-              ], {
-                onConflict: 'cedula,club_id'
-              });
-            
-            if (updateError) {
-              console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
-            }
-          }
-          
-          // Actualizar uso de canchas
-          const { error: courtError } = await window.supabase.rpc('increment_court_usage', {
-            p_club_id: window.currentUser.id,
-            p_court: window.selectedCourt
-          });
-          
-          if (courtError) {
-            console.error("Error al actualizar uso de canchas:", courtError);
-          }
-          
-          console.log("Estadísticas actualizadas correctamente");
-          window.loadRanking();
-        };
+		// Función para actualizar estadísticas
+		window.updatePlayerStats = async function(winnerTeam) {
+		if (!window.currentUser) return;
+		
+		// Actualizar cada jugador
+		for (const key in window.playersData) {
+			const player = window.playersData[key];
+			if (!player.cedula) continue;
+			
+			try {
+			// Verificar si el jugador existe
+			const { data: existingPlayer, error } = await window.supabase
+				.from('players')
+				.select('matches_played, matches_won')
+				.eq('cedula', player.cedula)
+				.eq('club_id', window.currentUser.id)
+				.single();
+			
+			if (error && error.code !== 'PGRST116') {  // PGRST116 = no encontrado
+				console.error(`Error al obtener jugador ${player.cedula}:`, error);
+				continue;
+			}
+			
+			// Calcular nuevos valores
+			let newMatchesPlayed = 1;
+			let newMatchesWon = 0;
+			
+			if (existingPlayer) {
+				newMatchesPlayed = existingPlayer.matches_played + 1;
+				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
+					(winnerTeam === 'teamB' && key[0] === 'B')) {
+				newMatchesWon = existingPlayer.matches_won + 1;
+				} else {
+				newMatchesWon = existingPlayer.matches_won;
+				}
+			} else {
+				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
+					(winnerTeam === 'teamB' && key[0] === 'B')) {
+				newMatchesWon = 1;
+				}
+			}
+			
+			// Actualizar o crear jugador
+			const { error: updateError } = await window.supabase
+				.from('players')
+				.upsert([
+				{
+					cedula: player.cedula,
+					club_id: window.currentUser.id,
+					first_name: player.firstName,
+					last_name: player.lastName,
+					matches_played: newMatchesPlayed,
+					matches_won: newMatchesWon,
+					last_match_date: new Date().toISOString()
+				}
+				], {
+				onConflict: 'cedula,club_id'
+				});
+			
+			if (updateError) {
+				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
+			}
+			} catch (error) {
+			console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
+			}
+		}
+		
+		console.log("Estadísticas actualizadas correctamente");
+		window.loadRanking();
+		};
+
         
         // Función para cargar ranking
         window.loadRanking = async function() {
