@@ -1,0 +1,2619 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>PadelTrack - Sistema Profesional</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: url('fondo-cancha.jpg') no-repeat center center fixed;
+      background-size: cover;
+      opacity: 0.95;
+      font-family: 'Montserrat', sans-serif;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+    /* Header */
+    header {
+      position: relative;
+      padding: 20px;
+      text-align: center;
+      font-family: 'Oswald', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    header #logo {
+      cursor: pointer;
+      width: 100%;
+      height: 100px;
+      background: url('logo-padeltrack.png') no-repeat center center;
+      background-size: contain;
+      margin-bottom: 20px;
+    }
+    header .btn-header {
+      position: absolute;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    header .btn-header:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    header .back-btn {
+      left: 20px;
+    }
+    header .logout-btn {
+      right: 20px;
+    }
+    /* Pantallas */
+    .screen {
+      flex: 1;
+      padding: 25px;
+      display: none;
+      overflow-y: auto;
+      text-align: center;
+    }
+    .active {
+      display: block;
+      animation: fadeIn 0.4s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    /* Títulos */
+    h2 {
+      font-size: 24px;
+      color: #016B3A;
+      margin: 15px 0;
+      font-weight: 600;
+    }
+    h3 {
+      font-size: 18px;
+      margin: 10px 0;
+      font-weight: 600;
+    }
+    /* Botones */
+    .btn {
+      background: #016B3A;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      margin: 12px;
+      font-size: 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      width: 85%;
+      max-width: 320px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
+    }
+    .btn:hover {
+      background: #00552E;
+      transform: translateY(-2px);
+    }
+    .btn-blue {
+      background: #1976D2;
+      box-shadow: 0 4px 10px rgba(25, 118, 210, 0.3);
+    }
+    .btn-blue:hover {
+      background: #1565c0;
+    }
+    .btn-red {
+      background: #D32F2F;
+      box-shadow: 0 4px 10px rgba(211, 47, 47, 0.3);
+    }
+    .btn-red:hover {
+      background: #c62828;
+    }
+    .btn-disabled {
+      background: #BDBDBD !important;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .btn-disabled:hover {
+      transform: none;
+      background: #BDBDBD !important;
+    }
+    /* Enlaces */
+    .link {
+      color: #1976D2;
+      font-size: 16px;
+      text-decoration: none;
+      margin-top: 15px;
+      display: inline-block;
+    }
+    .link:hover {
+      text-decoration: underline;
+    }
+    /* Equipos */
+    .teams {
+      display: flex;
+      justify-content: space-around;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .team {
+      flex: 1;
+      min-width: 45%;
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 16px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .team:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    .team.selected {
+      border: 2px solid #016B3A;
+      box-shadow: 0 0 0 4px #E8F5E9;
+    }
+    .team h3 {
+      color: #016B3A;
+      font-weight: 600;
+    }
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .player-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .player-name {
+      display: flex;
+      gap: 5px;
+    }
+    .player-name input {
+      flex: 1;
+    }
+    .cedula-input {
+      position: relative;
+    }
+    .cedula-validation {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+    }
+    .cedula-validation.valid {
+      color: #4CAF50;
+    }
+    .cedula-validation.invalid {
+      color: #D32F2F;
+    }
+    .cedula-validation.loading {
+      color: #1976D2;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: translateY(-50%) rotate(0deg); }
+      100% { transform: translateY(-50%) rotate(360deg); }
+    }
+    /* Marcador */
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: 20px 0;
+      gap: 20px;
+    }
+    .games-score {
+      font-size: 22px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .score {
+      font-size: 70px;
+      font-weight: 700;
+      color: #016B3A;
+      font-family: 'Oswald', sans-serif;
+      transition: all 0.3s ease;
+    }
+    .score.winner {
+      color: #4CAF50;
+      text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+    }
+    .score.loser {
+      color: #D32F2F;
+    }
+    .tiebreak-badge {
+      background: #FFECB3;
+      color: #5D4037;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      display: inline-block;
+      margin: 5px 0;
+    }
+    .sudden-death {
+      background: #FFCCBC;
+      color: #D84315;
+      font-weight: 700;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      margin: 15px 0;
+    }
+    .controls button {
+      font-size: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #016B3A;
+      color: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .controls button:active {
+      transform: scale(0.9);
+    }
+    .timer {
+      font-size: 18px;
+      margin: 15px 0;
+      color: #555;
+      font-weight: 500;
+    }
+    /* Estadísticas */
+    .stats {
+      text-align: left;
+      margin: 20px auto;
+      width: 90%;
+      background: #f8f9fa;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 16px;
+      color: #333;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      line-height: 1.6;
+    }
+    .stats strong {
+      color: #016B3A;
+    }
+    .scoring-badge {
+      background: #E8F5E9;
+      color: #016B3A;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    /* Iconos de equipos */
+    .team-icon {
+      font-size: 20px;
+      margin-right: 5px;
+    }
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 10px;
+    }
+    /* Ayuda */
+    .help-tip {
+      background: #e0e0e0;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-left: 5px;
+      cursor: help;
+      color: #016B3A;
+    }
+    /* Notificación */
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #016B3A;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 30px;
+      font-weight: 600;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .notification.show {
+      opacity: 1;
+    }
+    /* Indicador de modo */
+    .mode-indicator {
+      background: #E3F2FD;
+      border-left: 4px solid #1976D2;
+      padding: 8px 15px;
+      margin: 10px 0;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: #0D47A1;
+      text-align: left;
+    }
+    /* Dashboard */
+    .dashboard-stats {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: #016B3A;
+      color: white;
+      border-radius: 16px;
+      padding: 15px;
+      flex: 1;
+      margin: 0 5px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .dashboard-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .dashboard-actions .btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+    }
+    /* Team name input */
+    .team-name-input {
+      width: 90%;
+      padding: 8px;
+      margin: 10px auto 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      font-style: italic;
+      color: #666;
+    }
+    /* Player status */
+    .player-status {
+      font-size: 12px;
+      margin-top: -5px;
+      margin-bottom: 5px;
+      text-align: left;
+      padding-left: 5%;
+      color: #4CAF50;
+    }
+    /* Error messages */
+    .error-message {
+      color: #D32F2F;
+      font-size: 14px;
+      margin-top: -5px;
+      margin-bottom: 5px;
+      text-align: left;
+      padding-left: 5%;
+      font-weight: 600;
+    }
+    /* Ranking */
+    .ranking-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    .ranking-rank {
+      font-weight: bold;
+      width: 30px;
+      text-align: center;
+    }
+    .ranking-wins {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .ranking-losses {
+      color: #D32F2F;
+    }
+    .win-percentage {
+      background: #E8F5E9;
+      color: #388E3C;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    /* Alertas */
+    .alert {
+      background: #FFF8E1;
+      color: #5D4037;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      text-align: left;
+    }
+    .alert strong {
+      color: #D84315;
+    }
+    /* ================================= */
+    /* =========== RESPONSIVE ========== */
+    /* ================================= */
+    /* Variables para altura en móviles */
+    :root {
+      --vh: 1vh;
+    }
+    /* Ajustes para tablets */
+    @media (max-width: 768px) {
+      .container {
+        border-radius: 20px;
+        height: 95vh;
+      }
+      header {
+        padding: 15px;
+        font-size: 24px;
+      }
+      header #logo {
+        height: 80px;
+      }
+      .screen {
+        padding: 20px 15px;
+      }
+      .btn {
+        margin: 8px 0;
+        width: 90%;
+      }
+      .teams {
+        gap: 10px;
+      }
+      .team {
+        min-width: 48%;
+        padding: 12px;
+      }
+      .player-inputs {
+        gap: 5px;
+      }
+      .scoreboard {
+        gap: 10px;
+      }
+      .score {
+        font-size: 56px;
+      }
+      .controls button {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+      .dashboard-stats {
+        gap: 8px;
+      }
+      .stat-item {
+        padding: 12px;
+      }
+      .stat-value {
+        font-size: 20px;
+      }
+    }
+    /* Ajustes para móviles pequeños */
+    @media (max-width: 480px) {
+      .container {
+        border-radius: 16px;
+        height: 100vh;
+        max-width: 100%;
+        overflow-y: auto;
+      }
+      header {
+        padding: 12px 10px;
+        font-size: 22px;
+      }
+      header #logo {
+        height: 80px;
+      }
+      .screen {
+        padding: 15px 10px;
+        overflow-y: auto;
+      }
+      h2 {
+        font-size: 22px;
+        margin: 12px 0;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .teams {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .team {
+        min-width: 100%;
+        padding: 10px;
+      }
+      input {
+        width: 95%;
+        padding: 8px;
+        font-size: 13px;
+      }
+      .player-inputs {
+        gap: 4px;
+      }
+      .player-name input {
+        font-size: 12px;
+      }
+      .scoreboard {
+        flex-direction: column;
+        gap: 15px;
+      }
+      .score {
+        font-size: 48px;
+      }
+      .games-score {
+        font-size: 18px;
+      }
+      .controls {
+        gap: 15px;
+      }
+      .controls button {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+      }
+      .timer {
+        font-size: 16px;
+      }
+      .stats {
+        width: 95%;
+        font-size: 14px;
+        padding: 12px;
+      }
+      .dashboard-stats {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .stat-item {
+        margin: 5px 0;
+      }
+      .ranking-item {
+        padding: 8px 0;
+      }
+      .footer {
+        font-size: 11px;
+      }
+      .help-tip {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+      }
+      .mode-indicator {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+      .scoring-badge {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      .tiebreak-badge {
+        font-size: 12px;
+        padding: 2px 6px;
+      }
+      .player-status, .error-message {
+        font-size: 11px;
+      }
+      .win-percentage {
+        font-size: 10px;
+        padding: 1px 6px;
+      }
+    }
+    /* Para pantallas en modo horizontal en móviles */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .container {
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .screen {
+        overflow-y: auto;
+        padding-bottom: 50px;
+      }
+      .scoreboard {
+        flex-direction: row;
+        gap: 5px;
+      }
+      .score {
+        font-size: 36px;
+      }
+      .games-score {
+        font-size: 16px;
+      }
+      .controls {
+        gap: 5px;
+      }
+      .controls button {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+      }
+      .timer {
+        font-size: 14px;
+      }
+      .btn {
+        margin: 5px 0;
+        padding: 8px 15px;
+        font-size: 14px;
+      }
+      .teams {
+        gap: 5px;
+      }
+      .team {
+        padding: 8px;
+      }
+      input {
+        padding: 6px;
+        font-size: 12px;
+      }
+      .footer {
+        display: none;
+      }
+    }
+    /* Para pantallas muy pequeñas */
+    @media (max-height: 400px) {
+      .container {
+        height: 100vh !important;
+      }
+      .score {
+        font-size: 32px;
+      }
+      .games-score {
+        font-size: 14px;
+      }
+      .controls button {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+      }
+      .footer {
+        display: none;
+      }
+      .btn {
+        margin: 4px 0;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .teams {
+        gap: 4px;
+      }
+      .team {
+        padding: 6px;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 8px 0;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 6px 0;
+      }
+    }
+    /* Scroll suave en móviles */
+    .screen {
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Evitar el zoom al enfocar inputs en iOS */
+    input:focus {
+      font-size: 16px !important;
+    }
+    /* Mejorar la experiencia táctil */
+    .btn:active, .team:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    /* Ajustar altura del contenedor en móviles */
+    .container {
+      height: calc(var(--vh, 1vh) * 100);
+    }
+  </style>
+  <!-- Carga SIMPLE del SDK de Supabase (funciona en Vercel) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Inicialización SIMPLE de Supabase (¡funciona en Vercel!)
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log("Inicializando aplicación con Supabase...");
+      
+      // Configuración de Supabase (REEMPLAZA CON TUS CREDENCIALES)
+        const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg';
+      
+      try {
+        // Forma CORRECTA de inicializar Supabase
+        const { createClient } = supabase;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        window.supabase = supabase;
+        
+        console.log("Supabase client creado exitosamente");
+        
+        // Variables globales
+        window.currentUser = null;
+        window.currentClub = null;
+        window.selectedCourt = "Cancha 1";
+        window.scoringType = null;
+        window.scoreA = 0;
+        window.scoreB = 0;
+        window.gamesA = 0;
+        window.gamesB = 0;
+        window.inTiebreak = false;
+        window.tiebreakPointsA = 0;
+        window.tiebreakPointsB = 0;
+        window.seconds = 0;
+        window.interval = null;
+        window.gameDuration = "00:00";
+        window.teamNames = {
+          teamA: "Equipo A",
+          teamB: "Equipo B"
+        };
+        window.playersData = {
+          'A1': { cedula: '', firstName: '', lastName: '', exists: false },
+          'A2': { cedula: '', firstName: '', lastName: '', exists: false },
+          'B1': { cedula: '', firstName: '', lastName: '', exists: false },
+          'B2': { cedula: '', firstName: '', lastName: '', exists: false }
+        };
+        
+        // Función utilitaria para convertir valores a números seguros
+        window.safeNumber = function(value, defaultValue = 0) {
+          if (value === undefined || value === null) return defaultValue;
+          const num = typeof value === 'string' ? parseInt(value) : value;
+          return isNaN(num) || num < 0 ? defaultValue : num;
+        };
+        
+        // Mostrar notificación
+        window.showNotification = function(message) {
+          const notification = document.getElementById('notification');
+          if (!notification) return;
+          
+          notification.textContent = message;
+          notification.classList.add('show');
+          
+          setTimeout(() => {
+            notification.classList.remove('show');
+          }, 3000);
+        };
+        
+        // Navegación entre pantallas
+        window.goToScreen = function(id) {
+          // Si intenta acceder a pantallas protegidas sin estar autenticado
+          const protectedScreens = ['home', 'scoring-type', 'register', 'game', 'end', 'ranking', 'dashboard'];
+          if (protectedScreens.includes(id) && !window.currentUser && id !== 'home') {
+            showNotification('Por favor, inicia sesión primero');
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('login').classList.add('active');
+            return;
+          }
+          
+          document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+          document.getElementById(id).classList.add('active');
+          
+          // Si es la pantalla de inicio, actualizar con los datos del club
+          if (id === 'home' && window.currentClub) {
+            window.updateHomeScreen();
+          }
+          
+          // Reiniciar marcador al salir
+          if (id !== 'game' && window.interval) {
+            clearInterval(window.interval);
+            window.interval = null;
+          }
+          
+          // Si es el dashboard, cargar datos
+          if (id === 'dashboard' && window.currentUser && window.currentClub) {
+            window.loadDashboard();
+          }
+          
+          // Actualizar nombres de equipos en el marcador
+          if (id === 'game') {
+            window.updateTeamNamesDisplay();
+          }
+          
+          // Si es registro, resetear validaciones
+          if (id === 'register') {
+            window.resetPlayerValidation();
+          }
+          
+          // Si es ranking, cargar ranking
+          if (id === 'ranking') {
+            // Mostrar estado de carga inicial
+            const rankingList = document.getElementById('ranking-list');
+            if (rankingList) {
+              rankingList.innerHTML = '<p>Cargando ranking...</p>';
+            }
+            // Cargar ranking después de un breve retraso
+            setTimeout(window.loadRanking, 100);
+          }
+          
+          // Asegurar que el scroll esté en la parte superior
+          const screen = document.getElementById(id);
+          if (screen) {
+            screen.scrollTop = 0;
+          }
+        };
+        
+        // Actualizar la pantalla de inicio con los datos del club
+        window.updateHomeScreen = async function() {
+          if (!window.currentUser) return;
+          
+          // Mostrar estado de carga inicial
+          const clubNameDisplay = document.getElementById('club-name-display');
+          const canchasStatus = document.getElementById('canchas-status');
+          const courtsContainer = document.getElementById('courts-container');
+          
+          if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
+          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
+          if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
+          
+          // Obtener los datos del club desde Supabase
+          const { data, error } = await window.supabase
+            .from('clubs')
+            .select('*')
+            .eq('id', window.currentUser.id)
+            .single();
+          
+          if (error) {
+            console.error("Error al obtener datos del club:", error);
+            if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+            if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.code}`;
+            if (courtsContainer) courtsContainer.innerHTML = `
+              <div class="alert" style="margin: 20px auto; width: 90%;">
+                <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${error.message}
+              </div>
+              <button class="btn btn-blue" onclick="window.updateHomeScreen()">
+                <i class="fas fa-sync"></i> Reintentar
+              </button>
+            `;
+            return;
+          }
+          
+          if (data) {
+            const clubData = data;
+            const clubName = clubData.name || "Club";
+            const courtCount = window.safeNumber(clubData.court_count, 0);
+            
+            // Actualizar nombre del club
+            if (clubNameDisplay) clubNameDisplay.textContent = clubName;
+            
+            // Almacenar los datos del club
+            window.currentClub = clubData;
+            
+            // Actualizar estado de canchas
+            if (courtCount <= 0) {
+              if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
+              // Mensaje específico para 0 canchas
+              if (courtsContainer) courtsContainer.innerHTML = `
+                <div class="alert" style="margin: 20px auto; width: 90%;">
+                  <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
+                </div>
+                <button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
+                  <i class="fas fa-cog"></i> Configurar canchas
+                </button>
+              `;
+            } else {
+              // Mostrar cantidad correcta de canchas
+              if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
+              // Generar botones de canchas
+              if (courtsContainer) {
+                courtsContainer.innerHTML = '';
+                for (let i = 1; i <= courtCount; i++) {
+                  const courtBtn = document.createElement('button');
+                  courtBtn.className = 'btn';
+                  courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
+                  courtBtn.onclick = function() {
+                    window.selectedCourt = `Cancha ${i}`;
+                    window.goToScreen('scoring-type');
+                  };
+                  courtsContainer.appendChild(courtBtn);
+                }
+              }
+            }
+          } else {
+            // El club no existe (caso improbable con Supabase)
+            if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+            if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
+            if (courtsContainer) courtsContainer.innerHTML = `
+              <div class="alert" style="margin: 20px auto; width: 90%;">
+                <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró información del club.
+              </div>
+            `;
+          }
+        };
+        
+        // Actualizar nombres de equipos en el marcador
+        window.updateTeamNamesDisplay = function() {
+          const teamAName = document.getElementById('teamA-name')?.value;
+          const teamBName = document.getElementById('teamB-name')?.value;
+          window.teamNames.teamA = teamAName || "Equipo A";
+          window.teamNames.teamB = teamBName || "Equipo B";
+          
+          const teamAElement = document.getElementById('teamA-display');
+          const teamBElement = document.getElementById('teamB-display');
+          
+          if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
+          if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
+        };
+        
+        // Seleccionar sistema de puntuación
+        window.selectScoring = function(type) {
+          window.scoringType = type;
+          // Resaltar selección
+          const traditionalOption = document.getElementById('traditional-option');
+          const americanOption = document.getElementById('american-option');
+          
+          if (traditionalOption) traditionalOption.classList.remove('selected');
+          if (americanOption) americanOption.classList.remove('selected');
+          
+          if (type === 'traditional' && traditionalOption) {
+            traditionalOption.classList.add('selected');
+          } else if (americanOption) {
+            americanOption.classList.add('selected');
+          }
+          
+          // Actualizar interfaz
+          const btn = document.getElementById('continue-btn');
+          if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('btn-disabled');
+            btn.innerHTML = '<i class="fas fa-play"></i> Continuar';
+          }
+          
+          // Actualizar indicadores
+          const indicator = document.getElementById('scoring-indicator');
+          const modeDesc = document.getElementById('mode-description');
+          
+          if (indicator && modeDesc) {
+            if (type === 'traditional') {
+              indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Tradicional';
+              modeDesc.textContent = 'Sistema oficial de pádel: Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5)';
+            } else {
+              indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Americano';
+              modeDesc.textContent = 'Sistema venezolano: Puntos acumulativos hasta 16 entre ambos equipos. En 8-8 se juega tiebreak a 7 puntos.';
+            }
+          }
+        };
+        
+        // Continuar al registro
+        window.goToRegister = function() {
+          if (!window.scoringType) return;
+          window.goToScreen('register');
+        };
+        
+        // Convertir puntuación según sistema
+        window.getDisplayScore = function(points) {
+          if (window.scoringType === 'traditional' && !window.inTiebreak) {
+            const traditionalPoints = ['0', '15', '30', '40', 'Game'];
+            return traditionalPoints[points] || 'Game';
+          }
+          return points; // Modo americano o tiebreak
+        };
+        
+        // Actualizar marcador visual
+        window.updateScoreboard = function() {
+          // Actualizar juegos ganados
+          const gamesAElement = document.getElementById('gamesA');
+          const gamesBElement = document.getElementById('gamesB');
+          
+          if (gamesAElement) gamesAElement.textContent = window.gamesA;
+          if (gamesBElement) gamesBElement.textContent = window.gamesB;
+          
+          // Actualizar puntos actuales
+          if (window.inTiebreak) {
+            const scoreAElement = document.getElementById('scoreA');
+            const scoreBElement = document.getElementById('scoreB');
+            
+            if (scoreAElement) scoreAElement.textContent = window.tiebreakPointsA;
+            if (scoreBElement) scoreBElement.textContent = window.tiebreakPointsB;
+            
+            if (scoreAElement) scoreAElement.style.color = '#016B3A';
+            if (scoreBElement) scoreBElement.style.color = '#016B3A';
+            
+            // Mostrar notificación de tiebreak
+            const tiebreakNotification = document.getElementById('tiebreak-notification');
+            if (tiebreakNotification) tiebreakNotification.style.display = 'block';
+          } else {
+            const scoreAElement = document.getElementById('scoreA');
+            const scoreBElement = document.getElementById('scoreB');
+            
+            if (scoreAElement) scoreAElement.textContent = window.getDisplayScore(window.scoreA);
+            if (scoreBElement) scoreBElement.textContent = window.getDisplayScore(window.scoreB);
+            
+            if (scoreAElement) scoreAElement.style.color = '#D32F2F';
+            if (scoreBElement) scoreBElement.style.color = '#1976D2';
+            
+            const tiebreakNotification = document.getElementById('tiebreak-notification');
+            if (tiebreakNotification) tiebreakNotification.style.display = 'none';
+          }
+          
+          // Resaltar ganador temporal
+          if (window.scoringType === 'american') {
+            // En modo americano, resaltar cuando hay ventaja
+            const scoreAElement = document.getElementById('scoreA');
+            const scoreBElement = document.getElementById('scoreB');
+            
+            if (window.scoreA > window.scoreB) {
+              if (scoreAElement) scoreAElement.classList.add('winner');
+              if (scoreBElement) scoreBElement.classList.add('loser');
+            } else if (window.scoreB > window.scoreA) {
+              if (scoreAElement) scoreAElement.classList.add('loser');
+              if (scoreBElement) scoreBElement.classList.add('winner');
+            } else {
+              if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
+              if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
+            }
+          } else if (window.scoringType === 'traditional') {
+            // Resaltar juegos ganados
+            const gamesAElement = document.getElementById('gamesA');
+            const gamesBElement = document.getElementById('gamesB');
+            
+            if (window.gamesA > window.gamesB) {
+              if (gamesAElement) gamesAElement.style.color = '#4CAF50';
+              if (gamesBElement) gamesBElement.style.color = '#D32F2F';
+            } else if (window.gamesB > window.gamesA) {
+              if (gamesAElement) gamesAElement.style.color = '#D32F2F';
+              if (gamesBElement) gamesBElement.style.color = '#4CAF50';
+            } else {
+              if (gamesAElement) gamesAElement.style.color = '#666';
+              if (gamesBElement) gamesBElement.style.color = '#666';
+            }
+          }
+        };
+        
+        // Manejar puntos en modo tradicional
+        window.addTraditionalPoint = function(team) {
+          // Si ya está en tiebreak, manejar puntos de tiebreak
+          if (window.inTiebreak) {
+            // Tiebreak: puntos acumulativos hasta 7 con diferencia de 2
+            if (team === 'A') window.tiebreakPointsA++;
+            else window.tiebreakPointsB++;
+            // Verificar si termina el tiebreak
+            const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
+            if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
+              if (window.tiebreakPointsA > window.tiebreakPointsB) {
+                window.gamesA = 7;
+                window.gamesB = 6;
+              } else {
+                window.gamesA = 6;
+                window.gamesB = 7;
+              }
+              window.finalizeGame();
+            }
+            window.updateScoreboard();
+            return;
+          }
+          // Modo tradicional: puntos dentro del juego
+          if (team === 'A') window.scoreA++;
+          else window.scoreB++;
+          // Verificar si termina el juego
+          const diff = Math.abs(window.scoreA - window.scoreB);
+          if ((window.scoreA >= 4 || window.scoreB >= 4) && diff >= 2) {
+            // Juego ganado
+            if (team === 'A') window.gamesA++;
+            else window.gamesB++;
+            // Reiniciar puntos del juego
+            window.scoreA = 0;
+            window.scoreB = 0;
+            // Verificar si termina el set con las reglas CORRECTAS
+            const minWinGames = 6;
+            const maxGame = 7;
+            const minDiff = 2;
+            // Caso 1: Gana con 6 juegos (6-0, 6-1, 6-2, 6-3, 6-4)
+            if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) || 
+                (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
+              window.finalizeGame();
+              return;
+            } 
+            // Caso 2: Gana con 7 juegos (7-5)
+            else if ((window.gamesA === maxGame && window.gamesB === maxGame - minDiff) || 
+                     (window.gamesB === maxGame && window.gamesA === maxGame - minDiff)) {
+              window.finalizeGame();
+              return;
+            }
+            // Caso 3: Empate a 6-6 - activar tiebreak
+            else if (window.gamesA === 6 && window.gamesB === 6) {
+              window.inTiebreak = true;
+              window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+            }
+          }
+          window.updateScoreboard();
+        };
+        
+        // Manejar puntos en modo americano
+        window.addAmericanPoint = function(team) {
+          // Si estamos en tiebreak
+          if (window.inTiebreak) {
+            // Manejar puntos de tiebreak
+            if (team === 'A') window.tiebreakPointsA++;
+            else window.tiebreakPointsB++;
+            // Verificar si termina el tiebreak
+            const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
+            if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
+              // El ganador del tiebreak gana el partido
+              window.finalizeGame();
+            }
+            window.updateScoreboard();
+            return;
+          }
+          // Modo normal
+          if (team === 'A') window.scoreA++;
+          else window.scoreB++;
+          // Calcular puntos totales acumulados
+          const totalPoints = window.scoreA + window.scoreB;
+          // Verificar si termina el juego normal (16 puntos acumulados)
+          if (totalPoints === 16) {
+            window.finalizeGame();
+            return;
+          }
+          // Verificar si empieza el tiebreak (8-8)
+          if (window.scoreA === 8 && window.scoreB === 8) {
+            window.inTiebreak = true;
+            window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+          }
+          window.updateScoreboard();
+        };
+        
+        // Manejar puntos
+        window.addPoint = function(team) {
+          if (window.scoringType === 'traditional') {
+            window.addTraditionalPoint(team);
+          } else {
+            window.addAmericanPoint(team);
+          }
+        };
+        
+        window.subPoint = function(team) {
+          if (window.scoringType === 'traditional') {
+            if (window.inTiebreak) {
+              // Restar puntos en tiebreak tradicional
+              if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
+              if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
+            } else {
+              // Restar puntos en modo tradicional
+              if (team === 'A' && window.scoreA > 0) window.scoreA--;
+              if (team === 'B' && window.scoreB > 0) window.scoreB--;
+            }
+          } else {
+            // Modo americano
+            if (window.inTiebreak) {
+              // Restar puntos en tiebreak americano
+              if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
+              if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
+            } else {
+              // Restar puntos en modo americano normal
+              if ((team === 'A' && window.scoreA > 0) || (team === 'B' && window.scoreB > 0)) {
+                if (team === 'A') window.scoreA--;
+                else window.scoreB--;
+              }
+            }
+          }
+          // Limpiar clases de ganador
+          const scoreAElement = document.getElementById('scoreA');
+          const scoreBElement = document.getElementById('scoreB');
+          
+          if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
+          if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
+          
+          window.updateScoreboard();
+        };
+        
+        // Temporizador
+        const gameScreen = document.getElementById('game');
+        if (gameScreen) {
+          gameScreen.addEventListener('click', function() {
+            if (!window.interval) {
+              window.interval = setInterval(() => {
+                window.seconds++;
+                const mins = Math.floor(window.seconds / 60).toString().padStart(2, '0');
+                const secs = (window.seconds % 60).toString().padStart(2, '0');
+                const timerElement = document.getElementById('timer');
+                if (timerElement) {
+                  timerElement.textContent = `${mins}:${secs}`;
+                }
+                window.gameDuration = `${mins}m ${secs}s`;
+              }, 1000);
+            }
+          });
+        }
+        
+        // Validar formato de cédula venezolana
+        window.validateCedulaFormat = function(cedula) {
+          // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
+          const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
+          return cedulaRegex.test(cedula);
+        };
+        
+        // Validar cédula (buscar en Supabase)
+        window.validateCedula = async function(input) {
+          let cedula = input.value.trim();
+          const team = input.dataset.team;
+          const player = input.dataset.player;
+          const id = team + player;
+          
+          // Limpiar validación previa
+          const statusElement = document.getElementById(`cedula-status-${id}`);
+          const playerStatusElement = document.getElementById(`player-status-${id}`);
+          const errorElement = document.getElementById(`error-${id}`);
+          
+          if (statusElement) statusElement.innerHTML = '';
+          if (playerStatusElement) playerStatusElement.textContent = '';
+          if (errorElement) errorElement.style.display = 'none';
+          
+          // Si está vacío, no validar
+          if (!cedula) return;
+          
+          // Asegurar que la cédula esté en mayúsculas
+          cedula = cedula.toUpperCase();
+          input.value = cedula;
+          
+          // Validar formato
+          if (!window.validateCedulaFormat(cedula)) {
+            if (statusElement) {
+              statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+              statusElement.className = 'cedula-validation invalid';
+            }
+            if (playerStatusElement) {
+              playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
+            }
+            return;
+          }
+          
+          // Mostrar estado de carga
+          if (statusElement) {
+            statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
+            statusElement.className = 'cedula-validation loading';
+          }
+          
+          // Buscar en Supabase (solo en el club actual)
+          const { data, error } = await window.supabase
+            .from('players')
+            .select('*')
+            .eq('cedula', cedula)
+            .eq('club_id', window.currentUser.id)
+            .single();
+          
+          if (error) {
+            if (error.code === 'PGRST116') {  // No se encontraron resultados
+              // Nuevo jugador PARA ESTE CLUB
+              if (statusElement) {
+                statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
+                statusElement.className = 'cedula-validation valid';
+              }
+              if (playerStatusElement) {
+                playerStatusElement.textContent = 'Nuevo jugador en este club';
+              }
+              
+              // Habilitar campos de nombre y apellido
+              const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+              const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+              
+              if (firstNameInput) firstNameInput.disabled = false;
+              if (lastNameInput) lastNameInput.disabled = false;
+              
+              // Guardar datos
+              window.playersData[id] = {
+                cedula: cedula,
+                firstName: '',
+                lastName: '',
+                exists: false
+              };
+            } else {
+              console.error("Error al validar cédula:", error);
+              if (statusElement) {
+                statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+                statusElement.className = 'cedula-validation invalid';
+              }
+              if (playerStatusElement) {
+                playerStatusElement.textContent = 'Error al verificar';
+              }
+            }
+          } else {
+            // Jugador existe EN ESTE CLUB
+            if (statusElement) {
+              statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+              statusElement.className = 'cedula-validation valid';
+            }
+            if (playerStatusElement) {
+              playerStatusElement.textContent = 'Jugador existente en este club';
+            }
+            
+            // Rellenar nombre y apellido
+            const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+            const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+            
+            if (firstNameInput) firstNameInput.value = data.first_name;
+            if (lastNameInput) lastNameInput.value = data.last_name;
+            if (firstNameInput) firstNameInput.disabled = true;
+            if (lastNameInput) lastNameInput.disabled = true;
+            
+            // Guardar datos
+            window.playersData[id] = {
+              cedula: cedula,
+              firstName: data.first_name,
+              lastName: data.last_name,
+              exists: true
+            };
+          }
+        };
+        
+        // Resetear validación de jugadores
+        window.resetPlayerValidation = function() {
+          Object.keys(window.playersData).forEach(key => {
+            window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
+          });
+          // Limpiar campos
+          document.querySelectorAll('.cedula').forEach(input => {
+            input.value = '';
+            const id = input.dataset.team + input.dataset.player;
+            const statusElement = document.getElementById(`cedula-status-${id}`);
+            const playerStatusElement = document.getElementById(`player-status-${id}`);
+            const errorElement = document.getElementById(`error-${id}`);
+            
+            if (statusElement) statusElement.innerHTML = '';
+            if (playerStatusElement) playerStatusElement.textContent = '';
+            if (errorElement) errorElement.style.display = 'none';
+          });
+          // Deshabilitar campos de nombre y apellido
+          document.querySelectorAll('.first-name, .last-name').forEach(input => {
+            input.value = '';
+            input.disabled = true;
+          });
+        };
+        
+        // Validar formato del RIF venezolano
+        window.validateRifFormat = function(rif) {
+          // Formato RIF venezolano: J-12345678-9
+          const rifRegex = /^[Jj]-\d{8}-\d$/;
+          return rifRegex.test(rif);
+        };
+        
+        // Función para registrar un nuevo club
+        window.registerClub = async function() {
+          const clubName = document.getElementById('club-name')?.value;
+          let clubRif = document.getElementById('club-rif')?.value.trim();
+          const courtCount = document.getElementById('court-count')?.value;
+          const email = document.getElementById('register-email')?.value;
+          const phone = document.getElementById('phone-number')?.value;
+          const password = document.getElementById('register-password')?.value;
+          const confirmPassword = document.getElementById('register-confirm')?.value;
+          
+          // Validar campos requeridos
+          if (!clubName || !clubRif || !courtCount || !email || !phone || !password || !confirmPassword) {
+            window.showNotification('Por favor, completa todos los campos');
+            return;
+          }
+          
+          // Asegurar que el RIF esté en mayúsculas
+          clubRif = clubRif.toUpperCase();
+          if (document.getElementById('club-rif')) {
+            document.getElementById('club-rif').value = clubRif;
+          }
+          
+          // Validar formato del RIF
+          if (!window.validateRifFormat(clubRif)) {
+            window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
+            return;
+          }
+          
+          // Validar cantidad de canchas
+          const courts = parseInt(courtCount);
+          if (isNaN(courts) || courts < 1 || courts > 20) {
+            window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
+            return;
+          }
+          
+          // Validar contraseñas
+          if (password !== confirmPassword) {
+            window.showNotification('Las contraseñas no coinciden');
+            return;
+          }
+          
+          // Validar longitud de contraseña
+          if (password.length < 6) {
+            window.showNotification('La contraseña debe tener al menos 6 caracteres');
+            return;
+          }
+          
+          // Registrar usuario en Supabase Auth
+          const { data, error } = await window.supabase.auth.signUp({
+            email: email,
+            password: password
+          });
+          
+          if (error) {
+            if (error.message.includes('email already exists')) {
+              window.showNotification('Este correo electrónico ya está registrado');
+            } else {
+              window.showNotification(`Error: ${error.message}`);
+            }
+            return;
+          }
+          
+          if (!data.user) {
+            window.showNotification('Verifica tu correo electrónico');
+            return;
+          }
+          
+          // Crear club en la tabla clubs
+          const { error: clubError } = await window.supabase
+            .from('clubs')
+            .insert([
+              {
+                id: data.user.id,  // Usamos el UUID de Auth como ID
+                rif: clubRif,
+                name: clubName,
+                court_count: courts,
+                email: email,
+                phone: phone,
+                status: "active"
+              }
+            ]);
+          
+          if (clubError) {
+            // Si el RIF ya existe (error de unicidad)
+            if (clubError.code === '23505') {  // Código de error de PostgreSQL para unicidad
+              window.showNotification('Este RIF ya está registrado');
+            } else {
+              window.showNotification(`Error al registrar club: ${clubError.message}`);
+            }
+            return;
+          }
+          
+          window.showNotification('¡Club registrado exitosamente!');
+          window.goToScreen('home');
+        };
+        
+        // Iniciar sesión
+        window.loginUser = async function() {
+          const email = document.getElementById('login-email')?.value;
+          const password = document.getElementById('login-password')?.value;
+          
+          const { data, error } = await window.supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+          });
+          
+          if (error) {
+            window.showNotification(`Error: ${error.message}`);
+            return;
+          }
+          
+          window.currentUser = data.user;
+          window.showNotification('¡Inicio de sesión exitoso!');
+          window.goToScreen('home');
+        };
+        
+        // Restablecer contraseña
+        window.resetPassword = async function() {
+          const email = document.getElementById('login-email')?.value;
+          
+          if (!email) {
+            window.showNotification('Por favor, ingresa tu correo electrónico');
+            return;
+          }
+          
+          const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: 'https://tu-dominio.com/reset-password'
+          });
+          
+          if (error) {
+            window.showNotification(`Error: ${error.message}`);
+          } else {
+            window.showNotification('Revisa tu correo para restablecer tu contraseña');
+          }
+        };
+        
+        // Cerrar sesión
+        window.logoutUser = async function() {
+          const { error } = await window.supabase.auth.signOut();
+          
+          if (error) {
+            window.showNotification(`Error al cerrar sesión: ${error.message}`);
+          } else {
+            window.currentUser = null;
+            window.currentClub = null;
+            window.showNotification('¡Sesión cerrada exitosamente!');
+            window.goToScreen('login');
+          }
+        };
+        
+        // Función para registrar jugadores
+        window.startGame = async function() {
+          // Validar que todos los jugadores tengan datos completos
+          const missingData = [];
+          Object.keys(window.playersData).forEach(key => {
+            const data = window.playersData[key];
+            if (!data.cedula) {
+              missingData.push(`Jugador ${key}`);
+            } else if (!data.exists && (!data.firstName || !data.lastName)) {
+              const firstName = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
+              const lastName = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
+              if (!firstName || !lastName) {
+                missingData.push(`Jugador ${key}`);
+              }
+            }
+          });
+          
+          if (missingData.length > 0) {
+            window.showNotification(`Faltan datos de: ${missingData.join(', ')}`);
+            return;
+          }
+          
+          if (!window.currentUser) {
+            window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
+            window.goToScreen('login');
+            return;
+          }
+          
+          // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
+          for (const key in window.playersData) {
+            const player = window.playersData[key];
+            if (player.exists) continue; // Ya existe en este club
+            
+            const firstName = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
+            const lastName = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`)?.value;
+            
+            // Intentar insertar el jugador (cedula + club_id debe ser único)
+            const { error: insertError } = await window.supabase
+              .from('players')
+              .insert([
+                {
+                  club_id: window.currentUser.id,
+                  cedula: player.cedula,
+                  first_name: firstName,
+                  last_name: lastName,
+                  matches_played: 0,
+                  matches_won: 0
+                }
+              ]);
+            
+            if (insertError) {
+              // Manejar error de unicidad (esto no debería ocurrir por nuestra validación previa)
+              if (insertError.code === '23505') {
+                console.error("Error de unicidad inesperado:", insertError);
+              } else {
+                console.error("Error al registrar jugador:", insertError);
+                window.showNotification(`Error al registrar ${firstName} ${lastName}`);
+                return;
+              }
+            }
+          }
+          
+          // Continuar al marcador
+          window.goToScreen('game');
+        };
+        
+        // Función para finalizar partido
+        window.finalizeGame = async function() {
+          if (!window.currentUser) {
+            window.showNotification('Por favor, inicia sesión primero');
+            window.goToScreen('login');
+            return;
+          }
+          
+          // Determinar ganador
+          let winner = '';
+          if (window.scoringType === 'traditional') {
+            if (window.inTiebreak) {
+              winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
+            } else {
+              winner = window.gamesA > window.gamesB ? 'A' : 'B';
+            }
+          } else {
+            if (window.inTiebreak) {
+              winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
+            } else {
+              winner = window.scoreA > window.scoreB ? 'A' : 'B';
+            }
+          }
+          
+          // Actualizar pantalla de finalización
+          const resultTitle = document.getElementById('result-title');
+          if (resultTitle) {
+            resultTitle.innerHTML = 
+              `<i class="fas fa-trophy"></i> ¡${winner === 'A' ? window.teamNames.teamA : window.teamNames.teamB} se lleva la victoria!`;
+          }
+          
+          // Calcular puntajes según sistema
+          let gamesAVal = 0, gamesBVal = 0, pointsAVal = 0, pointsBVal = 0;
+          if (window.scoringType === 'traditional') {
+            gamesAVal = window.gamesA;
+            gamesBVal = window.gamesB;
+            pointsAVal = window.inTiebreak ? window.tiebreakPointsA : 0;
+            pointsBVal = window.inTiebreak ? window.tiebreakPointsB : 0;
+          } else {
+            pointsAVal = window.inTiebreak ? window.tiebreakPointsA : window.scoreA;
+            pointsBVal = window.inTiebreak ? window.tiebreakPointsB : window.scoreB;
+          }
+          
+          const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
+          const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
+          
+          // Guardar en Supabase
+          const { error } = await window.supabase
+            .from('matches')
+            .insert([
+              {
+                club_id: window.currentUser.id,
+                court: window.selectedCourt,
+                scoring_type: window.scoringType,
+                team_a_name: teamAName,
+                team_b_name: teamBName,
+                winner: winner === 'A' ? 'teamA' : 'teamB',
+                games_a: gamesAVal,
+                games_b: gamesBVal,
+                points_a: pointsAVal,
+                points_b: pointsBVal,
+                tiebreak: window.inTiebreak,
+                duration: window.gameDuration
+              }
+            ]);
+          
+          if (error) {
+            console.error("Error al guardar partido: ", error);
+            window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
+            window.goToScreen('end');
+            return;
+          }
+          
+          // Actualizar estadísticas de jugadores
+          await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
+          
+          // Mostrar pantalla de finalización
+          window.goToScreen('end');
+        };
+        
+        // Función para actualizar estadísticas
+        window.updatePlayerStats = async function(winnerTeam) {
+          if (!window.currentUser) return;
+          
+          // Actualizar cada jugador
+          for (const key in window.playersData) {
+            const player = window.playersData[key];
+            if (!player.cedula) continue;
+            
+            // Verificar si el jugador existe
+            const {  existingPlayer, error } = await window.supabase
+              .from('players')
+              .select('matches_played, matches_won')
+              .eq('cedula', player.cedula)
+              .eq('club_id', window.currentUser.id)
+              .single();
+            
+            let newMatchesPlayed = 1;
+            let newMatchesWon = 0;
+            
+            if (existingPlayer) {
+              newMatchesPlayed = existingPlayer.matches_played + 1;
+              if ((winnerTeam === 'teamA' && key[0] === 'A') || 
+                  (winnerTeam === 'teamB' && key[0] === 'B')) {
+                newMatchesWon = existingPlayer.matches_won + 1;
+              } else {
+                newMatchesWon = existingPlayer.matches_won;
+              }
+            } else {
+              if ((winnerTeam === 'teamA' && key[0] === 'A') || 
+                  (winnerTeam === 'teamB' && key[0] === 'B')) {
+                newMatchesWon = 1;
+              }
+            }
+            
+            // Actualizar o crear jugador
+            const { error: updateError } = await window.supabase
+              .from('players')
+              .upsert([
+                {
+                  cedula: player.cedula,
+                  club_id: window.currentUser.id,
+                  first_name: player.firstName,
+                  last_name: player.lastName,
+                  matches_played: newMatchesPlayed,
+                  matches_won: newMatchesWon,
+                  last_match_date: new Date().toISOString()
+                }
+              ], {
+                onConflict: 'cedula,club_id'
+              });
+            
+            if (updateError) {
+              console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
+            }
+          }
+          
+          // Actualizar uso de canchas
+          const { error: courtError } = await window.supabase.rpc('increment_court_usage', {
+            p_club_id: window.currentUser.id,
+            p_court: window.selectedCourt
+          });
+          
+          if (courtError) {
+            console.error("Error al actualizar uso de canchas:", courtError);
+          }
+          
+          console.log("Estadísticas actualizadas correctamente");
+          window.loadRanking();
+        };
+        
+        // Función para cargar ranking
+        window.loadRanking = async function() {
+          if (!window.currentUser) {
+            const rankingList = document.getElementById('ranking-list');
+            if (rankingList) {
+              rankingList.innerHTML = `
+                <div class="alert">
+                  <i class="fas fa-exclamation-circle"></i> 
+                  <strong>Error:</strong> Por favor, inicia sesión primero
+                </div>
+              `;
+            }
+            return;
+          }
+          
+          // Mostrar mensaje de carga
+          const rankingList = document.getElementById('ranking-list');
+          if (rankingList) {
+            rankingList.innerHTML = `
+              <p style="display: flex; align-items: center; justify-content: center; height: 60px;">
+                <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Cargando ranking...
+              </p>
+            `;
+          }
+          
+          // Consulta a Supabase
+          const { data, error } = await window.supabase
+            .from('players')
+            .select('*')
+            .eq('club_id', window.currentUser.id)
+            .order('matches_won', { ascending: false })
+            .limit(10);
+          
+          if (error) {
+            console.error("Error al cargar ranking:", error);
+            if (rankingList) {
+              rankingList.innerHTML = `
+                <div class="alert" style="margin: 15px 0;">
+                  <i class="fas fa-exclamation-circle"></i> 
+                  <strong>Error al cargar ranking: ${error.message}</strong>
+                </div>
+              `;
+            }
+            return;
+          }
+          
+          if (!data || data.length === 0) {
+            if (rankingList) {
+              rankingList.innerHTML = `
+                <p style="text-align: center; padding: 15px; color: #666;">
+                  <i class="fas fa-user-friends" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>
+                  No hay jugadores registrados en tu club
+                </p>
+              `;
+            }
+            return;
+          }
+          
+          // Generar HTML del ranking
+          let html = '';
+          let rank = 1;
+          data.forEach(player => {
+            const matchesPlayed = player.matches_played || 0;
+            const matchesWon = player.matches_won || 0;
+            const winPercentage = matchesPlayed > 0 ? 
+              Math.round((matchesWon / matchesPlayed) * 100) : 0;
+            
+            html += `
+              <div class="ranking-item">
+                <span class="ranking-rank">${rank}.</span>
+                <span style="flex: 1;">
+                  <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
+                  <div class="win-percentage">${winPercentage}% de victorias</div>
+                </span>
+                <span>
+                  <span class="ranking-wins">${matchesWon}</span>-
+                  <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
+                </span>
+              </div>
+            `;
+            rank++;
+          });
+          
+          if (rankingList) {
+            rankingList.innerHTML = html;
+          }
+        };
+        
+        // Función para cargar dashboard
+        window.loadDashboard = async function() {
+          if (!window.currentUser) {
+            // Mostrar mensaje de error
+            const totalMatches = document.getElementById('total-matches');
+            const activePlayers = document.getElementById('active-players');
+            const totalHours = document.getElementById('total-hours');
+            const topPlayersList = document.getElementById('top-players-list');
+            const courtsUsage = document.getElementById('courts-usage');
+            
+            if (totalMatches) totalMatches.textContent = "0";
+            if (activePlayers) activePlayers.textContent = "0";
+            if (totalHours) totalHours.textContent = "0";
+            if (topPlayersList) topPlayersList.innerHTML = '<p>Por favor, inicia sesión primero</p>';
+            if (courtsUsage) courtsUsage.innerHTML = '<p>Inicia sesión para ver el uso de canchas</p>';
+            return;
+          }
+          
+          const clubId = window.currentUser.id;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const lastWeek = new Date();
+          lastWeek.setDate(today.getDate() - 7);
+          
+          // 1. Partidos del día
+          const {  matchesData, error: matchesError } = await window.supabase
+            .from('matches')
+            .select('id')
+            .eq('club_id', clubId)
+            .gte('created_at', today.toISOString());
+          
+          if (matchesError) {
+            console.error("Error al obtener partidos:", matchesError);
+            const totalMatches = document.getElementById('total-matches');
+            const totalHours = document.getElementById('total-hours');
+            
+            if (totalMatches) totalMatches.textContent = "0";
+            if (totalHours) totalHours.textContent = "0";
+          } else {
+            const totalMatches = document.getElementById('total-matches');
+            if (totalMatches) totalMatches.textContent = matchesData.length;
+            
+            const totalHours = document.getElementById('total-hours');
+            if (totalHours) {
+              const totalHoursValue = Math.floor(matchesData.length * 1.5);
+              totalHours.textContent = totalHoursValue;
+            }
+          }
+          
+          // 2. Jugadores activos (últimos 7 días)
+          const {  activePlayersData, error: activePlayersError } = await window.supabase
+            .from('players')
+            .select('id')
+            .eq('club_id', clubId)
+            .gte('last_match_date', lastWeek.toISOString());
+          
+          if (activePlayersError) {
+            console.error("Error al obtener jugadores activos:", activePlayersError);
+            const activePlayers = document.getElementById('active-players');
+            if (activePlayers) activePlayers.textContent = "0";
+          } else {
+            const activePlayers = document.getElementById('active-players');
+            if (activePlayers) activePlayers.textContent = activePlayersData.length;
+          }
+          
+          // 3. Top 5 jugadores
+          const {  topPlayersData, error: topPlayersError } = await window.supabase
+            .from('players')
+            .select('*')
+            .eq('club_id', clubId)
+            .gte('last_match_date', lastWeek.toISOString())
+            .order('matches_won', { ascending: false })
+            .limit(5);
+          
+          if (topPlayersError) {
+            console.error("Error al obtener top jugadores:", topPlayersError);
+            const topPlayersList = document.getElementById('top-players-list');
+            if (topPlayersList) topPlayersList.innerHTML = '<p>Error al cargar datos</p>';
+          } else {
+            let html = '';
+            const topPlayersList = document.getElementById('top-players-list');
+            
+            if (!topPlayersList) return;
+            
+            if (topPlayersData.length === 0) {
+              html = '<p>No hay jugadores activos esta semana</p>';
+            } else {
+              let rank = 1;
+              topPlayersData.forEach(player => {
+                const matchesPlayed = window.safeNumber(player.matches_played, 0);
+                const matchesWon = window.safeNumber(player.matches_won, 0);
+                const winPercentage = matchesPlayed > 0 ? 
+                  Math.round((matchesWon / matchesPlayed) * 100) : 0;
+                html += `
+                  <div class="ranking-item">
+                    <span class="ranking-rank">${rank}.</span>
+                    <span style="flex: 1;">
+                      <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
+                      <div class="win-percentage">${winPercentage}% de victorias</div>
+                    </span>
+                    <span>
+                      <span class="ranking-wins">${matchesWon}</span>-
+                      <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
+                    </span>
+                  </div>
+                `;
+                rank++;
+              });
+            }
+            topPlayersList.innerHTML = html;
+          }
+          
+          // 4. Uso de canchas
+          const {  courtsData, error: courtsError } = await window.supabase
+            .from('court_usage')
+            .select('*')
+            .eq('club_id', clubId);
+          
+          if (courtsError) {
+            console.error("Error al obtener canchas:", courtsError);
+            const courtsUsage = document.getElementById('courts-usage');
+            if (courtsUsage) {
+              courtsUsage.innerHTML = `
+                <div class="alert">
+                  <i class="fas fa-exclamation-circle"></i> 
+                  <strong>Error:</strong> ${courtsError.message}
+                </div>
+              `;
+            }
+          } else {
+            let html = '';
+            const courtsUsage = document.getElementById('courts-usage');
+            
+            if (!courtsUsage) return;
+            
+            if (courtsData.length === 0) {
+              html = '<p>No hay datos de uso de canchas</p>';
+            } else {
+              courtsData.forEach(court => {
+                html += `
+                  <p style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+                    <span><strong>${court.court}</strong></span>
+                    <span>${court.match_count} hoy</span>
+                  </p>
+                `;
+              });
+            }
+            courtsUsage.innerHTML = html;
+          }
+        };
+        
+        // Exportar datos
+        window.exportData = async function() {
+          if (!window.currentUser) return;
+          
+          window.showNotification('Exportando datos...');
+          const today = new Date();
+          const dateStr = today.toISOString().split('T')[0];
+          
+          // Obtener partidos del día
+          const {  matchesData, error: matchesError } = await window.supabase
+            .from('matches')
+            .select('*')
+            .eq('club_id', window.currentUser.id)
+            .gte('created_at', new Date(today.setHours(0, 0, 0, 0)).toISOString());
+          
+          if (matchesError) {
+            console.error("Error al exportar: ", matchesError);
+            window.showNotification('Error al exportar datos');
+            return;
+          }
+          
+          if (matchesData.length === 0) {
+            window.showNotification('No hay datos para exportar');
+            return;
+          }
+          
+          // Crear CSV
+          let csv = 'Fecha,Cancha,Equipo A,Equipo B,Jugadores A,Jugadores B,Resultado,Ganador\n';
+          
+          // Aquí necesitaríamos obtener los jugadores, pero por simplicidad:
+          matchesData.forEach(match => {
+            const score = match.scoring_type === 'traditional' ? 
+              `${match.games_a}-${match.games_b}` : 
+              `${match.points_a}-${match.points_b}`;
+              
+            const winner = match.winner === 'teamA' ? match.team_a_name : match.team_b_name;
+            
+            csv += `${new Date().toLocaleDateString()},${match.court},"${match.team_a_name}","${match.team_b_name}",N/A,N/A,${score},"${winner}"\n`;
+          });
+          
+          // Descargar CSV
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.setAttribute('hidden', '');
+          a.setAttribute('href', url);
+          a.setAttribute('download', `padeltrack-${dateStr}.csv`);
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          window.showNotification('¡Datos exportados exitosamente!');
+        };
+        
+        // Reiniciar juego
+        window.resetGame = function() {
+          // Resetear marcador
+          window.scoreA = 0;
+          window.scoreB = 0;
+          window.gamesA = 0;
+          window.gamesB = 0;
+          window.inTiebreak = false;
+          window.tiebreakPointsA = 0;
+          window.tiebreakPointsB = 0;
+          
+          // Resetear temporizador
+          if (window.interval) {
+            clearInterval(window.interval);
+            window.interval = null;
+          }
+          window.seconds = 0;
+          const timerElement = document.getElementById('timer');
+          if (timerElement) {
+            timerElement.textContent = "00:00";
+          }
+          window.gameDuration = "00:00";
+          
+          // Resetear UI
+          window.updateScoreboard();
+        };
+        
+        // Configurar listener de autenticación
+        window.supabase.auth.onAuthStateChange((event, session) => {
+          if (session) {
+            window.currentUser = session.user;
+            
+            // Obtener datos del club
+            window.supabase
+              .from('clubs')
+              .select('*')
+              .eq('id', window.currentUser.id)
+              .single()
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error("Error al obtener datos del club:", error);
+                  window.currentClub = null;
+                  
+                  // Crear documento del club con valores por defecto
+                  window.supabase
+                    .from('clubs')
+                    .insert([
+                      {
+                        id: window.currentUser.id,
+                        name: "Nuevo Club",
+                        court_count: 0,
+                        email: window.currentUser.email,
+                        status: "active"
+                      }
+                    ])
+                    .then(({ error: insertError }) => {
+                      if (insertError) {
+                        console.error("Error al crear club:", insertError);
+                      } else {
+                        window.currentClub = {
+                          id: window.currentUser.id,
+                          name: "Nuevo Club",
+                          court_count: 0
+                        };
+                        window.updateHomeScreen();
+                      }
+                    });
+                } else {
+                  window.currentClub = data;
+                  if (document.getElementById('home')?.classList.contains('active')) {
+                    window.updateHomeScreen();
+                  }
+                }
+              });
+          } else {
+            window.currentUser = null;
+            window.currentClub = null;
+            
+            // Redirigir al login si no está en una pantalla pública
+            if (!document.getElementById('login')?.classList.contains('active') && 
+                !document.getElementById('register-screen')?.classList.contains('active')) {
+              window.goToScreen('login');
+            }
+          }
+        });
+        
+        // Verificar estado actual de autenticación
+        window.supabase.auth.getSession().then(({  { session } }) => {
+          if (session) {
+            window.currentUser = session.user;
+            // Obtener datos del club
+            window.supabase
+              .from('clubs')
+              .select('*')
+              .eq('id', window.currentUser.id)
+              .single()
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error("Error al obtener datos del club:", error);
+                  window.currentClub = null;
+                } else {
+                  window.currentClub = data;
+                }
+                window.goToScreen('home');
+              });
+          } else {
+            window.goToScreen('login');
+          }
+        });
+        
+        // Si no hay usuario, mostrar login
+        if (!window.currentUser) {
+          window.goToScreen('login');
+        }
+        
+        // Variables para manejar el estado de sesión
+        window.isManualLogout = false;
+        window.sessionCleanupAttempted = false;
+        
+        // Detectar cierre de pestaña/ventana
+        window.addEventListener('beforeunload', function() {
+          if (window.isManualLogout || window.sessionCleanupAttempted) return;
+          try {
+            // Marcar que intentamos limpiar la sesión
+            window.sessionCleanupAttempted = true;
+          } catch (e) {
+            console.log("No se pudo limpiar completamente la sesión, pero es normal en beforeunload");
+          }
+        });
+        
+        // Detectar cambios de visibilidad para manejar inactividad
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'hidden') {
+            // Si la página está oculta por más de 1 minuto, cerrar sesión
+            setTimeout(() => {
+              if (document.visibilityState === 'hidden' && window.currentUser && !window.isManualLogout) {
+                window.logoutUser();
+              }
+            }, 60000); // 1 minuto
+          }
+        });
+        
+        // Temporizador de inactividad (cierra sesión después de 15 minutos sin actividad)
+        let inactivityTimer;
+        const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutos
+        
+        function resetInactivityTimer() {
+          if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+          }
+          if (window.currentUser && !window.isManualLogout) {
+            inactivityTimer = setTimeout(() => {
+              window.logoutUser();
+              window.showNotification('Sesión cerrada por inactividad');
+            }, INACTIVITY_TIMEOUT);
+          }
+        }
+        
+        // Iniciar el temporizador al cargar la página
+        document.addEventListener('DOMContentLoaded', resetInactivityTimer);
+        
+        // Reiniciar el temporizador en cada interacción
+        document.addEventListener('click', resetInactivityTimer);
+        document.addEventListener('mousemove', resetInactivityTimer);
+        document.addEventListener('keypress', resetInactivityTimer);
+        
+        console.log("Aplicación inicializada correctamente");
+      } catch (error) {
+        console.error("Error crítico al inicializar la aplicación:", error);
+        // Muestra mensaje de error en el body
+        document.body.innerHTML = `
+          <div style="font-family: 'Montserrat', sans-serif; text-align: center; padding: 20px; color: #333; max-width: 500px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+            <h2 style="color: #D32F2F; margin-bottom: 15px;">Error crítico</h2>
+            <p style="margin-bottom: 20px; line-height: 1.5;">Error: ${error.message}</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <button onclick="location.reload()" style="background: #016B3A; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; flex: 1; max-width: 150px;">
+                Recargar página
+              </button>
+              <button onclick="window.open('https://status.supabase.com/', '_blank')" style="background: #1976D2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; flex: 1; max-width: 150px;">
+                Estado de Supabase
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+  </script>
+</head>
+<body>
+  <div class="container" style="height: auto; min-height: 100vh;">
+    <!-- Logo Clickable -->
+    <header onclick="window.goToScreen('home')">
+      <div id="logo"></div>
+    </header>
+    <!-- Pantalla 1: Login -->
+    <div class="screen" id="login">
+      <header><i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK</header>
+      <h2>Inicia sesión</h2>
+      <div class="stats" style="margin: 20px auto; width: 90%;">
+        <p><strong>Correo electrónico</strong></p>
+        <input type="email" id="login-email" placeholder="tu@correo.com" style="width: 100%; margin: 10px 0;">
+        <p><strong>Contraseña</strong></p>
+        <input type="password" id="login-password" placeholder="••••••••" style="width: 100%; margin: 10px 0;">
+      </div>
+      <button class="btn" onclick="window.loginUser()">
+        <i class="fas fa-sign-in-alt"></i> Iniciar sesión
+      </button>
+      <p style="font-size: 14px; margin: 10px 0;">
+        <a href="#" class="link" onclick="window.goToScreen('register-screen')">¿No tienes cuenta? Regístrate</a>
+      </p>
+      <p style="font-size: 14px; margin: 10px 0;">
+        <a href="#" class="link" onclick="window.resetPassword()">¿Olvidaste tu contraseña?</a>
+      </p>
+    </div>
+    <!-- Pantalla 2: Registro de Club -->
+    <div class="screen" id="register-screen">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.goToScreen('login')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2>Regístrate como Club de Pádel</h2>
+      <div class="stats" style="margin: 20px auto; width: 90%;">
+        <p><strong>Nombre del Club</strong></p>
+        <input type="text" id="club-name" placeholder="Club Pádel Venezuela" style="width: 100%; margin: 10px 0;">
+        <p><strong>RIF (Ej: J-12345678-9)</strong></p>
+        <input type="text" id="club-rif" placeholder="J-12345678-9" style="width: 100%; margin: 10px 0;">
+        <p><strong>Cantidad de canchas</strong></p>
+        <input type="number" id="court-count" min="1" max="20" value="2" style="width: 100%; margin: 10px 0;">
+        <p><strong>Correo electrónico</strong></p>
+        <input type="email" id="register-email" placeholder="contacto@club.com" style="width: 100%; margin: 10px 0;">
+        <p><strong>Número telefónico</strong></p>
+        <input type="tel" id="phone-number" placeholder="+58 412-1234567" style="width: 100%; margin: 10px 0;">
+        <p><strong>Contraseña</strong></p>
+        <input type="password" id="register-password" placeholder="••••••••" style="width: 100%; margin: 10px 0;">
+        <p><strong>Confirmar contraseña</strong></p>
+        <input type="password" id="register-confirm" placeholder="••••••••" style="width: 100%; margin: 10px 0;">
+      </div>
+      <button class="btn" onclick="window.registerClub()">
+        <i class="fas fa-building"></i> Registrar Club
+      </button>
+      <p style="font-size: 14px; margin: 10px 0;">
+        <a href="#" class="link" onclick="window.goToScreen('login')">¿Ya tienes un club registrado? Inicia sesión</a>
+      </p>
+    </div>
+    <!-- Pantalla 3: Inicio -->
+    <div class="screen" id="home">
+      <header><i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK</header>
+      <h2>Bienvenido, <span id="club-name-display">Cargando...</span></h2>
+      <p style="font-size: 16px; color: #555; margin-bottom: 20px;">
+        <i class="fas fa-spinner fa-spin"></i> <span id="canchas-status">Cargando información del club...</span>
+      </p>
+      <h2>Selecciona tu cancha</h2>
+      <div class="teams" id="courts-container">
+        <p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>
+      </div>
+      <p><a href="#" class="link" onclick="window.goToScreen('ranking')"><i class="fas fa-trophy"></i> Ver ranking semanal</a></p>
+      <p><a href="#" class="link" onclick="window.goToScreen('dashboard')"><i class="fas fa-tachometer-alt"></i> Panel de control</a></p>
+      <button class="btn btn-red" style="margin-top: 20px; max-width: 320px;" onclick="window.logoutUser()">
+        <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+      </button>
+      <div class="footer">© 2025 PadelTrack. Todos los puntos cuentan.</div>
+    </div>
+    <!-- Pantalla 4: Tipo de Puntuación -->
+    <div class="screen" id="scoring-type">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2>Selecciona el sistema de puntuación</h2>
+      <div class="teams">
+        <!-- Modo Tradicional (Tenis) -->
+        <div class="team" id="traditional-option" onclick="window.selectScoring('traditional')">
+          <h3><i class="fas fa-chess-king"></i> Modo Tradicional</h3>
+          <p style="font-size: 14px; color: #666;">
+            Sistema oficial de pádel:<br>
+            <strong>6 juegos para ganar el set</strong><br>
+            Máximo 7-5 • Tiebreak a 7 en 6-6
+            <span class="help-tip" title="Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5). En 6-6 se juega tiebreak a 7 puntos.">?</span>
+          </p>
+        </div>
+        <!-- Modo Americano (Acumulativo) -->
+        <div class="team" id="american-option" onclick="window.selectScoring('american')">
+          <h3><i class="fas fa-bolt"></i> Modo Americano</h3>
+          <p style="font-size: 14px; color: #666;">
+            Sistema venezolano:<br>
+            <strong>Acumulativo hasta 16 puntos</strong><br>
+            En 8-8 se juega tiebreak a 7 puntos
+            <span class="help-tip" title="Se juega hasta 16 puntos acumulados entre ambos equipos. En 8-8 se activa tiebreak a 7 puntos.">?</span>
+          </p>
+        </div>
+      </div>
+      <button class="btn btn-disabled" id="continue-btn" onclick="window.goToRegister()">
+        <i class="fas fa-play"></i> Continuar
+      </button>
+    </div>
+    <!-- Pantalla 5: Registro de Jugadores -->
+    <div class="screen" id="register">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.goToScreen('scoring-type')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2>Registra a los jugadores</h2>
+      <!-- Indicador del sistema activo -->
+      <div class="scoring-badge" id="scoring-indicator">
+        <i class="fas fa-info-circle"></i> Modo Tradicional
+      </div>
+      <div class="mode-indicator" id="mode-description">
+        Sistema oficial de pádel: Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5)
+      </div>
+      <div class="alert">
+        <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> Al presionar "Comenzar partido", los jugadores se registrarán automáticamente en la base de datos.
+      </div>
+      <div class="teams">
+        <div class="team" style="border-top: 4px solid #D32F2F;">
+          <h3><i class="team-icon fas fa-circle" style="color:#D32F2F"></i> Equipo A</h3>
+          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name">
+          <div class="player-inputs">
+            <h4>Jugador 1</h4>
+            <div class="cedula-input">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="1" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-A1"></div>
+            </div>
+            <div class="player-status" id="player-status-A1"></div>
+            <div class="error-message" id="error-A1" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="1" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="1" disabled>
+            </div>
+          </div>
+          <div class="player-inputs">
+            <h4>Jugador 2</h4>
+            <div class="cedula-input">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-A2"></div>
+            </div>
+            <div class="player-status" id="player-status-A2"></div>
+            <div class="error-message" id="error-A2" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="2" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="2" disabled>
+            </div>
+          </div>
+        </div>
+        <div class="team" style="border-top: 4px solid #1976D2;">
+          <h3><i class="team-icon fas fa-circle" style="color:#1976D2"></i> Equipo B</h3>
+          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name">
+          <div class="player-inputs">
+            <h4>Jugador 3</h4>
+            <div class="cedula-input">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="1" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B1"></div>
+            </div>
+            <div class="player-status" id="player-status-B1"></div>
+            <div class="error-message" id="error-B1" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="1" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="1" disabled>
+            </div>
+          </div>
+          <div class="player-inputs">
+            <h4>Jugador 4</h4>
+            <div class="cedula-input">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B2"></div>
+            </div>
+            <div class="player-status" id="player-status-B2"></div>
+            <div class="error-message" id="error-B2" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="2" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="2" disabled>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn" onclick="window.startGame()"><i class="fas fa-play"></i> Comenzar partido</button>
+    </div>
+    <!-- Pantalla 6: Marcador en Vivo -->
+    <div class="screen" id="game">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.resetGame(); window.goToScreen('register')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <!-- Indicador del sistema activo -->
+      <div class="scoring-badge" id="scoring-mode">
+        <i class="fas fa-info-circle"></i> Modo Tradicional
+      </div>
+      <div class="scoreboard">
+        <div>
+          <h3 style="color:#D32F2F"><i class="fas fa-user"></i> <span id="teamA-display">Equipo A</span></h3>
+          <div class="games-score" id="gamesA">0</div>
+          <div class="score" id="scoreA">0</div>
+          <div class="controls">
+            <button onclick="window.addPoint('A')"><i class="fas fa-plus"></i></button>
+            <button onclick="window.subPoint('A')"><i class="fas fa-minus"></i></button>
+          </div>
+        </div>
+        <div>
+          <h3 style="color:#1976D2"><i class="fas fa-user"></i> <span id="teamB-display">Equipo B</span></h3>
+          <div class="games-score" id="gamesB">0</div>
+          <div class="score" id="scoreB">0</div>
+          <div class="controls">
+            <button onclick="window.addPoint('B')"><i class="fas fa-plus"></i></button>
+            <button onclick="window.subPoint('B')"><i class="fas fa-minus"></i></button>
+          </div>
+        </div>
+      </div>
+      <!-- Indicador de Tiebreak -->
+      <div id="tiebreak-notification" class="tiebreak-badge" style="display: none;">
+        <i class="fas fa-bolt"></i> Tiebreak a 7 puntos
+      </div>
+      <div class="timer">⏱ <span id="timer">00:00</span></div>
+      <button class="btn btn-red" onclick="window.finalizeGame()">
+        <i class="fas fa-flag-checkered"></i> Finalizar partido
+      </button>
+    </div>
+    <!-- Pantalla 7: Partido Finalizado -->
+    <div class="screen" id="end">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.resetGame(); window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2>¡Partido finalizado! 🎉</h2>
+      <h3 id="result-title" style="color:#016B3A"><i class="fas fa-trophy"></i> ¡Equipo A se lleva la victoria!</h3>
+      <!-- Indicador del sistema usado -->
+      <div class="scoring-badge" id="final-scoring-mode">
+        <i class="fas fa-info-circle"></i> Sistema: Modo Tradicional
+      </div>
+      <div class="stats">
+        <p><strong>🏆 Resultado final:</strong></p>
+        <p id="set-scores">
+          Set 1: 6–4<br>
+          Set 2: 3–6<br>
+          Set 3: 6–2
+        </p>
+        <p><strong>⏱ Duración:</strong> <span id="final-duration">42 minutos</span></p>
+        <p><strong>🌟 Jugador clave:</strong> <span id="top-player">Luis M. (14 puntos ganadores)</span></p>
+        <p><strong>🎯 Promedio de saques:</strong> 89%</p>
+      </div>
+      <button class="btn" onclick="window.resetGame(); window.goToScreen('home')"><i class="fas fa-home"></i> Volver al inicio</button>
+      <button class="btn btn-blue" onclick="window.resetGame(); window.goToScreen('ranking')"><i class="fas fa-chart-line"></i> Ver ranking</button>
+    </div>
+    <!-- Pantalla 8: Ranking -->
+    <div class="screen" id="ranking">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2><i class="fas fa-crown"></i> Ranking Semanal</h2>
+      <div class="stats">
+        <p id="ranking-list">
+          <strong>Cargando ranking...</strong>
+        </p>
+      </div>
+      <p><em>¡Participa en más partidos para subir de nivel!</em></p>
+      <button class="btn" onclick="window.goToScreen('home')"><i class="fas fa-arrow-left"></i> Volver</button>
+    </div>
+    <!-- Pantalla 9: Dashboard -->
+    <div class="screen" id="dashboard">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK - DASHBOARD
+        <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="logout-btn btn-header" onclick="window.logoutUser()">
+          <i class="fas fa-sign-out-alt"></i>
+        </button>
+      </header>
+      <div style="padding: 20px; overflow-y: auto; height: calc(100% - 80px);">
+        <!-- Resumen del día -->
+        <div style="background: #016B3A; color: white; border-radius: 16px; padding: 15px; margin-bottom: 20px;">
+          <h3 style="margin-bottom: 10px;"><i class="fas fa-chart-line"></i> Resumen del día</h3>
+          <div class="dashboard-stats">
+            <div class="stat-item">
+              <div>Partidos</div>
+              <div class="stat-value" id="total-matches">0</div>
+            </div>
+            <div class="stat-item">
+              <div>Jugadores</div>
+              <div class="stat-value" id="active-players">0</div>
+            </div>
+            <div class="stat-item">
+              <div>Horas</div>
+              <div class="stat-value" id="total-hours">0</div>
+            </div>
+          </div>
+        </div>
+        <!-- Top 5 Jugadores -->
+        <div class="stats" style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 10px;"><i class="fas fa-crown"></i> Top 5 Jugadores (Semana)</h3>
+          <div id="top-players-list">
+            <p>Cargando...</p>
+          </div>
+        </div>
+        <!-- Uso de canchas -->
+        <div class="stats" style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 10px;"><i class="fas fa-court-sport"></i> Uso de Canchas</h3>
+          <div id="courts-usage">
+            <p>Cargando...</p>
+          </div>
+        </div>
+        <!-- Acciones -->
+        <div class="dashboard-actions">
+          <button class="btn" onclick="window.goToScreen('home')">
+            <i class="fas fa-racquet"></i> Registrar partido
+          </button>
+          <button class="btn btn-blue" onclick="window.exportData()">
+            <i class="fas fa-file-export"></i> Exportar
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Notificación flotante -->
+    <div class="notification" id="notification">
+      ¡Tiebreak activado! Juega a 7 puntos
+    </div>
+  </div>
+</body>
+</html>
