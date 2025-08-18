@@ -771,43 +771,64 @@
     }
 	
     /* Estilos para la pantalla de bienvenida */
-    #welcome {
-      text-align: center;
-      padding-top: 40px;
-    }
-    
     .welcome-container {
       max-width: 400px;
       margin: 0 auto;
+      padding: 20px;
+      text-align: center;
     }
     
-    #welcome-message {
+    #welcome h2 {
       font-size: 28px;
       color: #016B3A;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
     
-    .subtitle {
+    #welcome .subtitle {
       color: #555;
-      margin-bottom: 30px;
+      margin-bottom: 25px;
+      font-size: 18px;
+    }
+    
+    .handshake-container {
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin: 20px 0;
     }
     
     .handshake-img {
-      width: 200px;
+      width: 180px;
       height: auto;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin: 20px auto;
+      border-radius: 12px;
       transition: transform 0.3s ease;
     }
     
     .handshake-img:hover {
-      transform: rotate(3deg);
+      transform: scale(1.05);
     }
     
     .btn-green {
       background: #016B3A;
-      color: white !important;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      margin: 20px 0;
+      font-size: 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      width: 85%;
+      max-width: 320px;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-green:hover {
+      background: #00552E;
+      transform: translateY(-2px);
     }
 	
   </style>
@@ -875,6 +896,21 @@
           }, 3000);
         };
         
+		
+        // Añade esta función para actualizar el mensaje de bienvenida
+        window.updateWelcomeScreen = function() {
+          const welcomeMessage = document.getElementById('welcome-message');
+          const clubNameWelcome = document.getElementById('club-name-welcome');
+          
+          if (welcomeMessage) {
+            welcomeMessage.textContent = "¡Bienvenido a PadelTrack!";
+          }
+          
+          if (clubNameWelcome && window.currentClub) {
+            clubNameWelcome.textContent = window.currentClub.name;
+          }
+        };
+		
         // Navegación entre pantallas
         window.goToScreen = function(id) {
           // Si intenta acceder a pantallas protegidas sin estar autenticado
@@ -890,18 +926,15 @@
           document.getElementById(id).classList.add('active');
           
           // Si es la pantalla de inicio, actualizar con los datos del club
-          if (id === 'home' && window.currentClub) {
+          if (id === 'home' && window.currentUser && window.currentClub) {
             window.updateHomeScreen();
           }
-          
-          if (id === 'welcome') {
-            // Mostrar mensaje personalizado
-            const welcomeMessage = document.getElementById('welcome-message');
-            if (welcomeMessage) {
-              welcomeMessage.textContent = `${window.currentClub.name}, ¡bienvenido a PadelTrack!`;
-            }
-          }		  
 		  
+          // Si es la pantalla de bienvenida, actualizar con el nombre del club
+          if (id === 'welcome' && window.currentClub) {
+            window.updateWelcomeScreen();
+          }		  
+          
           // Reiniciar marcador al salir
           if (id !== 'game' && window.interval) {
             clearInterval(window.interval);
@@ -951,14 +984,8 @@
           const courtsContainer = document.getElementById('courts-container');
           
           if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
-          
-          // ✅ CAMBIO 3: Reemplazar spinner por icono de cancha
-          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-stadium"></i> Cargando canchas...';
-          if (courtsContainer) courtsContainer.innerHTML = `
-            <p style="display: flex; align-items: center; justify-content: center; height: 60px;">
-              <i class="fas fa-stadium" style="margin-right: 10px;"></i> Cargando canchas...
-            </p>
-          `;
+          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
+          if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
           
           try {
             // Obtener los datos del club desde Supabase
@@ -969,55 +996,35 @@
               .single();
             
             if (error) {
-              console.error("Error DETALLADO al obtener datos del club:", {
-                code: error.code,
-                message: error.message,
-                details: error.details,
-                hint: error.hint
-              });
+              console.error("Error al obtener datos del club:", error);
+              // CREAR EL CLUB AUTOMÁTICAMENTE SI NO EXISTE
+              const { error: createError } = await window.supabase
+                .from('clubs')
+                .insert([
+                  {
+                    id: window.currentUser.id,
+                    name: "Nuevo Club",
+                    court_count: 0,
+                    email: window.currentUser.email,
+                    phone: "N/A",  // ¡Este campo es obligatorio!
+                    status: "active"
+                  }
+                ]);
               
-              // Si es un error de no encontrado (PGRST116), crear el club automáticamente
-              if (error.code === 'PGRST116') {
-                console.log("Club no encontrado, creando automáticamente...");
-                
-                const { error: createError } = await window.supabase
-                  .from('clubs')
-                  .insert([
-                    {
-                      id: window.currentUser.id,
-                      name: "Mi Club de Pádel",
-                      court_count: 1,
-                      email: window.currentUser.email,
-                      status: "active"
-                    }
-                  ]);
-                
-                if (createError) {
-                  console.error("Error al crear club automáticamente:", createError);
-                  
-                  if (clubNameDisplay) clubNameDisplay.textContent = "Club";
-                  if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${createError.code}`;
-                  if (courtsContainer) courtsContainer.innerHTML = `
-                    <div class="alert" style="margin: 20px auto; width: 90%;">
-                      <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}
-                    </div>
-                  `;
-                  return;
-                }
-                
-                // Intentar de nuevo
-                window.updateHomeScreen();
+              if (createError) {
+                console.error("Error al crear club automáticamente:", createError);
+                if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+                if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${createError.code}`;
+                if (courtsContainer) courtsContainer.innerHTML = `
+                  <div class="alert" style="margin: 20px auto; width: 90%;">
+                    <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}
+                  </div>
+                `;
                 return;
               }
               
-              // Otros errores
-              if (clubNameDisplay) clubNameDisplay.textContent = "Club";
-              if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.code}`;
-              if (courtsContainer) courtsContainer.innerHTML = `
-                <div class="alert" style="margin: 20px auto; width: 90%;">
-                  <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${error.message}
-                </div>
-              `;
+              // Volver a intentar cargar los datos
+              window.updateHomeScreen();
               return;
             }
             
@@ -1032,7 +1039,7 @@
               // Almacenar los datos del club
               window.currentClub = clubData;
               
-              // ✅ CAMBIO 4: Mejorar visualización de canchas disponibles
+              // Actualizar estado de canchas
               if (courtCount <= 0) {
                 if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
                 // Mensaje específico para 0 canchas
@@ -1045,18 +1052,14 @@
                   </button>
                 `;
               } else {
-                // ✅ CAMBIO 5: Mostrar icono de cancha junto al contador
-                if (canchasStatus) canchasStatus.innerHTML = `
-                  <i class="fas fa-stadium"></i> ${courtCount} cancha${courtCount === 1 ? '' : 's'} disponible${courtCount === 1 ? '' : 's'}
-                `;
-                
+                // Mostrar cantidad correcta de canchas
+                if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
                 // Generar botones de canchas
                 if (courtsContainer) {
                   courtsContainer.innerHTML = '';
                   for (let i = 1; i <= courtCount; i++) {
                     const courtBtn = document.createElement('button');
                     courtBtn.className = 'btn';
-                    // ✅ CAMBIO 6: Añadir icono de cancha en los botones
                     courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
                     courtBtn.onclick = function() {
                       window.selectedCourt = `Cancha ${i}`;
@@ -1541,7 +1544,7 @@
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
-          const phone = document.getElementById('phone-number')?.value;
+          const phone = document.getElementById('phone-number')?.value; // ¡Este campo es obligatorio!
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
@@ -1613,13 +1616,12 @@
                   name: clubName,
                   court_count: courts,
                   email: email,
-                  phone: phone,
+                  phone: phone,  // ¡Este campo es obligatorio!
                   status: "active"
                 }
               ]);
             
             if (clubError) {
-              // 10. Manejar errores específicos
               console.error("Error DETALLADO al crear club:", {
                 code: clubError.code,
                 message: clubError.message,
@@ -1637,8 +1639,22 @@
               return;
             }
             
+            // 11. Establecer el usuario y club actual
+            window.currentUser = data.user;
+            
+            // 12. Almacenar datos del club en memoria
+            window.currentClub = {
+              id: data.user.id,
+              rif: clubRif,
+              name: clubName,
+              court_count: courts,
+              email: email,
+              phone: phone,  // ¡Este campo es obligatorio!
+              status: "active"
+            };
+            
             window.showNotification('¡Club registrado exitosamente!');
-            window.goToScreen('welcome'); // Cambia esto desde 'home' a 'welcome'
+            window.goToScreen('welcome');
             
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
@@ -2842,18 +2858,22 @@
           </div>
         </div>
 
-    <!-- Pantalla 10: Bienvenida Post-Registro -->
-    <div class="screen" id="welcome">
-      <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
-      </header>
-      <div class="welcome-container">
-        <h2 id="welcome-message">Bienvenido a PadelTrack</h2>
-        <p class="subtitle">¡Tu club ya está listo para empezar!</p>
-        <img src="https://i.ibb.co/6Q8D4Yw/handshake.png" alt="Manos entrelazadas" class="handshake-img">
-        <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
-      </div>
-    </div>
+        <!-- Pantalla 7: Bienvenida Post-Registro -->
+        <div class="screen" id="welcome">
+          <header>
+            <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+          </header>
+          <div class="welcome-container">
+            <h2 id="welcome-message">¡Bienvenido a PadelTrack!</h2>
+            <p class="subtitle">Tu club ya está listo para comenzar</p>
+            <div class="handshake-container">
+              <img src="https://i.ibb.co/6Q8D4Yw/handshake.png" alt="Manos entrelazadas" class="handshake-img">
+            </div>
+            <p id="club-name-welcome" style="font-weight: bold; font-size: 22px; color: #016B3A; margin: 15px 0;"></p>
+            <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
+            <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
+          </div>
+        </div>
 
         <!-- Top 5 Jugadores -->
         <div class="stats" style="margin-bottom: 20px;">
