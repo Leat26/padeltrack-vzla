@@ -830,6 +830,15 @@
       background: #00552E;
       transform: translateY(-2px);
     }
+
+    #welcome {
+      display: block !important;
+      opacity: 1 !important;
+    }
+    
+    .handshake-container {
+      opacity: 1 !important;
+    }	
 	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
@@ -974,8 +983,12 @@
             const clubNameWelcome = document.getElementById('club-name-welcome');
             if (clubNameWelcome) {
               clubNameWelcome.textContent = window.currentClub.name;
+              console.log("Nombre del club actualizado en pantalla de bienvenida");
+            } else {
+              console.error("No se encontró el elemento club-name-welcome");
             }
           }
+
           
           // Asegurar que el scroll esté en la parte superior
           if (screen) {
@@ -1639,7 +1652,8 @@
                   status: "active"
                 }
               ]);
-            
+            console.log("currentClub después de creación:", window.currentClub);
+			
             if (clubError) {
               console.error("Error DETALLADO al crear club:", {
                 code: clubError.code,
@@ -1671,6 +1685,12 @@
               phone: phone,  // ¡NUNCA será NULL gracias a la validación robusta!
               status: "active"
             };
+			
+            // AGREGAR ESTO: Esperar 500ms para permitir que el DOM se actualice
+            setTimeout(() => {
+              window.showNotification('¡Club registrado exitosamente!');
+              window.goToScreen('welcome');
+            }, 500);			
             
             window.showNotification('¡Club registrado exitosamente!');
             
@@ -2894,8 +2914,8 @@
           </div>
         </div>
 
-        <!-- Pantalla 7: Bienvenida Post-Registro -->
-        <div class="screen" id="welcome" style="display: none;">
+        <!-- Pantalla 10: Bienvenida Post-Registro -->
+        <div class="screen" id="welcome">
           <header>
             <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
           </header>
@@ -2903,7 +2923,7 @@
             <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
             <p class="subtitle">¡Tu club ya está listo para empezar!</p>
             <div class="handshake-container">
-              <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img">
+              <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img" onerror="this.src='https://via.placeholder.com/200x150?text=Error+de+imagen'">
             </div>
             <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
             <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
