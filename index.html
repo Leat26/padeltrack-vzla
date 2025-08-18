@@ -1539,7 +1539,7 @@
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
-          const phone = document.getElementById('phone-number')?.value; // ¡Este campo es obligatorio!
+          const phone = phoneInput ? phoneInput.value.trim() : '';
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
