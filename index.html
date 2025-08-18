@@ -891,7 +891,7 @@
             screen.scrollTop = 0;
           }
         };
-
+        
         // Actualizar la pantalla de inicio con los datos del club
         window.updateHomeScreen = async function() {
           if (!window.currentUser) return;
@@ -903,7 +903,7 @@
           
           if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
           
-          // ✅ CORRECCIÓN: Usar fa-stadium para representar una cancha
+          // ✅ CAMBIO 3: Reemplazar spinner por icono de cancha
           if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-stadium"></i> Cargando canchas...';
           if (courtsContainer) courtsContainer.innerHTML = `
             <p style="display: flex; align-items: center; justify-content: center; height: 60px;">
@@ -983,7 +983,7 @@
               // Almacenar los datos del club
               window.currentClub = clubData;
               
-              // ✅ CORRECCIÓN: Usar fa-stadium para representar una cancha
+              // ✅ CAMBIO 4: Mejorar visualización de canchas disponibles
               if (courtCount <= 0) {
                 if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
                 // Mensaje específico para 0 canchas
@@ -996,9 +996,9 @@
                   </button>
                 `;
               } else {
-                // ✅ CORRECCIÓN: Usar fa-stadium para representar una cancha
+                // ✅ CAMBIO 5: Mostrar icono de cancha junto al contador
                 if (canchasStatus) canchasStatus.innerHTML = `
-                  <i class="fas fa-stadium"></i> ${courtCount} cancha${courtCount === 1 ? '' : 's'} disponible${courtCount === 1 ? '' : 's'}
+                  <i class="fas fa-table-tennis-paddle-ball"></i> ${courtCount} cancha${courtCount === 1 ? '' : 's'} disponible${courtCount === 1 ? '' : 's'}
                 `;
                 
                 // Generar botones de canchas
@@ -1007,8 +1007,8 @@
                   for (let i = 1; i <= courtCount; i++) {
                     const courtBtn = document.createElement('button');
                     courtBtn.className = 'btn';
-                    // ✅ CORRECCIÓN: Usar fa-stadium para representar una cancha
-                    courtBtn.innerHTML = `<i class="fas fa-stadium"></i> Cancha ${i}`;
+                    // ✅ CAMBIO 6: Añadir icono de cancha en los botones
+                    courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
                     courtBtn.onclick = function() {
                       window.selectedCourt = `Cancha ${i}`;
                       window.goToScreen('scoring-type');
