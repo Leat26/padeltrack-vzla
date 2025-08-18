@@ -769,6 +769,47 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
+	
+    /* Estilos para la pantalla de bienvenida */
+    #welcome {
+      text-align: center;
+      padding-top: 40px;
+    }
+    
+    .welcome-container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    #welcome-message {
+      font-size: 28px;
+      color: #016B3A;
+      margin-bottom: 15px;
+    }
+    
+    .subtitle {
+      color: #555;
+      margin-bottom: 30px;
+    }
+    
+    .handshake-img {
+      width: 200px;
+      height: auto;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin: 20px auto;
+      transition: transform 0.3s ease;
+    }
+    
+    .handshake-img:hover {
+      transform: rotate(3deg);
+    }
+    
+    .btn-green {
+      background: #016B3A;
+      color: white !important;
+    }
+	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -853,6 +894,14 @@
             window.updateHomeScreen();
           }
           
+          if (id === 'welcome') {
+            // Mostrar mensaje personalizado
+            const welcomeMessage = document.getElementById('welcome-message');
+            if (welcomeMessage) {
+              welcomeMessage.textContent = `${window.currentClub.name}, ¡bienvenido a PadelTrack!`;
+            }
+          }		  
+		  
           // Reiniciar marcador al salir
           if (id !== 'game' && window.interval) {
             clearInterval(window.interval);
@@ -1588,11 +1637,8 @@
               return;
             }
             
-            // ✅ CAMBIO 1: No establecer currentUser ni ir a home
-            window.showNotification('¡Club registrado exitosamente! Ahora puedes iniciar sesión');
-            
-            // ✅ CAMBIO 2: Redirigir a la pantalla de login en lugar de home
-            window.goToScreen('login');
+            window.showNotification('¡Club registrado exitosamente!');
+            window.goToScreen('welcome'); // Cambia esto desde 'home' a 'welcome'
             
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
@@ -2795,6 +2841,20 @@
             </div>
           </div>
         </div>
+
+    <!-- Pantalla 10: Bienvenida Post-Registro -->
+    <div class="screen" id="welcome">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+      </header>
+      <div class="welcome-container">
+        <h2 id="welcome-message">Bienvenido a PadelTrack</h2>
+        <p class="subtitle">¡Tu club ya está listo para empezar!</p>
+        <img src="https://i.ibb.co/6Q8D4Yw/handshake.png" alt="Manos entrelazadas" class="handshake-img">
+        <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
+      </div>
+    </div>
+
         <!-- Top 5 Jugadores -->
         <div class="stats" style="margin-bottom: 20px;">
           <h3 style="margin-bottom: 10px;"><i class="fas fa-crown"></i> Top 5 Jugadores (Semana)</h3>
