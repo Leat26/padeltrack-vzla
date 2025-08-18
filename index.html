@@ -1532,15 +1532,15 @@
           const rifRegex = /^[Jj]-\d{8}-\d$/;
           return rifRegex.test(rif);
         };
-        
+
         // Función para registrar un nuevo club
         window.registerClub = async function() {
           const clubName = document.getElementById('club-name')?.value;
           let clubRif = document.getElementById('club-rif')?.value.trim();
           const courtCount = document.getElementById('court-count')?.value;
           const email = document.getElementById('register-email')?.value;
-          const phoneInput = document.getElementById('phone-number');
-          const phone = phoneInput ? phoneInput.value.trim() : '';
+          // ✅ CORRECCIÓN: Forma segura de obtener el teléfono SIN crear variables adicionales
+          const phone = document.getElementById('phone-number')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value;
           const confirmPassword = document.getElementById('register-confirm')?.value;
           
@@ -1551,7 +1551,7 @@
           }
           
           // 2. Validación específica para teléfono - CORRECCIÓN CLAVE
-          if (!phone || phone === '') {
+          if (!phone) {
             window.showNotification('Por favor, ingresa un número de teléfono válido');
             return;
           }
@@ -1665,7 +1665,7 @@
             window.showNotification(`Error inesperado: ${error.message}`);
           }
         };
-        
+
         // Iniciar sesión
         window.loginUser = async function() {
           const email = document.getElementById('login-email')?.value;
