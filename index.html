@@ -966,6 +966,28 @@
               screen.classList.add('active');
             }, 50);
           }
+
+          // Limpiar formulario de registro si se está entrando a 'register-screen'
+		  if (id === 'register-screen') {
+              const clubName = document.getElementById('club-name');
+              const clubRif = document.getElementById('club-rif');
+              const courtCount = document.getElementById('court-count');
+              const registerEmail = document.getElementById('register-email');
+              const phonePrefix = document.getElementById('phone-prefix');
+              const phoneSuffix = document.getElementById('phone-suffix');
+              const registerPassword = document.getElementById('register-password');
+              const registerConfirm = document.getElementById('register-confirm');
+          
+              if (clubName) clubName.value = '';
+              if (clubRif) clubRif.value = '';
+              if (courtCount) courtCount.value = '';
+              if (registerEmail) registerEmail.value = '';
+              if (phonePrefix) phonePrefix.value = '';
+              if (phoneSuffix) phoneSuffix.value = '';
+              if (registerPassword) registerPassword.value = '';
+              if (registerConfirm) registerConfirm.value = '';
+          }
+
           
           // Si es la pantalla de inicio, actualizar con los datos del club
           if (id === 'home' && window.currentUser && window.currentClub) {
