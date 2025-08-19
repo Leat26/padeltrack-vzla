@@ -1699,7 +1699,11 @@
           });
           
           if (error) {
-            window.showNotification(`Error: ${error.message}`);
+            if (error.message === 'Invalid login credentials') {
+                window.showNotification('Aún no perteneces a la comunidad PadelTrack, ¡Regístrate!');
+            } else {
+                window.showNotification(`Error: ${error.message}`);
+            }			
             return;
           }
           
