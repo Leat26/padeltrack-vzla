@@ -1608,7 +1608,7 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión 100% funcional y corregida
+        // Función para registrar un nuevo club - Versión 100% funcional
         window.registerClub = async function() {
             try {
                 // 1. Obtener valores de forma segura
@@ -1697,7 +1697,7 @@
         
                 if (rifCheckResponse.data) {
                     window.showNotification('Este RIF ya está registrado');
-                    return;
+                    return; // ❌ Detenemos AQUÍ, ANTES de crear el usuario
                 }
         
                 // 11. Registrar usuario en Supabase Auth
@@ -1752,8 +1752,7 @@
                 // 14. Establecer el usuario actual
                 window.currentUser = signUpData.user;
         
-                // 15. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
-                // Actualizar directamente el nombre del club en la pantalla de bienvenida
+                // 15. Actualizar nombre del club en pantalla de bienvenida
                 const clubNameWelcome = document.getElementById('club-name-welcome');
                 if (clubNameWelcome) {
                     clubNameWelcome.textContent = clubName;
@@ -1762,10 +1761,10 @@
                     console.error("No se encontró el elemento club-name-welcome");
                 }
         
-                // 16. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
+                // 16. Navegar a la pantalla de bienvenida
                 window.showNotification('¡Club registrado exitosamente!');
                 setTimeout(() => {
-                    window.goToScreen('welcome'); // Navegación corregida
+                    window.goToScreen('welcome');
                 }, 100);
         
             } catch (error) {
