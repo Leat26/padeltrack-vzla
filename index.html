@@ -1609,7 +1609,6 @@
         };
 
         // Función para registrar un nuevo club - Versión corregida y segura
-
         window.registerClub = async function() {
             try {
                 // 1. Obtener valores de forma segura
@@ -1623,9 +1622,10 @@
                 const confirmPassword = document.getElementById('register-confirm')?.value || '';
         
                 // Validar teléfono
+                let phone = '';
                 if (phonePrefix && phoneSuffix) {
                     if (/^\d{7}$/.test(phoneSuffix)) {
-                        var phone = `${phonePrefix}-${phoneSuffix}`;
+                        phone = `${phonePrefix}-${phoneSuffix}`;
                     } else {
                         window.showNotification('El número final debe tener exactamente 7 dígitos');
                         return;
@@ -1677,7 +1677,7 @@
                 }
         
                 // === ✅ VALIDACIÓN DEL RIF: SI EXISTE, NO HACER NADA MÁS ===
-                const {  existingClub, error: checkError } = await window.supabase
+                const { data: existingClub, error: checkError } = await window.supabase
                     .from('clubs')
                     .select('id')
                     .eq('rif', clubRif)
@@ -1697,7 +1697,7 @@
                 // === SI LLEGA AQUÍ, EL RIF NO EXISTE → SEGUIR CON EL REGISTRO ===
         
                 // Registrar usuario en Auth
-                const {  data, error } = await window.supabase.auth.signUp({
+                const { data, error } = await window.supabase.auth.signUp({
                     email: email,
                     password: password
                 });
