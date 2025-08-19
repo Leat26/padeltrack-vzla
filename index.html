@@ -1679,9 +1679,29 @@
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
             return;
           }
+
+          // 10. Validar primero si el RIF ya está registrado
+          let rifCheckResponse;
+          try {
+              rifCheckResponse = await window.supabase
+                  .from('clubs')
+                  .select('id')
+                  .eq('rif', clubRif)
+                  .maybeSingle();
+          } catch (checkError) {
+              console.error("Error al verificar RIF:", checkError);
+              window.showNotification('Error al verificar el RIF. Inténtalo de nuevo.');
+              return;
+          }
+          
+          if (rifCheckResponse.data) {
+              window.showNotification('Este RIF ya está registrado');
+              return;
+          }
           
           try {
-            // 10. Registrar usuario en Supabase Auth
+            
+			// 11. Registrar usuario en Supabase Auth
             const { data: existingClub, error: checkError } = await window.supabase
                 .from('clubs')
                 .select('id')
@@ -1702,13 +1722,13 @@
               return;
             }
             
-            // 11. Manejar caso especial: verificación de email
+            // 12. Manejar caso especial: verificación de email
             if (!data.user) {
               window.showNotification('Verifica tu correo electrónico para completar el registro');
               return;
             }
             
-            // 12. CREAR CLUB EN LA TABLA CLUBS
+            // 13. CREAR CLUB EN LA TABLA CLUBS
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1723,27 +1743,27 @@
                 }
               ]);
             
-            if (clubError) {
-                console.error("Error DETALLADO al crear club:", {
-                    code: clubError.code,
-                    message: clubError.message,
-                    details: clubError.details,
-                    hint: clubError.hint
-                });
-                if (clubError.code === '23505') { // Error de unicidad
-                    window.showNotification('Este RIF ya está registrado');
-                } else if (clubError.code === '42501') { // Error de permisos
-                    window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
-                } else {
-                    window.showNotification(`Error al registrar club: ${clubError.message}`);
-                }
-                return;
-            }
+              if (clubError) {
+                  console.error("Error DETALLADO al crear club:", {
+                      code: clubError.code,
+                      message: clubError.message,
+                      details: clubError.details,
+                      hint: clubError.hint
+                  });
+                  if (clubError.code === '23505') {
+                      window.showNotification('Este RIF ya está registrado');
+                  } else if (clubError.code === '42501') {
+                      window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+                  } else {
+                      window.showNotification(`Error al registrar club: ${clubError.message}`);
+                  }
+                  return;
+              }
 			
-            // 13. Establecer el usuario actual
+            // 14. Establecer el usuario actual
             window.currentUser = data.user;
             
-            // 14. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
+            // 15. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
             // Actualizar directamente el nombre del club en la pantalla de bienvenida
             const clubNameWelcome = document.getElementById('club-name-welcome');
             if (clubNameWelcome) {
@@ -1753,7 +1773,7 @@
               console.error("No se encontró el elemento club-name-welcome");
             }
             
-            // 15. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
+            // 16. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
             window.showNotification('¡Club registrado exitosamente!');
             setTimeout(() => {
               window.goToScreen('welcome'); // Navegación corregida
