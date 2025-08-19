@@ -1784,16 +1784,46 @@
         
         // Cerrar sesión
         window.logoutUser = async function() {
-          const { error } = await window.supabase.auth.signOut();
-          
-          if (error) {
-            window.showNotification(`Error al cerrar sesión: ${error.message}`);
-          } else {
-            window.currentUser = null;
-            window.currentClub = null;
-            window.showNotification('¡Sesión cerrada exitosamente!');
-            window.goToScreen('login');
-          }
+            const { error } = await window.supabase.auth.signOut();
+            if (error) {
+                window.showNotification(`Error al cerrar sesión: ${error.message}`);
+            } else {
+                // Limpiar variables
+                window.currentUser = null;
+                window.currentClub = null;
+        
+                // Limpiar formularios de login y registro
+                const loginEmail = document.getElementById('login-email');
+                const loginPassword = document.getElementById('login-password');
+                const registerName = document.getElementById('club-name');
+                const registerRif = document.getElementById('club-rif');
+                const registerCourts = document.getElementById('court-count');
+                const registerEmail = document.getElementById('register-email');
+                const registerPhone = document.getElementById('phone-number'); // ⚠️ Eliminar si ya no existe
+                const registerPassword = document.getElementById('register-password');
+                const registerConfirm = document.getElementById('register-confirm');
+        
+                // Limpiar campos si existen
+                if (loginEmail) loginEmail.value = '';
+                if (loginPassword) loginPassword.value = '';
+                if (registerName) registerName.value = '';
+                if (registerRif) registerRif.value = '';
+                if (registerCourts) registerCourts.value = '';
+                if (registerEmail) registerEmail.value = '';
+                if (registerPhone) registerPhone.value = ''; // Solo si aún existe
+                if (registerPassword) registerPassword.value = '';
+                if (registerConfirm) registerConfirm.value = '';
+        
+                // Deshabilitar campos de nombres (como en el inicio)
+                document.querySelectorAll('.first-name, .last-name').forEach(input => {
+                    input.value = '';
+                    input.disabled = true;
+                });
+        
+                // Mostrar notificación y navegar
+                window.showNotification('¡Sesión cerrada exitosamente!');
+                window.goToScreen('login');
+            }
         };
         
 		// Función para registrar jugadores
@@ -2680,7 +2710,7 @@
 		<p><strong>Número telefónico</strong></p>
 		<div style="display: flex; gap: 10px; align-items: center; width: 100%;">
 		    <select id="phone-prefix" style="width: 40%; padding: 8px; font-size: 16px;">
-		        <option value="">Área</option>
+		        <option value=""> - </option>
 		        <option value="414">414</option>
 		        <option value="412">412</option>
 		        <option value="424">424</option>
