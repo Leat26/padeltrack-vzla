@@ -149,24 +149,6 @@
       transform: none;
       background: #BDBDBD !important;
     }
-    .btn-green {
-      background: #016B3A;
-      color: white;
-      padding: 14px 28px;
-      margin: 20px 0;
-      font-size: 18px;
-      border-radius: 14px;
-      cursor: pointer;
-      width: 85%;
-      max-width: 320px;
-      font-weight: 600;
-      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
-      transition: all 0.3s ease;
-    }
-    .btn-green:hover {
-      background: #00552E;
-      transform: translateY(-2px);
-    }		
     /* Enlaces */
     .link {
       color: #1976D2;
@@ -508,31 +490,6 @@
     .alert strong {
       color: #D84315;
     }
-    /* Pantalla de Bienvenida */
-    #welcome {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-    #welcome h2 {
-      font-size: 28px;
-      color: #016B3A;
-      margin-bottom: 15px;
-    }
-    #welcome .subtitle {
-      font-size: 18px;
-      color: #555;
-      margin-bottom: 20px;
-    }
-    .handshake-container {
-      margin: 30px 0;
-    }
-    .handshake-img {
-      max-width: 200px;
-      border-radius: 12px;
-    }								
     /* ================================= */
     /* =========== RESPONSIVE ========== */
     /* ================================= */
@@ -590,13 +547,6 @@
       .stat-value {
         font-size: 20px;
       }
-      #welcome h2 {
-        font-size: 24px;
-      }
-      .btn-green {
-        padding: 12px 20px;
-        font-size: 16px;
-      }   
     }
     /* Ajustes para móviles pequeños */
     @media (max-width: 480px) {
@@ -712,12 +662,6 @@
         font-size: 10px;
         padding: 1px 6px;
       }
-      #welcome h2 {
-        font-size: 22px;
-      }
-      #welcome .subtitle {
-        font-size: 16px;
-      }
     }
     /* Para pantallas en modo horizontal en móviles */
     @media (max-height: 500px) and (orientation: landscape) {
@@ -825,6 +769,72 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
+	
+    /* Estilos para la pantalla de bienvenida */
+    .welcome-container {
+      max-width: 500px;
+    }
+
+    #welcome h2 {
+      font-size: 28px;
+      color: #016B3A;
+      margin-bottom: 10px;
+    }
+    
+    #welcome .subtitle {
+      color: #555;
+      margin-bottom: 25px;
+      font-size: 18px;
+    }
+    
+    .handshake-container {
+      background: white;
+      border-radius: 20px;
+      padding: 15px;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      margin: 20px 0;
+    }
+    
+    .handshake-img {
+      max-width: 200px;
+      border-radius: 12px;
+    }
+    
+    .handshake-img:hover {
+      transform: scale(1.05);
+    }
+    
+    .btn-green {
+      background: #016B3A;
+      color: white;
+      padding: 14px 28px;
+      margin-top: 20px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-green:hover {
+      background: #00552E;
+      transform: translateY(-2px);
+    }
+	
+    #welcome {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .handshake-container {
+      margin: 20px 0;
+    }	
+	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -890,32 +900,33 @@
           }, 3000);
         };
         
-        // Función para verificar autenticación
-																		
-        window.verifyAuth = async function() {
-          const { data, error } = await window.supabase.auth.getSession();
-          
-          if (error) {
-            console.error("Error al verificar sesión:", error);
-            return false;
+		
+        // Añade esta función para actualizar el mensaje de bienvenida
+        window.updateWelcomeScreen = function() {
+          const clubNameWelcome = document.getElementById('club-name-welcome');
+                   
+          if (clubNameWelcome && window.currentClub) {
+            clubNameWelcome.textContent = window.currentClub.name;
           }
-          
-          return !!data.session;
         };
 		
-        // Navegación entre pantallas - Versión mejorada con seguridad
-        window.goToScreen = async function(id) {
-          // Pantallas públicas que no requieren autenticación
-          const publicScreens = ['login', 'register-screen', 'welcome'];
-          
-          // Si no es una pantalla pública, verificar autenticación
-          if (!publicScreens.includes(id)) {
-            const isAuthenticated = await window.verifyAuth();
-            
-            if (!isAuthenticated) {
-              window.showNotification('Por favor, inicia sesión primero');
-              window.goToScreen('login');
-              return;									
+        // Navegación entre pantallas - Versión garantizada
+        window.goToScreen = function(id) {
+          // Si intenta acceder a pantallas protegidas sin estar autenticado
+          const protectedScreens = ['home', 'scoring-type', 'register', 'game', 'end', 'ranking', 'dashboard'];
+          if (protectedScreens.includes(id) && !window.currentUser && id !== 'home') {
+            window.showNotification('Por favor, inicia sesión primero');
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('login').classList.add('active');
+            return;
+          }
+
+          // Si es la pantalla de bienvenida, asegurar visibilidad
+          if (id === 'welcome') {
+            const welcomeScreen = document.getElementById('welcome');
+            if (welcomeScreen) {
+              welcomeScreen.style.display = 'block';
+              welcomeScreen.classList.add('active');
             }
           }
           
@@ -1021,7 +1032,7 @@
                     name: "Nuevo Club",
                     court_count: 0,
                     email: window.currentUser.email,
-                    phone: "N/A",  // ¡Este campo es obligatorio!
+                    phone: "000-0000000",  // Valor temporal
                     status: "active"
                   }
                 ]);
@@ -1918,15 +1929,6 @@
             // Mensaje más específico para errores de RLS
             if (error.code === '42501') {
               window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
-        
-		// Configurar comportamiento del logo con seguridad
-        const logo = document.getElementById('logo');
-        if (logo) {
-          logo.onclick = async function() {
-            const isAuthenticated = await window.verifyAuth();
-            if (isAuthenticated) {
-              window.goToScreen('home');										   
-		
             } else {
               window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
             }	
@@ -2426,7 +2428,7 @@
                         name: "Nuevo Club",
                         court_count: 0,
                         email: window.currentUser.email,
-						phone: "N/A",
+						phone: phone,
                         status: "active"
                       }
                     ])
@@ -2490,7 +2492,7 @@
                         name: "Nuevo Club",
                         court_count: 0,
                         email: window.currentUser.email,
-						phone: "N/A",
+						phone: phone,
                         status: "active"
                       }
                     ])
@@ -2598,7 +2600,7 @@
 <body>
   <div class="container" style="height: auto; min-height: 100vh;">
     <!-- Logo Clickable -->
-    <header>
+    <header onclick="window.goToScreen('home')">
       <div id="logo"></div>
     </header>
     <!-- Pantalla 1: Login -->
@@ -2926,12 +2928,6 @@
 
     <!-- Pantalla 10: Bienvenida Post-Registro -->
     <div class="screen" id="welcome">
-      <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
-        <button class="back-btn btn-header" onclick="window.goToScreen('login')">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-      </header>	   
       <div class="welcome-container">
         <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
         <p class="subtitle">¡Tu club ya está listo para empezar!</p>
