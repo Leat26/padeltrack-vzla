@@ -1593,56 +1593,74 @@
           let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
-          const phoneElement = document.getElementById('phone-number');
+
+          // 2. Obtener número de teléfono combinado (prefijo + sufijo)
+          const phonePrefix = document.getElementById('phone-prefix')?.value?.trim() || '';
+          const phoneSuffix = document.getElementById('phone-suffix')?.value?.trim() || '';
+          let phone = '';
+          
+          // Validar y formatear
+          if (phonePrefix && phoneSuffix) {
+              if (/^\d{7}$/.test(phoneSuffix)) {
+                  phone = `${phonePrefix}-${phoneSuffix}`;
+              } else {
+                  window.showNotification('El número final debe tener exactamente 7 dígitos');
+                  return;
+              }
+          } else if (phonePrefix || phoneSuffix) {
+              window.showNotification('Por favor, completa ambos campos del número de teléfono');
+              return;
+          }
+
           const phone = phoneElement ? phoneElement.value?.trim() : '';
           const password = document.getElementById('register-password')?.value || '';
           const confirmPassword = document.getElementById('register-confirm')?.value || '';
           
-          // 2. Validar campos requeridos
+          // 3. Validar campos requeridos
           if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
           
-          // 3. Validación específica para teléfono
+          // 4. Validación específica para teléfono
           if (!phone || phone.length < 7) {
             window.showNotification('Por favor, ingresa un número de teléfono válido (mínimo 7 dígitos)');
             return;
           }
           
-          // 4. Asegurar que el RIF esté en mayúsculas
+          // 5. Asegurar que el RIF esté en mayúsculas
           clubRif = clubRif.toUpperCase();
           if (document.getElementById('club-rif')) {
             document.getElementById('club-rif').value = clubRif;
           }
           
-          // 5. Validar formato del RIF usando función centralizada
+          // 6. Validar formato del RIF usando función centralizada
           if (!window.validateRifFormat(clubRif)) {
               window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
               return;
           }
           
-          // 6. Validar cantidad de canchas
+          // 7. Validar cantidad de canchas
           const courts = parseInt(courtCount);
           if (isNaN(courts) || courts < 1 || courts > 20) {
             window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
             return;
           }
           
-          // 7. Validar contraseñas
+          // 8. Validar contraseñas
           if (password !== confirmPassword) {
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
           
-          // 8. Validar longitud de contraseña
+          // 9. Validar longitud de contraseña
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
             return;
           }
           
           try {
-            // 9. Registrar usuario en Supabase Auth
+            // 10. Registrar usuario en Supabase Auth
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
               password: password
@@ -1657,13 +1675,13 @@
               return;
             }
             
-            // 10. Manejar caso especial: verificación de email
+            // 11. Manejar caso especial: verificación de email
             if (!data.user) {
               window.showNotification('Verifica tu correo electrónico para completar el registro');
               return;
             }
             
-            // 11. CREAR CLUB EN LA TABLA CLUBS
+            // 12. CREAR CLUB EN LA TABLA CLUBS
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1696,10 +1714,10 @@
               return;
             }
             
-            // 12. Establecer el usuario actual
+            // 13. Establecer el usuario actual
             window.currentUser = data.user;
             
-            // 13. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
+            // 14. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
             // Actualizar directamente el nombre del club en la pantalla de bienvenida
             const clubNameWelcome = document.getElementById('club-name-welcome');
             if (clubNameWelcome) {
@@ -1709,7 +1727,7 @@
               console.error("No se encontró el elemento club-name-welcome");
             }
             
-            // 14. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
+            // 15. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
             window.showNotification('¡Club registrado exitosamente!');
             setTimeout(() => {
               window.goToScreen('welcome'); // Navegación corregida
@@ -2660,9 +2678,29 @@
         <input type="number" id="court-count" min="1" max="20" value="2" style="width: 100%; margin: 10px 0;">
         <p><strong>Correo electrónico</strong></p>
         <input type="email" id="register-email" placeholder="contacto@club.com" style="width: 100%; margin: 10px 0;">
-        <p><strong>Número telefónico</strong></p>
-        <input type="tel" id="phone-number" placeholder="+58 412-1234567" style="width: 100%; margin: 10px 0;">
-        <p><strong>Contraseña</strong></p>
+		<p><strong>Número telefónico</strong></p>
+		<div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+		    <select id="phone-prefix" style="width: 40%; padding: 8px; font-size: 16px;">
+		        <option value="">Área</option>
+		        <option value="414">414</option>
+		        <option value="412">412</option>
+		        <option value="424">424</option>
+		        <option value="416">416</option>
+		        <option value="426">426</option>
+		    </select>
+		    <span style="font-size: 18px; color: #555;">-</span>
+		    <input 
+		        type="tel" 
+		        id="phone-suffix" 
+		        placeholder="1234567" 
+		        maxlength="7" 
+		        style="width: 60%; padding: 8px; font-size: 16px;" 
+				oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+		        inputmode="numeric"
+		        pattern="[0-9]{7}"
+		    >
+		</div>        
+		<p><strong>Contraseña</strong></p>
         <input type="password" id="register-password" placeholder="••••••••" style="width: 100%; margin: 10px 0;">
         <p><strong>Confirmar contraseña</strong></p>
         <input type="password" id="register-confirm" placeholder="••••••••" style="width: 100%; margin: 10px 0;">
@@ -2950,7 +2988,6 @@
     <!-- Pantalla 10: Bienvenida Post-Registro -->
     <div class="screen" id="welcome">
       <header>
-        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
         <button class="back-btn btn-header" onclick="window.goToScreen('login')">
           <i class="fas fa-arrow-left"></i>
         </button>
