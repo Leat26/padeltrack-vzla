@@ -1608,7 +1608,7 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión 100% funcional
+        // Función para registrar un nuevo club - Versión corregida y segura
         window.registerClub = async function() {
             try {
                 // 1. Obtener valores de forma segura
@@ -1681,7 +1681,8 @@
                     return;
                 }
         
-                // === PASO CLAVE: VALIDAR SI EL RIF YA EXISTE ===
+                // === PASO CLAVE: VALIDAR RIF ANTES DEL SIGNUP ===
+                // 10. Validar primero si el RIF ya está registrado
                 const {  existingClub, error: checkError } = await window.supabase
                     .from('clubs')
                     .select('id')
@@ -1696,35 +1697,35 @@
         
                 if (existingClub) {
                     window.showNotification('Este RIF ya está registrado');
-                    return; // ❌ DETENEMOS AQUÍ - NADA MÁS SE EJECUTA
+                    return; // ❌ DETENEMOS AQUÍ - NO SE CREA EN AUTH NI EN CLUBS
                 }
         
-                // === SI LLEGA AQUÍ, EL RIF NO EXISTE → SEGUIR CON EL REGISTRO ===
+                // === SI LLEGA AQUÍ, EL RIF NO EXISTE → CONTINUAMOS ===
         
-                // 10. Registrar usuario en Supabase Auth
-                const {  signUpData, error: signUpError } = await window.supabase.auth.signUp({
+                // 11. Registrar usuario en Supabase Auth
+                const {  data, error } = await window.supabase.auth.signUp({
                     email: email,
                     password: password
                 });
         
-                if (signUpError) {
-                    if (signUpError.message.includes('email already exists')) {
+                if (error) {
+                    if (error.message.includes('email already exists')) {
                         window.showNotification('Este correo electrónico ya está registrado');
                     } else {
-                        window.showNotification(`Error: ${signUpError.message}`);
+                        window.showNotification(`Error: ${error.message}`);
                     }
                     return;
                 }
         
-                // 11. Manejar caso especial: verificación de email
-                if (!signUpData.user) {
+                // 12. Manejar caso especial: verificación de email
+                if (!data.user) {
                     window.showNotification('Verifica tu correo electrónico para completar el registro');
                     return;
                 }
         
-                // 12. CREAR CLUB EN LA TABLA CLUBS
+                // 13. CREAR CLUB EN LA TABLA CLUBS
                 const { error: clubError } = await window.supabase.from('clubs').insert([{
-                    id: signUpData.user.id,
+                    id: data.user.id,
                     rif: clubRif,
                     name: clubName,
                     court_count: courts,
@@ -1734,15 +1735,26 @@
                 }]);
         
                 if (clubError) {
-                    console.error("Error DETALLADO al crear club:", clubError);
-                    window.showNotification(`Error al registrar club: ${clubError.message}`);
+                    console.error("Error DETALLADO al crear club:", {
+                        code: clubError.code,
+                        message: clubError.message,
+                        details: clubError.details,
+                        hint: clubError.hint
+                    });
+                    if (clubError.code === '23505') {
+                        window.showNotification('Este RIF ya está registrado');
+                    } else if (clubError.code === '42501') {
+                        window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+                    } else {
+                        window.showNotification(`Error al registrar club: ${clubError.message}`);
+                    }
                     return;
                 }
         
-                // 13. Establecer el usuario actual
-                window.currentUser = signUpData.user;
+                // 14. Establecer el usuario actual
+                window.currentUser = data.user;
         
-                // 14. Actualizar nombre del club en pantalla de bienvenida
+                // 15. Actualizar nombre del club en pantalla de bienvenida
                 const clubNameWelcome = document.getElementById('club-name-welcome');
                 if (clubNameWelcome) {
                     clubNameWelcome.textContent = clubName;
@@ -1751,7 +1763,7 @@
                     console.error("No se encontró el elemento club-name-welcome");
                 }
         
-                // 15. Navegar a la pantalla de bienvenida
+                // 16. Navegar a la pantalla de bienvenida
                 window.showNotification('¡Club registrado exitosamente!');
                 setTimeout(() => {
                     window.goToScreen('welcome');
