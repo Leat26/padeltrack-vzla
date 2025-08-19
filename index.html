@@ -149,6 +149,24 @@
       transform: none;
       background: #BDBDBD !important;
     }
+    .btn-green {
+      background: #016B3A;
+      color: white;
+      padding: 14px 28px;
+      margin: 20px 0;
+      font-size: 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      width: 85%;
+      max-width: 320px;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
+      transition: all 0.3s ease;
+    }
+    .btn-green:hover {
+      background: #00552E;
+      transform: translateY(-2px);
+    }		
     /* Enlaces */
     .link {
       color: #1976D2;
@@ -490,6 +508,31 @@
     .alert strong {
       color: #D84315;
     }
+    /* Pantalla de Bienvenida */
+    #welcome {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    #welcome h2 {
+      font-size: 28px;
+      color: #016B3A;
+      margin-bottom: 15px;
+    }
+    #welcome .subtitle {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    .handshake-container {
+      margin: 30px 0;
+    }
+    .handshake-img {
+      max-width: 200px;
+      border-radius: 12px;
+    }								
     /* ================================= */
     /* =========== RESPONSIVE ========== */
     /* ================================= */
@@ -547,6 +590,13 @@
       .stat-value {
         font-size: 20px;
       }
+      #welcome h2 {
+        font-size: 24px;
+      }
+      .btn-green {
+        padding: 12px 20px;
+        font-size: 16px;
+      }   
     }
     /* Ajustes para móviles pequeños */
     @media (max-width: 480px) {
@@ -662,6 +712,12 @@
         font-size: 10px;
         padding: 1px 6px;
       }
+      #welcome h2 {
+        font-size: 22px;
+      }
+      #welcome .subtitle {
+        font-size: 16px;
+      }
     }
     /* Para pantallas en modo horizontal en móviles */
     @media (max-height: 500px) and (orientation: landscape) {
@@ -769,72 +825,6 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
-	
-    /* Estilos para la pantalla de bienvenida */
-    .welcome-container {
-      max-width: 500px;
-    }
-
-    #welcome h2 {
-      font-size: 28px;
-      color: #016B3A;
-      margin-bottom: 10px;
-    }
-    
-    #welcome .subtitle {
-      color: #555;
-      margin-bottom: 25px;
-      font-size: 18px;
-    }
-    
-    .handshake-container {
-      background: white;
-      border-radius: 20px;
-      padding: 15px;
-      display: inline-block;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      margin: 20px 0;
-    }
-    
-    .handshake-img {
-      max-width: 200px;
-      border-radius: 12px;
-    }
-    
-    .handshake-img:hover {
-      transform: scale(1.05);
-    }
-    
-    .btn-green {
-      background: #016B3A;
-      color: white;
-      padding: 14px 28px;
-      margin-top: 20px;
-      border-radius: 14px;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
-      transition: all 0.3s ease;
-    }
-    
-    .btn-green:hover {
-      background: #00552E;
-      transform: translateY(-2px);
-    }
-	
-    #welcome {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 20px;
-    }
-    
-    .handshake-container {
-      margin: 20px 0;
-    }	
-	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -900,33 +890,31 @@
           }, 3000);
         };
         
-		
-        // Añade esta función para actualizar el mensaje de bienvenida
-        window.updateWelcomeScreen = function() {
-          const clubNameWelcome = document.getElementById('club-name-welcome');
-                   
-          if (clubNameWelcome && window.currentClub) {
-            clubNameWelcome.textContent = window.currentClub.name;
+        // Función para verificar autenticación																		
+        window.verifyAuth = async function() {
+          const { data, error } = await window.supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error al verificar sesión:", error);
+            return false;
           }
+          
+          return !!data.session;
         };
 		
-        // Navegación entre pantallas - Versión garantizada
-        window.goToScreen = function(id) {
-          // Si intenta acceder a pantallas protegidas sin estar autenticado
-          const protectedScreens = ['home', 'scoring-type', 'register', 'game', 'end', 'ranking', 'dashboard'];
-          if (protectedScreens.includes(id) && !window.currentUser && id !== 'home') {
-            window.showNotification('Por favor, inicia sesión primero');
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById('login').classList.add('active');
-            return;
-          }
-
-          // Si es la pantalla de bienvenida, asegurar visibilidad
-          if (id === 'welcome') {
-            const welcomeScreen = document.getElementById('welcome');
-            if (welcomeScreen) {
-              welcomeScreen.style.display = 'block';
-              welcomeScreen.classList.add('active');
+        // Navegación entre pantallas - Versión mejorada con seguridad
+        window.goToScreen = async function(id) {
+          // Pantallas públicas que no requieren autenticación
+          const publicScreens = ['login', 'register-screen', 'welcome'];
+          
+          // Si no es una pantalla pública, verificar autenticación
+          if (!publicScreens.includes(id)) {
+            const isAuthenticated = await window.verifyAuth();
+            
+            if (!isAuthenticated) {
+              window.showNotification('Por favor, inicia sesión primero');
+              window.goToScreen('login');
+              return;									
             }
           }
           
@@ -1032,7 +1020,7 @@
                     name: "Nuevo Club",
                     court_count: 0,
                     email: window.currentUser.email,
-                    phone: "000-0000000",  // Valor temporal
+                    phone: "N/A",  // ¡Este campo es obligatorio!
                     status: "active"
                   }
                 ]);
@@ -1414,103 +1402,103 @@
         
 		// Validar formato de cédula venezolana
 		window.validateCedulaFormat = function(cedula) {
-		// Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-		const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
-		return cedulaRegex.test(cedula);
+		  // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
+		  const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
+		  return cedulaRegex.test(cedula);
 		};
 
 		// Validar cédula (buscar en Supabase)
 		window.validateCedula = async function(input) {
-		let cedula = input.value.trim();
-		const team = input.dataset.team;
-		const player = input.dataset.player;
-		const id = team + player;
-		
-		// Limpiar validación previa
-		const statusElement = document.getElementById(`cedula-status-${id}`);
-		const playerStatusElement = document.getElementById(`player-status-${id}`);
-		const errorElement = document.getElementById(`error-${id}`);
-		
-		if (statusElement) statusElement.innerHTML = '';
-		if (playerStatusElement) playerStatusElement.textContent = '';
-		if (errorElement) errorElement.style.display = 'none';
-		
-		// Si está vacío, no validar
-		if (!cedula) return;
-		
-		// Asegurar que la cédula esté en mayúsculas
-		cedula = cedula.toUpperCase();
-		input.value = cedula;
-		
-		// Validar formato
-		if (!window.validateCedulaFormat(cedula)) {
+		  let cedula = input.value.trim();
+		  const team = input.dataset.team;
+		  const player = input.dataset.player;
+		  const id = team + player;
+		  
+		  // Limpiar validación previa
+		  const statusElement = document.getElementById(`cedula-status-${id}`);
+		  const playerStatusElement = document.getElementById(`player-status-${id}`);
+		  const errorElement = document.getElementById(`error-${id}`);
+		  
+		  if (statusElement) statusElement.innerHTML = '';
+		  if (playerStatusElement) playerStatusElement.textContent = '';
+		  if (errorElement) errorElement.style.display = 'none';
+		  
+		  // Si está vacío, no validar
+		  if (!cedula) return;
+		  
+		  // Asegurar que la cédula esté en mayúsculas
+		  cedula = cedula.toUpperCase();
+		  input.value = cedula;
+		  
+		  // Validar formato
+		  if (!window.validateCedulaFormat(cedula)) {
 			if (statusElement) {
-			statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-			statusElement.className = 'cedula-validation invalid';
+			  statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+			  statusElement.className = 'cedula-validation invalid';
 			}
 			if (playerStatusElement) {
-			playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
+			  playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
 			}
 			return;
-		}
-		
-		// Mostrar estado de carga
-		if (statusElement) {
-			statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
-			statusElement.className = 'cedula-validation loading';
-		}
-		
-		// Buscar en Supabase (solo en el club actual)
-		const { data, error } = await window.supabase
+		  }
+		  
+		  // Mostrar estado de carga
+		  if (statusElement) {
+			  statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
+			  statusElement.className = 'cedula-validation loading';
+		  }
+		  
+		  // Buscar en Supabase (solo en el club actual)
+		  const { data, error } = await window.supabase
 			.from('players')
 			.select('*')
 			.eq('cedula', cedula)
 			.eq('club_id', window.currentUser.id)
 			.single();
-		
-		if (error) {
+		  
+		  if (error) {
 			if (error.code === 'PGRST116') {  // No se encontraron resultados
-			// Nuevo jugador PARA ESTE CLUB
-			if (statusElement) {
+			  // Nuevo jugador PARA ESTE CLUB
+			  if (statusElement) {
 				statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
 				statusElement.className = 'cedula-validation valid';
-			}
-			if (playerStatusElement) {
+			  }
+			  if (playerStatusElement) {
 				playerStatusElement.textContent = 'Nuevo jugador en este club';
-			}
-			
-			// Habilitar campos de nombre y apellido
-			const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
-			const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-			
-			if (firstNameInput) firstNameInput.disabled = false;
-			if (lastNameInput) lastNameInput.disabled = false;
-			
-			// Guardar datos (solo cédula por ahora)
-			window.playersData[id] = {
+			  }
+			  
+			  // Habilitar campos de nombre y apellido
+			  const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+			  const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+			  
+			  if (firstNameInput) firstNameInput.disabled = false;
+			  if (lastNameInput) lastNameInput.disabled = false;
+			  
+			  // Guardar datos (solo cédula por ahora)
+			  window.playersData[id] = {
 				cedula: cedula,
 				firstName: '',
 				lastName: '',
 				exists: false
-			};
+			  };
 			} else {
-			console.error("Error al validar cédula:", error);
-			if (statusElement) {
+			  console.error("Error al validar cédula:", error);
+			  if (statusElement) {
 				statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
 				statusElement.className = 'cedula-validation invalid';
-			}
-			if (playerStatusElement) {
+			  }
+			  if (playerStatusElement) {
 				playerStatusElement.textContent = 'Error al verificar';
+			  }
 			}
-			}
-		} else {
+		  } else {
 			// Jugador existe EN ESTE CLUB
 			if (statusElement) {
-			statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
-			statusElement.className = 'cedula-validation valid';
+			  statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+			  statusElement.className = 'cedula-validation valid';
 			}
 			if (playerStatusElement) {
-			playerStatusElement.textContent = 'Jugador existente en este club';
+			  playerStatusElement.textContent = 'Jugador existente en este club';
 			}
 			
 			// Rellenar nombre y apellido
@@ -1524,12 +1512,12 @@
 			
 			// Guardar datos
 			window.playersData[id] = {
-			cedula: cedula,
-			firstName: data.first_name || '',
-			lastName: data.last_name || '',
-			exists: true
+			  cedula: cedula,
+			  firstName: data.first_name || '',
+			  lastName: data.last_name || '',
+			  exists: true
 			};
-		}
+		  }
 		};
 		
         
@@ -1565,7 +1553,6 @@
         };
 
         // Función para registrar un nuevo club - Versión 100% funcional
-
         window.registerClub = async function() {
           // 1. Obtener valores de forma segura
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1679,7 +1666,7 @@
             // 12. Establecer el usuario actual
             window.currentUser = data.user;
             
-            // 13. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA
+            // 13. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA CORREGIDA
             // Actualizar directamente el nombre del club en la pantalla de bienvenida
             const clubNameWelcome = document.getElementById('club-name-welcome');
             if (clubNameWelcome) {
@@ -1689,10 +1676,10 @@
               console.error("No se encontró el elemento club-name-welcome");
             }
             
-            // 14. Navegar a la pantalla de bienvenida
+            // 14. Navegar a la pantalla de bienvenida - CORRECCIÓN APLICADA
             window.showNotification('¡Club registrado exitosamente!');
             setTimeout(() => {
-              window.goToScreen('welcome');
+              window.goToScreen('welcome'); // Navegación corregida
             }, 100);
             
           } catch (error) {
@@ -1757,39 +1744,39 @@
         
 		// Función para registrar jugadores
 		window.startGame = async function() {
-		// Validar que todos los jugadores tengan datos completos
-		const missingData = [];
-		Object.keys(window.playersData).forEach(key => {
+		  // Validar que todos los jugadores tengan datos completos
+		  const missingData = [];
+		  Object.keys(window.playersData).forEach(key => {
 			const data = window.playersData[key];
 			if (!data.cedula) {
-			missingData.push(`Jugador ${key}`);
+			  missingData.push(`Jugador ${key}`);
 			} else if (!data.exists) {
-			// Para jugadores nuevos, obtener los nombres del DOM
-			const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			
-			const firstName = firstNameInput?.value?.trim() || '';
-			const lastName = lastNameInput?.value?.trim() || '';
-			
-			if (!firstName || !lastName) {
+			  // Para jugadores nuevos, obtener los nombres del DOM
+			  const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			  const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+			  
+			  const firstName = firstNameInput?.value?.trim() || '';
+			  const lastName = lastNameInput?.value?.trim() || '';
+			  
+			  if (!firstName || !lastName) {
 				missingData.push(`Jugador ${key}`);
+			  }
 			}
-			}
-		});
-		
-		if (missingData.length > 0) {
+		  });
+		  
+		  if (missingData.length > 0) {
 			window.showNotification(`Faltan datos de: ${missingData.join(', ')}`);
 			return;
-		}
-		
-		if (!window.currentUser) {
+		  }
+		  
+		  if (!window.currentUser) {
 			window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
 			window.goToScreen('login');
 			return;
-		}
-		
-		// Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
-		for (const key in window.playersData) {
+		  }
+		  
+		  // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
+		  for (const key in window.playersData) {
 			const player = window.playersData[key];
 			if (player.exists) continue; // Ya existe en este club
 			
@@ -1802,46 +1789,46 @@
 			
 			// Validar que los nombres no estén vacíos
 			if (!firstName || !lastName) {
-			window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
-			return;
+			  window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
+			  return;
 			}
 			
 			// Intentar insertar el jugador
 			const { error: insertError } = await window.supabase
-			.from('players')
-			.insert([
+			  .from('players')
+			  .insert([
 				{
-				club_id: window.currentUser.id,
-				cedula: player.cedula,
-				first_name: firstName,
-				last_name: lastName,
-				matches_played: 0,
-				matches_won: 0,
-				created_at: new Date().toISOString(),
-				last_match_date: new Date().toISOString()
+				  club_id: window.currentUser.id,
+				  cedula: player.cedula,
+				  first_name: firstName,
+				  last_name: lastName,
+				  matches_played: 0,
+				  matches_won: 0,
+				  created_at: new Date().toISOString(),
+				  last_match_date: new Date().toISOString()
 				}
-			]);
+			  ]);
 			
 			if (insertError) {
-			if (insertError.code === '23505') {
+			  if (insertError.code === '23505') {
 				console.error("Error de unicidad inesperado:", insertError);
-			} else {
+			  } else {
 				console.error("Error al registrar jugador:", insertError);
 				window.showNotification(`Error al registrar ${firstName} ${lastName}`);
 				return;
-			}
+			  }
 			}
 			
 			// Actualizar playersData con los nombres reales
 			window.playersData[key] = {
-			...window.playersData[key],
-			firstName: firstName,
-			lastName: lastName
+			  ...window.playersData[key],
+			  firstName: firstName,
+			  lastName: lastName
 			};
-		}
-		
-		// Continuar al marcador
-		window.goToScreen('game');
+		  }
+		  
+		  // Continuar al marcador
+		  window.goToScreen('game');
 		};
         
         // Función para finalizar partido
@@ -1912,18 +1899,18 @@
           
           if (error) {
             console.error("Error al guardar partido: ", {
-				code: error.code,
-				message: error.message,
-				details: error.details,
-				hint: error.hint,
-				data: {
-					club_id: window.currentUser.id,
-					court: window.selectedCourt,
-					scoring_type: window.scoringType,
-					team_a_name: teamAName,
-					team_b_name: teamBName,
-					winner: winner === 'A' ? 'teamA' : 'teamB'
-				}
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              data: {
+                club_id: window.currentUser.id,
+                court: window.selectedCourt,
+                scoring_type: window.scoringType,
+                team_a_name: teamAName,
+                team_b_name: teamBName,
+                winner: winner === 'A' ? 'teamA' : 'teamB'
+              }
             });
 
             // Mensaje más específico para errores de RLS
@@ -1931,49 +1918,46 @@
               window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
             } else {
               window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
-            }	
-
-            window.goToScreen('end');
-            return;
-          }
-          
-          // Actualizar estadísticas de jugadores
-          await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
-
-          // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
-          try {
-            // Intentar llamar a la función RPC
-            const { error: courtError } = await window.supabase
-              .rpc('increment_court_usage', {
-                p_club_id: window.currentUser.id,
-                p_court: window.selectedCourt
-              });
-            
-            if (courtError) {
-              console.error("Error DETALLADO al actualizar uso de canchas:", {
-                code: courtError.code,
-                message: courtError.message,
-                details: courtError.details,
-                hint: courtError.hint
-              });
-              
-              // Verificar si la tabla court_usage existe
-              const { error: tableCheck } = await window.supabase
-                .from('court_usage')
-                .select('count(*)', { count: 'exact' })
-                .limit(1);
-              
-              if (tableCheck) {
-                window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
-              } else {
-                window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
-              }
-            } else {
-              console.log("Uso de canchas actualizado correctamente");
             }
-          } catch (error) {
-            console.error("Error CRÍTICO al actualizar uso de canchas:", error);
-            window.showNotification('Error crítico al actualizar uso de canchas.');
+          } else {
+            // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
+            try {
+              // Intentar llamar a la función RPC
+              const { error: courtError } = await window.supabase
+                .rpc('increment_court_usage', {
+                  p_club_id: window.currentUser.id,
+                  p_court: window.selectedCourt
+                });
+              
+              if (courtError) {
+                console.error("Error DETALLADO al actualizar uso de canchas:", {
+                  code: courtError.code,
+                  message: courtError.message,
+                  details: courtError.details,
+                  hint: courtError.hint
+                });
+                
+                // Verificar si la tabla court_usage existe
+                const { error: tableCheck } = await window.supabase
+                  .from('court_usage')
+                  .select('count(*)', { count: 'exact' })
+                  .limit(1);
+                
+                if (tableCheck) {
+                  window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
+                } else {
+                  window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
+                }
+              } else {
+                console.log("Uso de canchas actualizado correctamente");
+              }
+            } catch (error) {
+              console.error("Error CRÍTICO al actualizar uso de canchas:", error);
+              window.showNotification('Error crítico al actualizar uso de canchas.');
+            }
+            
+            // Actualizar estadísticas de jugadores
+            await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
           }
           
           // Mostrar pantalla de finalización
@@ -1982,51 +1966,51 @@
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
-		if (!window.currentUser) return;
-		
-		// Actualizar cada jugador
-		for (const key in window.playersData) {
+		  if (!window.currentUser) return;
+		  
+		  // Actualizar cada jugador
+		  for (const key in window.playersData) {
 			const player = window.playersData[key];
 			if (!player.cedula) continue;
 			
 			try {
-			// Verificar si el jugador existe
-			const { data: existingPlayer, error } = await window.supabase
+			  // Verificar si el jugador existe
+			  const { data: existingPlayer, error } = await window.supabase
 				.from('players')
 				.select('matches_played, matches_won')
 				.eq('cedula', player.cedula)
 				.eq('club_id', window.currentUser.id)
 				.single();
-			
-			if (error && error.code !== 'PGRST116') {  // PGRST116 = no encontrado
+			  
+			  if (error && error.code !== 'PGRST116') {  // PGRST116 = no encontrado
 				console.error(`Error al obtener jugador ${player.cedula}:`, error);
 				continue;
-			}
-			
-			// Calcular nuevos valores
-			let newMatchesPlayed = 1;
-			let newMatchesWon = 0;
-			
-			if (existingPlayer) {
+			  }
+			  
+			  // Calcular nuevos valores
+			  let newMatchesPlayed = 1;
+			  let newMatchesWon = 0;
+			  
+			  if (existingPlayer) {
 				newMatchesPlayed = existingPlayer.matches_played + 1;
 				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
 					(winnerTeam === 'teamB' && key[0] === 'B')) {
-				newMatchesWon = existingPlayer.matches_won + 1;
+				  newMatchesWon = existingPlayer.matches_won + 1;
 				} else {
-				newMatchesWon = existingPlayer.matches_won;
+				  newMatchesWon = existingPlayer.matches_won;
 				}
-			} else {
+			  } else {
 				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
 					(winnerTeam === 'teamB' && key[0] === 'B')) {
-				newMatchesWon = 1;
+				  newMatchesWon = 1;
 				}
-			}
-			
-			// Actualizar o crear jugador
-			const { error: updateError } = await window.supabase
+			  }
+			  
+			  // Actualizar o crear jugador
+			  const { error: updateError } = await window.supabase
 				.from('players')
 				.upsert([
-				{
+				  {
 					cedula: player.cedula,
 					club_id: window.currentUser.id,
 					first_name: player.firstName,
@@ -2034,21 +2018,21 @@
 					matches_played: newMatchesPlayed,
 					matches_won: newMatchesWon,
 					last_match_date: new Date().toISOString()
-				}
+				  }
 				], {
-				onConflict: 'cedula,club_id'
+				  onConflict: 'cedula,club_id'
 				});
-			
-			if (updateError) {
+			  
+			  if (updateError) {
 				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
-			}
+			  }
 			} catch (error) {
-			console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
+			  console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
 			}
-		}
-		
-		console.log("Estadísticas actualizadas correctamente");
-		window.loadRanking();
+		  }
+		  
+		  console.log("Estadísticas actualizadas correctamente");
+		  window.loadRanking();
 		};
 
         
@@ -2142,7 +2126,7 @@
 
 		// Función para cargar dashboard
 		window.loadDashboard = async function() {
-		if (!window.currentUser) {
+		  if (!window.currentUser) {
 			// Mostrar mensaje de error
 			const totalMatches = document.getElementById('total-matches');
 			const activePlayers = document.getElementById('active-players');
@@ -2156,170 +2140,170 @@
 			if (topPlayersList) topPlayersList.innerHTML = '<p>Por favor, inicia sesión primero</p>';
 			if (courtsUsage) courtsUsage.innerHTML = '<p>Inicia sesión para ver el uso de canchas</p>';
 			return;
-		}
-		
-		const clubId = window.currentUser.id;
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
-		const lastWeek = new Date();
-		lastWeek.setDate(today.getDate() - 7);
-		
-		try {
+		  }
+		  
+		  const clubId = window.currentUser.id;
+		  const today = new Date();
+		  today.setHours(0, 0, 0, 0);
+		  const lastWeek = new Date();
+		  lastWeek.setDate(today.getDate() - 7);
+		  
+		  try {
 			// 1. Partidos del día
 			const { data: matchesData, error: matchesError } = await window.supabase
-			.from('matches')
-			.select('id')
-			.eq('club_id', clubId)
-			.gte('created_at', today.toISOString());
+			  .from('matches')
+			  .select('id')
+			  .eq('club_id', clubId)
+			  .gte('created_at', today.toISOString());
 			
 			if (matchesError) {
-			console.error("Error al obtener partidos:", matchesError);
-			const totalMatches = document.getElementById('total-matches');
-			const totalHours = document.getElementById('total-hours');
-			
-			if (totalMatches) totalMatches.textContent = "0";
-			if (totalHours) totalHours.textContent = "0";
+			  console.error("Error al obtener partidos:", matchesError);
+			  const totalMatches = document.getElementById('total-matches');
+			  const totalHours = document.getElementById('total-hours');
+			  
+			  if (totalMatches) totalMatches.textContent = "0";
+			  if (totalHours) totalHours.textContent = "0";
 			} else {
-			const totalMatches = document.getElementById('total-matches');
-			if (totalMatches) totalMatches.textContent = matchesData.length;
-			
-			const totalHours = document.getElementById('total-hours');
-			if (totalHours) {
+			  const totalMatches = document.getElementById('total-matches');
+			  if (totalMatches) totalMatches.textContent = matchesData.length;
+			  
+			  const totalHours = document.getElementById('total-hours');
+			  if (totalHours) {
 				const totalHoursValue = Math.floor(matchesData.length * 1.5);
 				totalHours.textContent = totalHoursValue;
-			}
+			  }
 			}
 			
 			// 2. Jugadores activos (últimos 7 días)
 			const { data: activePlayersData, error: activePlayersError } = await window.supabase
-			.from('players')
-			.select('id')
-			.eq('club_id', clubId)
-			.gte('last_match_date', lastWeek.toISOString());
+			  .from('players')
+			  .select('id')
+			  .eq('club_id', clubId)
+			  .gte('last_match_date', lastWeek.toISOString());
 			
 			if (activePlayersError) {
-			console.error("Error al obtener jugadores activos:", activePlayersError);
-			const activePlayers = document.getElementById('active-players');
-			if (activePlayers) activePlayers.textContent = "0";
+			  console.error("Error al obtener jugadores activos:", activePlayersError);
+			  const activePlayers = document.getElementById('active-players');
+			  if (activePlayers) activePlayers.textContent = "0";
 			} else {
-			const activePlayers = document.getElementById('active-players');
-			if (activePlayers) activePlayers.textContent = activePlayersData.length;
+			  const activePlayers = document.getElementById('active-players');
+			  if (activePlayers) activePlayers.textContent = activePlayersData.length;
 			}
 			
 			// 3. Top 5 jugadores
 			const { data: topPlayersData, error: topPlayersError } = await window.supabase
-			.from('players')
-			.select('*')
-			.eq('club_id', clubId)
-			.gte('last_match_date', lastWeek.toISOString())
-			.order('matches_won', { ascending: false })
-			.limit(5);
+			  .from('players')
+			  .select('*')
+			  .eq('club_id', clubId)
+			  .gte('last_match_date', lastWeek.toISOString())
+			  .order('matches_won', { ascending: false })
+			  .limit(5);
 			
 			if (topPlayersError) {
-			console.error("Error al obtener top jugadores:", topPlayersError);
-			const topPlayersList = document.getElementById('top-players-list');
-			if (topPlayersList) {
+			  console.error("Error al obtener top jugadores:", topPlayersError);
+			  const topPlayersList = document.getElementById('top-players-list');
+			  if (topPlayersList) {
 				topPlayersList.innerHTML = `
-				<div class="alert">
+				  <div class="alert">
 					<i class="fas fa-exclamation-circle"></i> 
 					<strong>Error:</strong> ${topPlayersError.message}
-				</div>
+				  </div>
 				`;
-			}
+			  }
 			} else {
-			let html = '';
-			const topPlayersList = document.getElementById('top-players-list');
-			
-			if (!topPlayersList) return;
-			
-			if (topPlayersData.length === 0) {
+			  let html = '';
+			  const topPlayersList = document.getElementById('top-players-list');
+			  
+			  if (!topPlayersList) return;
+			  
+			  if (topPlayersData.length === 0) {
 				html = '<p>No hay jugadores activos esta semana</p>';
-			} else {
+			  } else {
 				let rank = 1;
 				topPlayersData.forEach(player => {
-				const matchesPlayed = player.matches_played;
-				const matchesWon = window.safeNumber(player.matches_won, 0);
-				const winPercentage = matchesPlayed > 0 ? 
+				  const matchesPlayed = player.matches_played;
+				  const matchesWon = window.safeNumber(player.matches_won, 0);
+				  const winPercentage = matchesPlayed > 0 ? 
 					Math.round((matchesWon / matchesPlayed) * 100) : 0;
-				html += `
+				  html += `
 					<div class="ranking-item">
-					<span class="ranking-rank">${rank}.</span>
-					<span style="flex: 1;">
+					  <span class="ranking-rank">${rank}.</span>
+					  <span style="flex: 1;">
 						<strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
 						<div class="win-percentage">${winPercentage}% de victorias</div>
-					</span>
-					<span>
+					  </span>
+					  <span>
 						<span class="ranking-wins">${matchesWon}</span>-
 						<span class="ranking-losses">${matchesPlayed - matchesWon}</span>
-					</span>
+					  </span>
 					</div>
-				`;
-				rank++;
+				  `;
+				  rank++;
 				});
-			}
-			topPlayersList.innerHTML = html;
+			  }
+			  topPlayersList.innerHTML = html;
 			}
 			
 			// 4. Uso de canchas
 			const { data: courtsData, error: courtsError } = await window.supabase
-			.from('court_usage')
-			.select('*')
-			.eq('club_id', clubId);
+			  .from('court_usage')
+			  .select('*')
+			  .eq('club_id', clubId);
 			
 			if (courtsError) {
-			console.error("Error al obtener canchas:", courtsError);
-			const courtsUsage = document.getElementById('courts-usage');
-			if (courtsUsage) {
+			  console.error("Error al obtener canchas:", courtsError);
+			  const courtsUsage = document.getElementById('courts-usage');
+			  if (courtsUsage) {
 				courtsUsage.innerHTML = `
-				<div class="alert">
+				  <div class="alert">
 					<i class="fas fa-exclamation-circle"></i> 
 					<strong>Error:</strong> ${courtsError.message}
-				</div>
+				  </div>
 				`;
-			}
+			  }
 			} else {
-			let html = '';
-			const courtsUsage = document.getElementById('courts-usage');
-			
-			if (!courtsUsage) return;
-			
-			if (courtsData.length === 0) {
+			  let html = '';
+			  const courtsUsage = document.getElementById('courts-usage');
+			  
+			  if (!courtsUsage) return;
+			  
+			  if (courtsData.length === 0) {
 				html = '<p>No hay datos de uso de canchas</p>';
-			} else {
+			  } else {
 				courtsData.forEach(court => {
-				html += `
+				  html += `
 					<p style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-					<span><strong>${court.court}</strong></span>
-					<span>${court.match_count} hoy</span>
+					  <span><strong>${court.court}</strong></span>
+					  <span>${court.match_count} hoy</span>
 					</p>
-				`;
+				  `;
 				});
+			  }
+			  courtsUsage.innerHTML = html;
 			}
-			courtsUsage.innerHTML = html;
-			}
-		} catch (error) {
+		  } catch (error) {
 			console.error("Error crítico al cargar dashboard:", error);
 			const topPlayersList = document.getElementById('top-players-list');
 			const courtsUsage = document.getElementById('courts-usage');
 			
 			if (topPlayersList) {
-			topPlayersList.innerHTML = `
+			  topPlayersList.innerHTML = `
 				<div class="alert">
-				<i class="fas fa-exclamation-circle"></i> 
-				<strong>Error crítico:</strong> ${error.message}
+				  <i class="fas fa-exclamation-circle"></i> 
+				  <strong>Error crítico:</strong> ${error.message}
 				</div>
-			`;
+			  `;
 			}
 			
 			if (courtsUsage) {
-			courtsUsage.innerHTML = `
+			  courtsUsage.innerHTML = `
 				<div class="alert">
-				<i class="fas fa-exclamation-circle"></i> 
-				<strong>Error crítico:</strong> ${error.message}
+				  <i class="fas fa-exclamation-circle"></i> 
+				  <strong>Error crítico:</strong> ${error.message}
 				</div>
-			`;
+			  `;
 			}
-		}
+		  }
 		};
         
         // Exportar datos
@@ -2331,7 +2315,7 @@
           const dateStr = today.toISOString().split('T')[0];
           
           // Obtener partidos del día
-          const {  matchesData, error: matchesError } = await window.supabase
+          const { matchesData, error: matchesError } = await window.supabase
             .from('matches')
             .select('*')
             .eq('club_id', window.currentUser.id)
@@ -2428,7 +2412,7 @@
                         name: "Nuevo Club",
                         court_count: 0,
                         email: window.currentUser.email,
-						phone: phone,
+                        phone: "N/A",
                         status: "active"
                       }
                     ])
@@ -2492,7 +2476,7 @@
                         name: "Nuevo Club",
                         court_count: 0,
                         email: window.currentUser.email,
-						phone: phone,
+                        phone: "N/A",
                         status: "active"
                       }
                     ])
@@ -2600,7 +2584,7 @@
 <body>
   <div class="container" style="height: auto; min-height: 100vh;">
     <!-- Logo Clickable -->
-    <header onclick="window.goToScreen('home')">
+    <header>
       <div id="logo"></div>
     </header>
     <!-- Pantalla 1: Login -->
@@ -2928,6 +2912,12 @@
 
     <!-- Pantalla 10: Bienvenida Post-Registro -->
     <div class="screen" id="welcome">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+        <button class="back-btn btn-header" onclick="window.goToScreen('login')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>	   
       <div class="welcome-container">
         <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
         <p class="subtitle">¡Tu club ya está listo para empezar!</p>
