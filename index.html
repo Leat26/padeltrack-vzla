@@ -1682,10 +1682,16 @@
           
           try {
             // 10. Registrar usuario en Supabase Auth
-            const { data, error } = await window.supabase.auth.signUp({
-              email: email,
-              password: password
-            });
+            const { data: existingClub, error: checkError } = await window.supabase
+                .from('clubs')
+                .select('id')
+                .eq('rif', clubRif)
+                .single();
+            
+            if (!checkError && existingClub) {
+                window.showNotification('Este RIF ya está registrado');
+                return; // Detener el registro antes de crear el usuario
+            }			
             
             if (error) {
               if (error.message.includes('email already exists')) {
@@ -1718,23 +1724,22 @@
               ]);
             
             if (clubError) {
-              console.error("Error DETALLADO al crear club:", {
-                code: clubError.code,
-                message: clubError.message,
-                details: clubError.details,
-                hint: clubError.hint
-              });
-              
-              if (clubError.code === '23505') {  // Error de unicidad
-                window.showNotification('Este RIF ya está registrado');
-              } else if (clubError.code === '42501') {  // Error de permisos
-                window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
-              } else {
-                window.showNotification(`Error al registrar club: ${clubError.message}`);
-              }
-              return;
+                console.error("Error DETALLADO al crear club:", {
+                    code: clubError.code,
+                    message: clubError.message,
+                    details: clubError.details,
+                    hint: clubError.hint
+                });
+                if (clubError.code === '23505') { // Error de unicidad
+                    window.showNotification('Este RIF ya está registrado');
+                } else if (clubError.code === '42501') { // Error de permisos
+                    window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+                } else {
+                    window.showNotification(`Error al registrar club: ${clubError.message}`);
+                }
+                return;
             }
-            
+			
             // 13. Establecer el usuario actual
             window.currentUser = data.user;
             
