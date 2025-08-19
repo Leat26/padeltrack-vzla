@@ -772,10 +772,9 @@
 	
     /* Estilos para la pantalla de bienvenida */
     .welcome-container {
-      opacity: 1 !important;
-      visibility: visible !important;
+      max-width: 500px;
     }
-    
+
     #welcome h2 {
       font-size: 28px;
       color: #016B3A;
@@ -798,10 +797,8 @@
     }
     
     .handshake-img {
-      width: 180px;
-      height: auto;
+      max-width: 200px;
       border-radius: 12px;
-      transition: transform 0.3s ease;
     }
     
     .handshake-img:hover {
@@ -811,14 +808,10 @@
     .btn-green {
       background: #016B3A;
       color: white;
-      border: none;
       padding: 14px 28px;
-      margin: 20px 0;
-      font-size: 18px;
+      margin-top: 20px;
       border-radius: 14px;
       cursor: pointer;
-      width: 85%;
-      max-width: 320px;
       font-weight: 600;
       box-shadow: 0 4px 10px rgba(1, 107, 58, 0.3);
       transition: all 0.3s ease;
@@ -828,16 +821,18 @@
       background: #00552E;
       transform: translateY(-2px);
     }
-
+	
     #welcome {
-      display: block !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      z-index: 1000 !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
     }
     
     .handshake-container {
-      opacity: 1 !important;
+      margin: 20px 0;
     }	
 	
   </style>
@@ -924,6 +919,15 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('login').classList.add('active');
             return;
+          }
+
+          // Si es la pantalla de bienvenida, asegurar visibilidad
+          if (id === 'welcome') {
+            const welcomeScreen = document.getElementById('welcome');
+            if (welcomeScreen) {
+              welcomeScreen.style.display = 'block';
+              welcomeScreen.classList.add('active');
+            }
           }
           
           // Ocultar todas las pantallas
@@ -1561,6 +1565,7 @@
         };
 
         // Función para registrar un nuevo club - Versión 100% funcional
+
         window.registerClub = async function() {
           // 1. Obtener valores de forma segura
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1572,14 +1577,14 @@
           const password = document.getElementById('register-password')?.value || '';
           const confirmPassword = document.getElementById('register-confirm')?.value || '';
           
-          // 2. Validar campos requeridos (sin errores de sintaxis)
+          // 2. Validar campos requeridos
           if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
           
-          // 3. Validación específica y robusta para teléfono
-          if (!phone || phone.length < 7) {  // Mínimo 7 dígitos para un teléfono válido
+          // 3. Validación específica para teléfono
+          if (!phone || phone.length < 7) {
             window.showNotification('Por favor, ingresa un número de teléfono válido (mínimo 7 dígitos)');
             return;
           }
@@ -1638,7 +1643,7 @@
               return;
             }
             
-            // 11. CREAR CLUB EN LA TABLA CLUBS - SOLUCIÓN DEFINITIVA
+            // 11. CREAR CLUB EN LA TABLA CLUBS
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([
@@ -1674,29 +1679,27 @@
             // 12. Establecer el usuario actual
             window.currentUser = data.user;
             
-            // 13. MOSTRAR PANTALLA DE BIENVENIDA - SOLUCIÓN DEFINITIVA
-            window.showNotification('¡Club registrado exitosamente!');
+            // 13. MOSTRAR PANTALLA DE BIENVENIDA - PARTE CRÍTICA
+            // Actualizar directamente el nombre del club en la pantalla de bienvenida
+            const clubNameWelcome = document.getElementById('club-name-welcome');
+            if (clubNameWelcome) {
+              clubNameWelcome.textContent = clubName;
+              console.log("Nombre del club actualizado directamente en pantalla de bienvenida");
+            } else {
+              console.error("No se encontró el elemento club-name-welcome");
+            }
             
-            // ✅ CORRECCIÓN CRÍTICA: Eliminado el doble llamado y usado el nombre directamente
+            // 14. Navegar a la pantalla de bienvenida
+            window.showNotification('¡Club registrado exitosamente!');
             setTimeout(() => {
-              // Mostrar la pantalla de bienvenida
               window.goToScreen('welcome');
-              
-              // ✅ ACTUALIZAR DIRECTAMENTE EL NOMBRE DEL CLUB (sin depender de currentClub)
-              const clubNameWelcome = document.getElementById('club-name-welcome');
-              if (clubNameWelcome) {
-                clubNameWelcome.textContent = clubName;
-                console.log("Nombre del club actualizado directamente en pantalla de bienvenida");
-              } else {
-                console.error("No se encontró el elemento club-name-welcome");
-              }
             }, 100);
             
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
             window.showNotification(`Error inesperado: ${error.message}`);
           }
-        };		
+        };
 
         // Iniciar sesión
         window.loginUser = async function() {
@@ -2897,22 +2900,6 @@
           </div>
         </div>
 
-        <!-- Pantalla 10: Bienvenida Post-Registro -->
-        <div class="screen" id="welcome">
-          <header>
-            <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
-          </header>
-          <div class="welcome-container">
-            <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
-            <p class="subtitle">¡Tu club ya está listo para empezar!</p>
-            <div class="handshake-container">
-              <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img" onerror="this.src='https://via.placeholder.com/200x150?text=Error+de+imagen'">
-            </div>
-            <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
-            <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
-          </div>
-        </div>
-
         <!-- Top 5 Jugadores -->
         <div class="stats" style="margin-bottom: 20px;">
           <h3 style="margin-bottom: 10px;"><i class="fas fa-crown"></i> Top 5 Jugadores (Semana)</h3>
@@ -2938,6 +2925,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Pantalla 10: Bienvenida Post-Registro -->
+    <div class="screen" id="welcome">
+      <header>
+        <i class="fas fa-table-tennis-paddle-ball"></i> PADELTRACK
+      </header>
+      <div class="welcome-container">
+        <h2>Bienvenido, <span id="club-name-welcome"></span>!</h2>
+        <p class="subtitle">¡Tu club ya está listo para empezar!</p>
+        <div class="handshake-container">
+          <img src="assets/handshake.png" alt="Manos entrelazadas" class="handshake-img" 
+               onerror="this.src='https://via.placeholder.com/200x150?text=Error+de+imagen'">
+        </div>
+        <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
+        <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
+      </div>
+    </div>
+
     <!-- Notificación flotante -->
     <div class="notification" id="notification">
       ¡Tiebreak activado! Juega a 7 puntos
