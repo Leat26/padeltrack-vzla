@@ -852,22 +852,6 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         window.supabase = supabase;
         
-        // Manejo seguro del clic en el logo
-        window.handleLogoClick = function() {
-          // Si hay usuario autenticado y está en la pantalla de bienvenida, ir a home
-          if (window.currentUser && document.getElementById('welcome')?.classList.contains('active')) {
-            window.goToScreen('home');
-          } 
-          // Si está en la pantalla de bienvenida, ir a login
-          else if (document.getElementById('welcome')?.classList.contains('active')) {
-            window.goToScreen('login');
-          }
-          // En cualquier otro caso, no hacer nada (deja que goToScreen maneje la navegación)
-          else {
-            // Esto evita el hueco de seguridad
-          }
-        };		
-		
         console.log("Supabase client creado exitosamente");
         
         // Variables globales
@@ -930,7 +914,7 @@
         window.goToScreen = function(id) {
           // Si intenta acceder a pantallas protegidas sin estar autenticado
           const protectedScreens = ['home', 'scoring-type', 'register', 'game', 'end', 'ranking', 'dashboard'];
-          if (protectedScreens.includes(id) && !window.currentUser) {
+          if (protectedScreens.includes(id) && !window.currentUser && id !== 'home') {
             window.showNotification('Por favor, inicia sesión primero');
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('login').classList.add('active');
@@ -960,9 +944,6 @@
               screen.classList.add('active');
             }, 50);
           }
-
-          document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-          document.getElementById(id).classList.add('active');
           
           // Si es la pantalla de inicio, actualizar con los datos del club
           if (id === 'home' && window.currentUser && window.currentClub) {
@@ -1012,8 +993,8 @@
             }
           }
 
+          
           // Asegurar que el scroll esté en la parte superior
-          const screen = document.getElementById(id);
           if (screen) {
             screen.scrollTop = 0;
           }
