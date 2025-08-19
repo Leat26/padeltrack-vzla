@@ -1582,7 +1582,7 @@
         // Validar formato del RIF venezolano
         window.validateRifFormat = function(rif) {
           // Formato RIF venezolano: J-12345678-9
-          const rifRegex = /^[Jj]-\d{8}-\d$/;
+          const rifRegex = /^[JjGg]-\d{8}-\d$/;
           return rifRegex.test(rif);
         };
 
@@ -1616,11 +1616,10 @@
             document.getElementById('club-rif').value = clubRif;
           }
           
-          // 5. Validar formato del RIF
-          const rifRegex = /^[Jj]-\d{8}-\d$/;
-          if (!rifRegex.test(clubRif)) {
-            window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9');
-            return;
+          // 5. Validar formato del RIF usando función centralizada
+          if (!window.validateRifFormat(clubRif)) {
+              window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
+              return;
           }
           
           // 6. Validar cantidad de canchas
