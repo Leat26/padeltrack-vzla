@@ -1607,12 +1607,11 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión segura y corregida
-
+        // Función para registrar un nuevo club - Versión optimizada y corregida
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
-          const clubRifInput = document.getElementById('club-rif')?.value?.trim() || '';
+          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
@@ -1624,7 +1623,7 @@
           let phone = '';
           
           // Validaciones iniciales
-          if (!clubName || !clubRifInput || !courtCount || !email || !password || !confirmPassword) {
+          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
@@ -1634,37 +1633,24 @@
             return;
           }
           
-          if (phonePrefix && phoneSuffix && !/^\d{7}$/.test(phoneSuffix)) {
-            window.showNotification('El número final debe tener exactamente 7 dígitos');
-            return;
-          }
-          
           if (phonePrefix && phoneSuffix) {
+            if (!/^\d{7}$/.test(phoneSuffix)) {
+              window.showNotification('El número final debe tener exactamente 7 dígitos');
+              return;
+            }
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
-          // ✅ PASO 1: Normalizar y validar el RIF (definir clubRif aquí)
-          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
+          // Validar formato RIF
           clubRif = clubRif.toUpperCase();
-          
-          // Aplicar formato visual si cumple con el patrón básico
-          if (/^[JG]\d{8}$/.test(clubRif.replace(/-/g, ''))) {
-            clubRif = clubRif.replace(/([JG])\-?(\d{8})\-?$/, '$1-$2-');
-          }
-          
-          // Actualizar el input para mostrar el formato correcto
           if (document.getElementById('club-rif')) {
             document.getElementById('club-rif').value = clubRif;
           }
           
-          // Validar formato RIF
           if (!window.validateRifFormat(clubRif)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
             return;
           }
-          
-          // ✅ PASO 2: Preparar RIF para almacenamiento (definir rifForStorage aquí)
-          const rifForStorage = clubRif.replace(/-/g, '').toUpperCase();
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -1691,28 +1677,18 @@
           registerBtn.disabled = true;
           
           try {
-            // ✅ CORRECCIÓN CRÍTICA: Verificar si el RIF ya existe (SIN expresiones SQL inválidas)
-            // Primero: Buscar posibles coincidencias con ilike (ignorando mayúsculas/minúsculas)
-            const { data: possibleMatches, error: initialCheckError } = await window.supabase
+            // 1. PRIMERO verificar si el RIF ya existe
+            const { data: existingClub, error: checkError } = await window.supabase
               .from('clubs')
-              .select('id, rif')
-              .ilike('rif', `%${rifForStorage.substring(0, 4)}%`);
+              .select('rif')
+              .eq('rif', clubRif)
+              .maybeSingle();
             
-            if (initialCheckError) {
-              console.error("Error al verificar RIF:", initialCheckError);
+            if (checkError) {
+              console.error("Error al verificar RIF:", checkError);
               window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
               resetButton(registerBtn, originalBtnText);
               return;
-            }
-            
-            // Segundo: Verificar en el cliente con normalización completa
-            let existingClub = null;
-            for (const club of possibleMatches) {
-              const normalizedExistingRif = club.rif.replace(/[-\s]/g, '').toUpperCase();
-              if (normalizedExistingRif === rifForStorage) {
-                existingClub = club;
-                break;
-              }
             }
             
             if (existingClub) {
@@ -1721,18 +1697,12 @@
               return;
             }
             
-            // ✅ PASO 4: Registrar usuario en Supabase Auth (SOLO si RIF es único)
+            // 2. Registrar usuario en Supabase Auth
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
             
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
-              password: password,
-              options: {
-                 date: {
-                  club_name: clubName,
-                  club_rif: rifForStorage
-                }
-              }
+              password: password
             });
             
             if (error) {
@@ -1751,28 +1721,33 @@
               return;
             }
             
-            // ✅ PASO 5: Crear club en la tabla clubs
+            // 3. Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([{
                 id: data.user.id,
-                rif: rifForStorage,
+                rif: clubRif,
                 name: clubName,
                 court_count: courts,
                 email: email,
-                phone: phone || null,
+                phone: phone,
                 status: "active"
               }]);
             
             if (clubError) {
               console.error("Error al crear club:", clubError);
               
+              // NO intentar eliminar el usuario de Auth desde el cliente (esto causa error 403)
+              // En su lugar, mostrar mensaje apropiado
+              
               if (clubError.code === '23505') {
-                window.showNotification('Este RIF ya está registrado en nuestro sistema');
+                window.showNotification('Este RIF ya está registrado. Por favor, usa un RIF diferente.');
               } else if (clubError.code === '42501') {
-                window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+                window.showNotification('Error de permisos. Contacta al administrador del sistema.');
+              } else if (clubError.code === '23502') {
+                window.showNotification('Error: Faltan campos obligatorios en el registro');
               } else {
                 window.showNotification(`Error al registrar club: ${clubError.message}`);
               }
@@ -1781,7 +1756,7 @@
               return;
             }
             
-            // ✅ PASO 6: Éxito - establecer usuario actual y redirigir
+            // 4. Éxito - establecer usuario actual y redirigir
             window.currentUser = data.user;
             
             const clubNameWelcome = document.getElementById('club-name-welcome');
