@@ -1608,7 +1608,6 @@
         };
 
         // Función para registrar un nuevo club - Versión optimizada y corregida
-
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1678,19 +1677,21 @@
           registerBtn.disabled = true;
           
           try {
-            // 1. VERIFICACIÓN DEL RIF CON MANEJO DE ERRORES MEJORADO
+            // 1. VERIFICACIÓN DEL RIF - CORREGIDA
             console.log("Verificando RIF:", clubRif);
+            
+            // Usar una variable constante para evitar modificaciones
+            const rifToCheck = clubRif;
             
             const { data: existingClub, error: checkError } = await window.supabase
               .from('clubs')
               .select('rif')
-              .eq('rif', clubRif)
+              .eq('rif', rifToCheck)
               .maybeSingle();
             
             if (checkError) {
               console.error("Error al verificar RIF:", checkError);
               
-              // Intentar método alternativo si hay error de permisos
               if (checkError.code === '42501' || checkError.message.includes('permission')) {
                 window.showNotification('Error de permisos. Contacta al administrador.');
               } else {
@@ -1757,23 +1758,35 @@
               return;
             }
             
-            // 4. Crear club en la tabla clubs
+            // 4. Crear club en la tabla clubs - CORRECCIÓN CRÍTICA
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
+            
+            // Asegurar que todos los valores estén definidos
+            const clubData = {
+              id: data.user.id,
+              rif: clubRif, // Usar la variable original que ya está validada
+              name: clubName,
+              court_count: courts,
+              email: email,
+              phone: phone || '000-0000', // Valor por defecto si está vacío
+              status: "active"
+            };
+            
+            console.log("Datos a insertar en clubs:", clubData);
             
             const { error: clubError } = await window.supabase
               .from('clubs')
-              .insert([{
-                id: data.user.id,
-                rif: clubRif,
-                name: clubName,
-                court_count: courts,
-                email: email,
-                phone: phone,
-                status: "active"
-              }]);
+              .insert([clubData]);
             
             if (clubError) {
               console.error("Error al crear club:", clubError);
+              
+              // Intentar eliminar el usuario de Auth si falla la creación del club
+              try {
+                await window.supabase.auth.signOut();
+              } catch (authError) {
+                console.error("Error al cerrar sesión:", authError);
+              }
               
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado. Por favor, usa un RIF diferente.');
@@ -1811,11 +1824,12 @@
           }
         };
         
-        // Función auxiliar para resetear el botón
+        // Función auxiliar para resetear el botón (si no existe)
         function resetButton(button, originalText) {
           button.innerHTML = originalText;
           button.disabled = false;
         }
+
 
         // Iniciar sesión
         window.loginUser = async function() {
