@@ -1678,8 +1678,9 @@
           registerBtn.disabled = true;
           
           try {
-            // 1. PRIMERO verificar si el RIF ya existe
+            // 1. VERIFICACIÓN DEL RIF CON MANEJO DE ERRORES MEJORADO
             console.log("Verificando RIF:", clubRif);
+            
             const { data: existingClub, error: checkError } = await window.supabase
               .from('clubs')
               .select('rif')
@@ -1688,7 +1689,14 @@
             
             if (checkError) {
               console.error("Error al verificar RIF:", checkError);
-              window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
+              
+              // Intentar método alternativo si hay error de permisos
+              if (checkError.code === '42501' || checkError.message.includes('permission')) {
+                window.showNotification('Error de permisos. Contacta al administrador.');
+              } else {
+                window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
+              }
+              
               resetButton(registerBtn, originalBtnText);
               return;
             }
