@@ -1607,11 +1607,11 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión final con formateo visual mantenido
+        // Función para registrar un nuevo club - Versión segura y corregida
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
-          let clubRifInput = document.getElementById('club-rif')?.value?.trim() || '';
+          const clubRifInput = document.getElementById('club-rif')?.value?.trim() || '';
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
@@ -1642,30 +1642,27 @@
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
-          // ✅ MANTENIDO: Formateo visual para el usuario (como solicitó el cliente)
-          // Este es el formato que el usuario ve en el input
-          let clubRifDisplay = clubRifInput.toUpperCase();
+          // ✅ PASO 1: Normalizar y validar el RIF (definir clubRif aquí)
+          let clubRif = clubRifInput.toUpperCase();
           
           // Aplicar formato visual si cumple con el patrón básico
-          if (/^[JG][0-9]{9}$/i.test(clubRifDisplay.replace(/-/g, ''))) {
-            const cleanRif = clubRifDisplay.replace(/-/g, '');
-            clubRifDisplay = `${cleanRif.charAt(0)}-${cleanRif.substring(1, 9)}-${cleanRif.charAt(9)}`;
-            
-            // Actualizar el input para que el usuario vea el formato correcto
-            if (document.getElementById('club-rif')) {
-              document.getElementById('club-rif').value = clubRifDisplay;
-            }
+          if (/^[JG]\d{8}$/.test(clubRif.replace(/-/g, ''))) {
+            clubRif = clubRif.replace(/([JG])\-?(\d{8})\-?$/, '$1-$2-');
           }
           
-          // ✅ VALIDACIÓN del formato RIF (J y G aceptados)
-          if (!window.validateRifFormat(clubRifDisplay)) {
+          // Actualizar el input para que el usuario vea el formato correcto
+          if (document.getElementById('club-rif')) {
+            document.getElementById('club-rif').value = clubRif;
+          }
+          
+          // Validar formato RIF
+          if (!window.validateRifFormat(clubRif)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
             return;
           }
           
-          // ✅ PREPARACIÓN para almacenamiento: Limpiar y normalizar
-          // Esto es lo que se guardará en la base de datos
-          const rifForStorage = clubRifDisplay.replace(/-/g, '').toUpperCase();
+          // ✅ PASO 2: Preparar RIF para almacenamiento (definir rifForStorage aquí)
+          const rifForStorage = clubRif.replace(/-/g, '').toUpperCase();
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -1692,11 +1689,11 @@
           registerBtn.disabled = true;
           
           try {
-            // ✅ VERIFICACIÓN de RIF existente (usando el formato limpio para almacenamiento)
+            // ✅ PASO 3: Verificar si el RIF ya existe (ANTES de crear usuario en Auth)
             const {  existingClub, error: checkError } = await window.supabase
               .from('clubs')
-              .select('rif')
-              .ilike('rif', rifForStorage)
+              .select('id')
+              .ilike('LOWER(REGEXP_REPLACE(rif, \'[^A-Z0-9]\', \'\', \'g\'))', rifForStorage.toLowerCase())
               .maybeSingle();
             
             if (checkError && checkError.code !== 'PGRST116') {
@@ -1712,16 +1709,16 @@
               return;
             }
             
-            // 2. Registrar usuario en Supabase Auth
+            // ✅ PASO 4: Registrar usuario en Supabase Auth (SOLO si RIF es único)
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
             
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
               password: password,
               options: {
-                data: {  
+                 {
                   club_name: clubName,
-                  club_rif: clubRif
+                  club_rif: rifForStorage
                 }
               }
             });
@@ -1742,14 +1739,14 @@
               return;
             }
             
-            // 3. Crear club en la tabla clubs
+            // ✅ PASO 5: Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([{
                 id: data.user.id,
-                rif: rifForStorage,  // Guardamos el RIF limpio
+                rif: rifForStorage,
                 name: clubName,
                 court_count: courts,
                 email: email,
@@ -1772,7 +1769,7 @@
               return;
             }
             
-            // 4. Éxito - establecer usuario actual y redirigir
+            // ✅ PASO 6: Éxito - establecer usuario actual y redirigir
             window.currentUser = data.user;
             
             const clubNameWelcome = document.getElementById('club-name-welcome');
