@@ -1608,13 +1608,7 @@
           return rifRegex.test(rif);
         };
 
-
-        // Función para normalizar RIF (eliminar espacios, guiones, etc.)
-        function normalizeRif(rif) {
-          return rif.toUpperCase().replace(/\s+/g, '').replace(/-/g, '');
-        }
-        
-        // Función para registrar un nuevo club - Versión definitiva y 100% funcional
+        // Función para registrar un nuevo club - Versión final con formateo visual mantenido
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1640,35 +1634,39 @@
             return;
           }
           
+          if (phonePrefix && phoneSuffix && !/^\d{7}$/.test(phoneSuffix)) {
+            window.showNotification('El número final debe tener exactamente 7 dígitos');
+            return;
+          }
+          
           if (phonePrefix && phoneSuffix) {
-            if (!/^\d{7}$/.test(phoneSuffix)) {
-              window.showNotification('El número final debe tener exactamente 7 dígitos');
-              return;
-            }
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
-          // ✅ CORRECCIÓN CLAVE: Normalizar y validar el RIF
-          let clubRif = clubRifInput.toUpperCase();
+          // ✅ MANTENIDO: Formateo visual para el usuario (como solicitó el cliente)
+          // Este es el formato que el usuario ve en el input
+          let clubRifDisplay = clubRifInput.toUpperCase();
           
-          // Normalizar visualmente para el usuario (agregar guiones)
-          if (/^[JG]\d{8}$/.test(clubRif.replace(/-/g, ''))) {
-            clubRif = clubRif.replace(/([JG])\-?(\d{8})\-?$/, '$1-$2-');
+          // Aplicar formato visual si cumple con el patrón básico
+          if (/^[JG][0-9]{9}$/i.test(clubRifDisplay.replace(/-/g, ''))) {
+            const cleanRif = clubRifDisplay.replace(/-/g, '');
+            clubRifDisplay = `${cleanRif.charAt(0)}-${cleanRif.substring(1, 9)}-${cleanRif.charAt(9)}`;
+            
+            // Actualizar el input para que el usuario vea el formato correcto
+            if (document.getElementById('club-rif')) {
+              document.getElementById('club-rif').value = clubRifDisplay;
+            }
           }
           
-          // Guardar el valor normalizado en el input
-          if (document.getElementById('club-rif')) {
-            document.getElementById('club-rif').value = clubRif;
-          }
-          
-          // Validar formato RIF
-          if (!window.validateRifFormat(clubRif)) {
+          // ✅ VALIDACIÓN del formato RIF (J y G aceptados)
+          if (!window.validateRifFormat(clubRifDisplay)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
             return;
           }
           
-          // ✅ NORMALIZACIÓN INTERNA: Para comparaciones, eliminamos espacios y guiones
-          const normalizedRif = normalizeRif(clubRif);
+          // ✅ PREPARACIÓN para almacenamiento: Limpiar y normalizar
+          // Esto es lo que se guardará en la base de datos
+          const rifForStorage = clubRifDisplay.replace(/-/g, '').toUpperCase();
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -1695,11 +1693,11 @@
           registerBtn.disabled = true;
           
           try {
-            // ✅ CORRECCIÓN CLAVE #1: Verificar RIF normalizado
+            // ✅ VERIFICACIÓN de RIF existente (usando el formato limpio para almacenamiento)
             const {  existingClub, error: checkError } = await window.supabase
               .from('clubs')
-              .select('id, rif')
-              .ilike('LOWER(REGEXP_REPLACE(rif, \'[^A-Z0-9]\', \'\', \'g\'))', normalizedRif.toLowerCase())
+              .select('rif')
+              .ilike('rif', rifForStorage)
               .maybeSingle();
             
             if (checkError && checkError.code !== 'PGRST116') {
@@ -1710,16 +1708,7 @@
             }
             
             if (existingClub) {
-              // Mostrar el RIF existente para claridad
-              const existingRif = existingClub.rif;
-              window.showNotification(`Este RIF ya está registrado: ${existingRif}`);
-              resetButton(registerBtn, originalBtnText);
-              return;
-            }
-            
-            // ✅ CORRECCIÓN CLAVE #2: Asegurar que clubRif tiene valor válido
-            if (!clubRif || clubRif.trim() === '') {
-              window.showNotification('El RIF no tiene un valor válido. Por favor, verifica el formato.');
+              window.showNotification('Este RIF ya está registrado en nuestro sistema');
               resetButton(registerBtn, originalBtnText);
               return;
             }
@@ -1731,9 +1720,9 @@
               email: email,
               password: password,
               options: {
-                data: {
+                 {
                   club_name: clubName,
-                  club_rif: clubRif
+                  club_rif: rifForStorage  // Guardamos el RIF limpio
                 }
               }
             });
@@ -1757,16 +1746,11 @@
             // 3. Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
-            // ✅ CORRECCIÓN CLAVE #3: Asegurar que clubRif tiene valor antes de la inserción
-            if (!clubRif) {
-              throw new Error('El RIF no tiene un valor válido durante la inserción');
-            }
-            
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([{
                 id: data.user.id,
-                rif: clubRif,
+                rif: rifForStorage,  // Guardamos el RIF limpio
                 name: clubName,
                 court_count: courts,
                 email: email,
@@ -1777,15 +1761,10 @@
             if (clubError) {
               console.error("Error al crear club:", clubError);
               
-              // ✅ ELIMINADO: No intentamos eliminar el usuario porque no funciona en el cliente
-              // Este era el problema que causaba el bucle de intentos
-              
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado en nuestro sistema');
               } else if (clubError.code === '42501') {
                 window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
-              } else if (clubError.code === '23502') {
-                window.showNotification('Error: El RIF no puede ser nulo. Por favor, verifica el formato');
               } else {
                 window.showNotification(`Error al registrar club: ${clubError.message}`);
               }
