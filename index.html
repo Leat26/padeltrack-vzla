@@ -1608,6 +1608,7 @@
         };
 
         // Función para registrar un nuevo club - Versión segura y corregida
+
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1643,14 +1644,15 @@
           }
           
           // ✅ PASO 1: Normalizar y validar el RIF (definir clubRif aquí)
-          let clubRif = clubRifInput.toUpperCase();
+          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
+          clubRif = clubRif.toUpperCase();
           
           // Aplicar formato visual si cumple con el patrón básico
           if (/^[JG]\d{8}$/.test(clubRif.replace(/-/g, ''))) {
             clubRif = clubRif.replace(/([JG])\-?(\d{8})\-?$/, '$1-$2-');
           }
           
-          // Actualizar el input para que el usuario vea el formato correcto
+          // Actualizar el input para mostrar el formato correcto
           if (document.getElementById('club-rif')) {
             document.getElementById('club-rif').value = clubRif;
           }
@@ -1689,18 +1691,28 @@
           registerBtn.disabled = true;
           
           try {
-            // ✅ PASO 3: Verificar si el RIF ya existe (ANTES de crear usuario en Auth)
-            const {  existingClub, error: checkError } = await window.supabase
+            // ✅ CORRECCIÓN CRÍTICA: Verificar si el RIF ya existe (SIN expresiones SQL inválidas)
+            // Primero: Buscar posibles coincidencias con ilike (ignorando mayúsculas/minúsculas)
+            const { data: possibleMatches, error: initialCheckError } = await window.supabase
               .from('clubs')
-              .select('id')
-              .ilike('LOWER(REGEXP_REPLACE(rif, \'[^A-Z0-9]\', \'\', \'g\'))', rifForStorage.toLowerCase())
-              .maybeSingle();
+              .select('id, rif')
+              .ilike('rif', `%${rifForStorage.substring(0, 4)}%`);
             
-            if (checkError && checkError.code !== 'PGRST116') {
-              console.error("Error al verificar RIF:", checkError);
+            if (initialCheckError) {
+              console.error("Error al verificar RIF:", initialCheckError);
               window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
               resetButton(registerBtn, originalBtnText);
               return;
+            }
+            
+            // Segundo: Verificar en el cliente con normalización completa
+            let existingClub = null;
+            for (const club of possibleMatches) {
+              const normalizedExistingRif = club.rif.replace(/[-\s]/g, '').toUpperCase();
+              if (normalizedExistingRif === rifForStorage) {
+                existingClub = club;
+                break;
+              }
             }
             
             if (existingClub) {
@@ -1716,7 +1728,7 @@
               email: email,
               password: password,
               options: {
-                 data: {
+                 date: {
                   club_name: clubName,
                   club_rif: rifForStorage
                 }
