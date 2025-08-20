@@ -1608,6 +1608,7 @@
         };
 
         // Función para registrar un nuevo club - Versión optimizada y corregida
+
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1678,6 +1679,7 @@
           
           try {
             // 1. PRIMERO verificar si el RIF ya existe
+            console.log("Verificando RIF:", clubRif);
             const { data: existingClub, error: checkError } = await window.supabase
               .from('clubs')
               .select('rif')
@@ -1692,12 +1694,37 @@
             }
             
             if (existingClub) {
+              console.log("RIF ya existe:", existingClub);
               window.showNotification('Este RIF ya está registrado en nuestro sistema');
               resetButton(registerBtn, originalBtnText);
               return;
             }
             
-            // 2. Registrar usuario en Supabase Auth
+            // 2. Verificar si el email ya existe
+            console.log("Verificando email:", email);
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando email...';
+            
+            const { data: existingEmail, error: emailError } = await window.supabase
+              .from('clubs')
+              .select('email')
+              .eq('email', email)
+              .maybeSingle();
+            
+            if (emailError) {
+              console.error("Error al verificar email:", emailError);
+              window.showNotification('Error al verificar el email. Intenta nuevamente.');
+              resetButton(registerBtn, originalBtnText);
+              return;
+            }
+            
+            if (existingEmail) {
+              console.log("Email ya existe:", existingEmail);
+              window.showNotification('Este correo electrónico ya está registrado');
+              resetButton(registerBtn, originalBtnText);
+              return;
+            }
+            
+            // 3. Registrar usuario en Supabase Auth
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
             
             const { data, error } = await window.supabase.auth.signUp({
@@ -1706,6 +1733,7 @@
             });
             
             if (error) {
+              console.error("Error al registrar usuario:", error);
               if (error.message.includes('email already exists')) {
                 window.showNotification('Este correo electrónico ya está registrado');
               } else {
@@ -1721,7 +1749,7 @@
               return;
             }
             
-            // 3. Crear club en la tabla clubs
+            // 4. Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
             const { error: clubError } = await window.supabase
@@ -1739,9 +1767,6 @@
             if (clubError) {
               console.error("Error al crear club:", clubError);
               
-              // NO intentar eliminar el usuario de Auth desde el cliente (esto causa error 403)
-              // En su lugar, mostrar mensaje apropiado
-              
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado. Por favor, usa un RIF diferente.');
               } else if (clubError.code === '42501') {
@@ -1756,7 +1781,7 @@
               return;
             }
             
-            // 4. Éxito - establecer usuario actual y redirigir
+            // 5. Éxito - establecer usuario actual y redirigir
             window.currentUser = data.user;
             
             const clubNameWelcome = document.getElementById('club-name-welcome');
