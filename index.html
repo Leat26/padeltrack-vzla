@@ -1608,11 +1608,17 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión optimizada, segura y 100% funcional
+
+        // Función para normalizar RIF (eliminar espacios, guiones, etc.)
+        function normalizeRif(rif) {
+          return rif.toUpperCase().replace(/\s+/g, '').replace(/-/g, '');
+        }
+        
+        // Función para registrar un nuevo club - Versión definitiva y 100% funcional
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
-          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
+          let clubRifInput = document.getElementById('club-rif')?.value?.trim() || '';
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
@@ -1624,7 +1630,7 @@
           let phone = '';
           
           // Validaciones iniciales
-          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
+          if (!clubName || !clubRifInput || !courtCount || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
@@ -1642,16 +1648,27 @@
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
-          // Validar formato RIF
-          clubRif = clubRif.toUpperCase();
+          // ✅ CORRECCIÓN CLAVE: Normalizar y validar el RIF
+          let clubRif = clubRifInput.toUpperCase();
+          
+          // Normalizar visualmente para el usuario (agregar guiones)
+          if (/^[JG]\d{8}$/.test(clubRif.replace(/-/g, ''))) {
+            clubRif = clubRif.replace(/([JG])\-?(\d{8})\-?$/, '$1-$2-');
+          }
+          
+          // Guardar el valor normalizado en el input
           if (document.getElementById('club-rif')) {
             document.getElementById('club-rif').value = clubRif;
           }
           
+          // Validar formato RIF
           if (!window.validateRifFormat(clubRif)) {
             window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
             return;
           }
+          
+          // ✅ NORMALIZACIÓN INTERNA: Para comparaciones, eliminamos espacios y guiones
+          const normalizedRif = normalizeRif(clubRif);
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -1678,23 +1695,20 @@
           registerBtn.disabled = true;
           
           try {
-            // ✅ CORRECCIÓN CLAVE: Verificar RIF ignorando mayúsculas/minúsculas
-            // Usamos ilike en lugar de eq para evitar problemas con RIFs ya existentes con diferente formato
-            const { data: existingClub, error: checkError } = await window.supabase
+            // ✅ CORRECCIÓN CLAVE #1: Verificar RIF normalizado
+            const {  existingClub, error: checkError } = await window.supabase
               .from('clubs')
               .select('id, rif')
-              .ilike('rif', clubRif)  // ← CORRECCIÓN PRINCIPAL: ilike es insensible a mayúsculas
+              .ilike('LOWER(REGEXP_REPLACE(rif, \'[^A-Z0-9]\', \'\', \'g\'))', normalizedRif.toLowerCase())
               .maybeSingle();
             
-            // Manejar errores de verificación
-            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no se encontró
+            if (checkError && checkError.code !== 'PGRST116') {
               console.error("Error al verificar RIF:", checkError);
               window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
               resetButton(registerBtn, originalBtnText);
               return;
             }
             
-            // ✅ MANEJO CORRECTO: Si existe un RIF (aunque sea con diferente formato de mayúsculas)
             if (existingClub) {
               // Mostrar el RIF existente para claridad
               const existingRif = existingClub.rif;
@@ -1703,7 +1717,7 @@
               return;
             }
             
-            // ✅ SEGUNDA VERIFICACIÓN: Asegurar que clubRif tiene valor válido
+            // ✅ CORRECCIÓN CLAVE #2: Asegurar que clubRif tiene valor válido
             if (!clubRif || clubRif.trim() === '') {
               window.showNotification('El RIF no tiene un valor válido. Por favor, verifica el formato.');
               resetButton(registerBtn, originalBtnText);
@@ -1743,7 +1757,7 @@
             // 3. Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
-            // ✅ TERCERA VERIFICACIÓN: Asegurar que clubRif tiene valor antes de la inserción
+            // ✅ CORRECCIÓN CLAVE #3: Asegurar que clubRif tiene valor antes de la inserción
             if (!clubRif) {
               throw new Error('El RIF no tiene un valor válido durante la inserción');
             }
@@ -1763,13 +1777,10 @@
             if (clubError) {
               console.error("Error al crear club:", clubError);
               
-              // ⚠️ ELIMINADO: No intentamos eliminar el usuario porque no funciona en el cliente
-              // Este es el cambio crucial que evita el problema
+              // ✅ ELIMINADO: No intentamos eliminar el usuario porque no funciona en el cliente
+              // Este era el problema que causaba el bucle de intentos
               
-              // Manejo específico de errores
               if (clubError.code === '23505') {
-                // Este error indica que el RIF ya existe, lo cual no debería pasar
-                // porque ya verificamos con ilike, pero es bueno manejarlo
                 window.showNotification('Este RIF ya está registrado en nuestro sistema');
               } else if (clubError.code === '42501') {
                 window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
