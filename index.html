@@ -1608,7 +1608,7 @@
           return rifRegex.test(rif);
         };
 
-        // Función para registrar un nuevo club - Versión 100% funcional
+        // Función para registrar un nuevo club - Versión optimizada y corregida
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
@@ -1624,14 +1624,21 @@
           let phone = '';
           
           // Validaciones iniciales
-          if (!validateFormFields(clubName, clubRif, courtCount, email, password, confirmPassword, phonePrefix, phoneSuffix)) {
+          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
+            window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
           
-          // Formatear y validar teléfono
-          if (!formatAndValidatePhone(phonePrefix, phoneSuffix)) {
+          if ((phonePrefix && !phoneSuffix) || (!phonePrefix && phoneSuffix)) {
+            window.showNotification('Por favor, completa ambos campos del número de teléfono');
             return;
-          } else {
+          }
+          
+          if (phonePrefix && phoneSuffix) {
+            if (!/^\d{7}$/.test(phoneSuffix)) {
+              window.showNotification('El número final debe tener exactamente 7 dígitos');
+              return;
+            }
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
@@ -1691,34 +1698,18 @@
               return;
             }
             
-            // 2. Verificar si el email ya existe
-            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando email...';
-            
-            const { data: emailCheck, error: emailError } = await window.supabase
-              .from('clubs')
-              .select('email')
-              .eq('email', email)
-              .maybeSingle();
-            
-            if (emailError) {
-              console.error("Error al verificar email:", emailError);
-              window.showNotification('Error al verificar el email. Intenta nuevamente.');
-              resetButton(registerBtn, originalBtnText);
-              return;
-            }
-            
-            if (emailCheck) {
-              window.showNotification('Este correo electrónico ya está registrado');
-              resetButton(registerBtn, originalBtnText);
-              return;
-            }
-            
-            // 3. Registrar usuario en Supabase Auth
+            // 2. Registrar usuario en Supabase Auth
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
             
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
-              password: password
+              password: password,
+              options: {
+                data: {
+                  club_name: clubName,
+                  club_rif: clubRif
+                }
+              }
             });
             
             if (error) {
@@ -1737,7 +1728,7 @@
               return;
             }
             
-            // 4. Crear club en la tabla clubs
+            // 3. Crear club en la tabla clubs
             registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
             
             const { error: clubError } = await window.supabase
@@ -1755,10 +1746,19 @@
             if (clubError) {
               console.error("Error al crear club:", clubError);
               
+              // Intentar eliminar el usuario de Auth si falla la creación del club
+              try {
+                await window.supabase.auth.admin.deleteUser(data.user.id);
+              } catch (deleteError) {
+                console.error("Error al eliminar usuario:", deleteError);
+              }
+              
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado');
               } else if (clubError.code === '42501') {
                 window.showNotification('Error de permisos. Configura RLS en la tabla clubs');
+              } else if (clubError.code === '23502') {
+                window.showNotification('Error: Faltan campos obligatorios en el registro');
               } else {
                 window.showNotification(`Error al registrar club: ${clubError.message}`);
               }
@@ -1767,7 +1767,7 @@
               return;
             }
             
-            // 5. Éxito - establecer usuario actual y redirigir
+            // 4. Éxito - establecer usuario actual y redirigir
             window.currentUser = data.user;
             
             const clubNameWelcome = document.getElementById('club-name-welcome');
@@ -1789,37 +1789,7 @@
           }
         };
         
-        // Funciones auxiliares para mejorar la legibilidad
-        function validateFormFields(clubName, clubRif, courtCount, email, password, confirmPassword, phonePrefix, phoneSuffix) {
-          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
-            window.showNotification('Por favor, completa todos los campos requeridos');
-            return false;
-          }
-          
-          if ((phonePrefix && !phoneSuffix) || (!phonePrefix && phoneSuffix)) {
-            window.showNotification('Por favor, completa ambos campos del número de teléfono');
-            return false;
-          }
-          
-          return true;
-        }
-        
-        function formatAndValidatePhone(phonePrefix, phoneSuffix) {
-          if (phonePrefix && phoneSuffix) {
-            if (!/^\d{7}$/.test(phoneSuffix)) {
-              window.showNotification('El número final debe tener exactamente 7 dígitos');
-              return false;
-            }
-            
-            if (!phonePrefix) {
-              window.showNotification('Por favor, selecciona un prefijo válido');
-              return false;
-            }
-          }
-          
-          return true;
-        }
-        
+        // Función auxiliar para resetear el botón
         function resetButton(button, originalText) {
           button.innerHTML = originalText;
           button.disabled = false;
