@@ -1760,6 +1760,11 @@
             if (emailError) {
               console.error("Error al verificar email:", emailError);
               window.showNotification('Error al verificar el email. Intenta nuevamente.');
+			  
+              document.getElementById('register-email').value = '';
+              document.getElementById('register-password').value = '';
+              document.getElementById('register-confirm').value = '';			  
+			  
               resetButton(registerBtn, originalBtnText);
               return;
             }
@@ -1828,6 +1833,7 @@
               
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado. Por favor, usa un RIF diferente.');
+				resetRegistrationForm();
               } else if (clubError.code === '42501') {
                 window.showNotification('Error de permisos. Contacta al administrador del sistema.');
               } else if (clubError.code === '23502') {
