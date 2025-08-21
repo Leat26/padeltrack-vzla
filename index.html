@@ -546,9 +546,6 @@
         border-radius: 20px;
         height: 95vh;
       }
-      .cedula-input input {
-          font-size: 14px; /* Ajuste de tamaño para mejor visualización */
-        }
       header {
         padding: 15px;
         font-size: 24px;
@@ -609,10 +606,6 @@
         max-width: 100%;
         overflow-y: auto;
       }
-      .cedula-input input {
-        font-size: 13px; /* Ajuste de tamaño para móviles */
-        padding: 8px; /* Más padding para fácil tactil */
-      }	  
       header {
         padding: 12px 10px;
         font-size: 22px;
@@ -1471,7 +1464,6 @@
 		};
 
 		// Validar cédula (buscar en Supabase)
-
 		window.validateCedula = async function(input) {
 		  let cedula = input.value.trim();
 		  const team = input.dataset.team;
@@ -1496,14 +1488,14 @@
 		  
 		  // Validar formato
 		  if (!window.validateCedulaFormat(cedula)) {
-		    if (statusElement) {
-		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-		      statusElement.className = 'cedula-validation invalid';
-		    }
-		    if (playerStatusElement) {
-		      playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
-		    }
-		    return;
+			if (statusElement) {
+			  statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+			  statusElement.className = 'cedula-validation invalid';
+			}
+			if (playerStatusElement) {
+			  playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
+			}
+			return;
 		  }
 		  
 		  // Mostrar estado de carga
@@ -1615,35 +1607,6 @@
           return rifRegex.test(rif);
         };
 
-        // Función para formatear cédula de identidad (V/E/P)
-        window.formatCedula = function(input) {
-          let value = input.value.toUpperCase();
-          let cleaned = value.replace(/[^VEP0-9]/g, '');
-          let formatted = '';
-          
-          if (cleaned) {
-            const firstChar = cleaned[0];
-            // Solo permitir V, E o P como primer carácter
-            if (['V', 'E', 'P'].includes(firstChar)) {
-              const digits = cleaned.slice(1).replace(/[^0-9]/g, '');
-              
-              formatted = firstChar;
-              
-              if (digits.length > 0) {
-                formatted += '-' + digits.substring(0, 8); // Máximo 8 dígitos
-              }
-            }
-          }
-          
-          input.value = formatted;
-        };
-		
-        // Función para validar el formato de cédula
-        window.validateCedulaFormat = function(cedula) {
-          // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-          const cedulaRegex = /^[VEP]-\d{7,8}$/;
-          return cedulaRegex.test(cedula);
-        };		
 
         // Función para limpiar completamente el formulario de registro
         function resetRegistrationForm() {
@@ -2991,31 +2954,27 @@
           <div class="player-inputs">
             <h4>Jugador 1</h4>
             <div class="cedula-input">
-              <input 
-                type="text" 
-                placeholder="Cédula (ej: V-12345678)" 
-                class="cedula" 
-                data-team="A" 
-                data-player="1" 
-                onblur="window.validateCedula(this)"
-                oninput="window.formatCedula(this)"
-              >
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="1" onblur="window.validateCedula(this)">
               <div class="cedula-validation" id="cedula-status-A1"></div>
+            </div>
+            <div class="player-status" id="player-status-A1"></div>
+            <div class="error-message" id="error-A1" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="1" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="1" disabled>
             </div>
           </div>
           <div class="player-inputs">
             <h4>Jugador 2</h4>
             <div class="cedula-input">
-              <input 
-                type="text" 
-                placeholder="Cédula (ej: V-12345678)" 
-                class="cedula" 
-                data-team="A" 
-                data-player="1" 
-                onblur="window.validateCedula(this)"
-                oninput="window.formatCedula(this)"
-              >
-              <div class="cedula-validation" id="cedula-status-A1"></div>
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-A2"></div>
+            </div>
+            <div class="player-status" id="player-status-A2"></div>
+            <div class="error-message" id="error-A2" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="2" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="2" disabled>
             </div>
           </div>
         </div>
@@ -3025,31 +2984,27 @@
           <div class="player-inputs">
             <h4>Jugador 3</h4>
             <div class="cedula-input">
-              <input 
-                type="text" 
-                placeholder="Cédula (ej: V-12345678)" 
-                class="cedula" 
-                data-team="A" 
-                data-player="1" 
-                onblur="window.validateCedula(this)"
-                oninput="window.formatCedula(this)"
-              >
-              <div class="cedula-validation" id="cedula-status-A1"></div>
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="1" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B1"></div>
+            </div>
+            <div class="player-status" id="player-status-B1"></div>
+            <div class="error-message" id="error-B1" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="1" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="1" disabled>
             </div>
           </div>
           <div class="player-inputs">
             <h4>Jugador 4</h4>
             <div class="cedula-input">
-              <input 
-                type="text" 
-                placeholder="Cédula (ej: V-12345678)" 
-                class="cedula" 
-                data-team="A" 
-                data-player="1" 
-                onblur="window.validateCedula(this)"
-                oninput="window.formatCedula(this)"
-              >
-              <div class="cedula-validation" id="cedula-status-A1"></div>
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B2"></div>
+            </div>
+            <div class="player-status" id="player-status-B2"></div>
+            <div class="error-message" id="error-B2" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
+              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="2" disabled>
+              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="2" disabled>
             </div>
           </div>
         </div>
