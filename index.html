@@ -1607,6 +1607,43 @@
           return rifRegex.test(rif);
         };
 
+
+        // Función para limpiar completamente el formulario de registro
+        function resetRegistrationForm() {
+          // Limpiar todos los campos del formulario
+          document.getElementById('club-name').value = '';
+          document.getElementById('club-rif').value = '';
+          document.getElementById('court-count').value = '';
+          document.getElementById('register-email').value = '';
+          document.getElementById('phone-prefix').value = '';
+          document.getElementById('phone-suffix').value = '';
+          document.getElementById('register-password').value = '';
+          document.getElementById('register-confirm').value = '';
+          
+          // También limpiar cualquier estado interno de validación
+          const statusElements = document.querySelectorAll('.cedula-validation, .player-status, .error-message');
+          statusElements.forEach(el => {
+            el.textContent = '';
+            el.className = el.className.replace(/valid|invalid|loading/g, '');
+          });
+          
+          // Deshabilitar campos de nombre y apellido
+          document.querySelectorAll('.first-name, .last-name').forEach(input => {
+            input.value = '';
+            input.disabled = true;
+          });
+          
+          // Resetear el objeto de datos de jugadores
+          window.playersData = {
+            'A1': { cedula: '', firstName: '', lastName: '', exists: false },
+            'A2': { cedula: '', firstName: '', lastName: '', exists: false },
+            'B1': { cedula: '', firstName: '', lastName: '', exists: false },
+            'B2': { cedula: '', firstName: '', lastName: '', exists: false }
+          };
+          
+          console.log("Formulario de registro limpiado completamente");
+        }
+
         // Función para registrar un nuevo club - Versión optimizada y corregida
         window.registerClub = async function() {
           // Obtener elementos del DOM
@@ -1705,6 +1742,7 @@
             if (existingClub) {
               console.log("RIF ya existe:", existingClub);
               window.showNotification('Este RIF ya está registrado en nuestro sistema');
+			  resetRegistrationForm();
               resetButton(registerBtn, originalBtnText);
               return;
             }
