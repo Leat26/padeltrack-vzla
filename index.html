@@ -1673,7 +1673,11 @@
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
           const confirmPassword = document.getElementById('register-confirm')?.value || '';
-          
+
+
+          // Resetear mensajes de error
+          document.getElementById('rif-error').style.display = 'none';
+	  
           // Obtener y validar número de teléfono
           const phonePrefix = document.getElementById('phone-prefix')?.value?.trim() || '';
           const phoneSuffix = document.getElementById('phone-suffix')?.value?.trim() || '';
@@ -1722,6 +1726,17 @@
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
+		  
+          // Simular registro exitoso
+          showNotification(`¡Club registrado exitosamente!\nNombre: ${clubName}\nRIF: ${clubRif}`);
+          
+          // Aquí iría el código para enviar los datos al servidor
+          console.log('Datos del club:', {
+            name: clubName,
+            rif: clubRif,
+            courtCount: courtCount,
+            email: email
+          });		  
           
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
