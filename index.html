@@ -825,6 +825,50 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
+    /* Nuevos estilos para los campos RIF */
+    .rif-container {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      width: 100%;
+      margin: 10px 0;
+    }
+    
+    .rif-type {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    .rif-number {
+      flex: 3;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+      text-align: center;
+    }
+    
+    .rif-validator {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+      text-align: center;
+    }
+    
+    .rif-separator {
+      font-weight: bold;
+      color: #555;
+      padding: 0 5px;
+    }	
+	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -869,40 +913,6 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
-
-
-        // Formatear automáticamente el campo RIF (J-12345678-9 o G-12345678-9)
-        const rifInput = document.getElementById('club-rif');
-        if (rifInput) {
-            rifInput.addEventListener('input', function (e) {
-                let value = e.target.value.toUpperCase();
-                let cleaned = value.replace(/[^JGjg0-9]/g, '');
-                let formatted = '';
-        
-                if (cleaned) {
-                    const firstChar = cleaned[0];
-                    const digits = cleaned.slice(1).replace(/[^0-9]/g, '');
-        
-                    formatted = firstChar;
-        
-                    if (digits.length >= 8) {
-                        formatted += '-' + digits.substring(0, 8) + '-';
-                        if (digits.length > 8) {
-                            formatted += digits.charAt(8);
-                        }
-                    } else {
-                        const firstPart = digits.substring(0, 8);
-                        if (firstPart) formatted += '-' + firstPart;
-                        const ninthDigit = digits.length > 8 ? digits.charAt(8) : '';
-                        if (ninthDigit) formatted += '-' + ninthDigit;
-                    }
-                }
-        
-                e.target.value = formatted;
-            });
-        } else {
-            console.warn('No se encontró el campo #club-rif para aplicar formato.');
-        }
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
@@ -1455,17 +1465,42 @@
             }
           });
         }
+		
+		// Función para construir el RIF a partir de los campos individuales
+        window.buildRif = function() {
+          const rifType = document.getElementById('rif-type').value;
+          const rifNumber = document.getElementById('rif-number').value;
+          const rifValidator = document.getElementById('rif-validator').value;
+          
+          // Validar que todos los campos estén completos
+          if (!rifType || !rifNumber || !rifValidator) {
+            return null;
+          }
+          
+          // Validar formato del número (8 dígitos)
+          if (!/^\d{8}$/.test(rifNumber)) {
+            return null;
+          }
+          
+          // Validar formato del validador (1 dígito)
+          if (!/^\d{1}$/.test(rifValidator)) {
+            return null;
+          }
+          
+          // Formato: J-123456789 (sin guión entre número y validador)
+          return `${rifType}-${rifNumber}${rifValidator}`;
+        };		
         
 		// Validar formato de cédula venezolana
-		window.validateCedulaFormat = function(cedula) {
-		  // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-		  const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
-		  return cedulaRegex.test(cedula);
+		// Validar formato del RIF venezolano (nuevo formato)
+		window.validateRifFormat = function(rif) {
+		  // Formato RIF venezolano: J-123456789 o G-123456781 (sin guión entre número y validador)
+		  const rifRegex = /^[JG]-\d{9}$/;
+		  return rifRegex.test(rif);
 		};
-
+		
 		// Validar cédula (buscar en Supabase)
 		window.validateCedula = async function(input) {
-		  window.formatCedula(input)
 		  let cedula = input.value.trim();
 		  const team = input.dataset.team;
 		  const player = input.dataset.player;
@@ -1601,11 +1636,11 @@
           });
         };
         
-        // Validar formato de cédula venezolana (ACTUALIZAR ESTA FUNCIÓN)
-        window.validateCedulaFormat = function(cedula) {
-          // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-          const cedulaRegex = /^[VEP]-\d{7,8}$/;
-          return cedulaRegex.test(cedula);
+        // Validar formato del RIF venezolano
+        window.validateRifFormat = function(rif) {
+          // Formato RIF venezolano: J-12345678-9
+          const rifRegex = /^[JjGg]-\d{8}-\d$/;
+          return rifRegex.test(rif);
         };
 
 
@@ -1645,43 +1680,11 @@
           console.log("Formulario de registro limpiado completamente");
         }
 
-        // Función para formatear cédula mientras se escribe (AGREGAR ESTA FUNCIÓN)
-        window.formatCedula = function(input) {
-          let value = input.value.toUpperCase();
-          
-          // Eliminar todos los caracteres que no sean V, E, P, dígitos o guiones
-          value = value.replace(/[^VEP0-9-]/g, '');
-          
-          // Si ya tiene el formato correcto, no hacer nada
-          if (/^[VEP]-\d{0,8}$/.test(value)) {
-            input.value = value;
-            return;
-          }
-          
-          // Si no tiene el guión pero tiene una letra válida al inicio
-          let matches = value.match(/^([VEP])(\d{0,8})$/);
-          if (matches) {
-            input.value = matches[1] + '-' + matches[2];
-            return;
-          }
-          
-          // Si ya tiene el guión pero con más de 8 dígitos, truncar
-          matches = value.match(/^([VEP]-)(\d{0,8})/);
-          if (matches) {
-            input.value = matches[1] + matches[2];
-            return;
-          }
-          
-          // En cualquier otro caso, dejar el valor tal cual
-          input.value = value;
-        };
-
-
         // Función para registrar un nuevo club - Versión optimizada y corregida
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
-          let clubRif = document.getElementById('club-rif')?.value?.trim() || '';
+          const clubRif = window.buildRif();
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
@@ -1718,7 +1721,7 @@
           }
           
           if (!window.validateRifFormat(clubRif)) {
-            window.showNotification('Formato de RIF inválido. Debe ser como J-12345678-9 o G-12345678-9');
+            window.showNotification('Formato de RIF inválido. Debe ser como J-123456789 o G-123456781');
             return;
           }
           
@@ -2871,7 +2874,20 @@
       <div class="stats" style="margin: 20px auto; width: 90%;">
         <p><strong>Nombre del Club</strong></p>
         <input type="text" id="club-name" placeholder="Club Pádel Venezuela" style="width: 100%; margin: 10px 0;">
-        <p><strong>RIF (Ej: J-12345678-9)</strong></p>
+        <p><strong>RIF</strong></p>
+        <div class="rif-container">
+          <select id="rif-type" class="rif-type">
+            <option value="">Tipo</option>
+            <option value="J">J</option>
+            <option value="G">G</option>
+          </select>
+          <span class="rif-separator">-</span>
+          <input type="text" id="rif-number" class="rif-number" placeholder="12345678" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <input type="text" id="rif-validator" class="rif-validator" placeholder="9" maxlength="1" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+        <p style="font-size: 12px; color: #666; margin-top: -10px; margin-bottom: 10px;">
+          Formato: J-123456789 (sin guión entre número y dígito validador)
+        </p>
         <input type="text" id="club-rif" placeholder="J-12345678-9" style="width: 100%; margin: 10px 0;">
         <p><strong>Cantidad de canchas</strong></p>
         <input type="number" id="court-count" min="1" max="20" value="2" style="width: 100%; margin: 10px 0;">
@@ -2987,10 +3003,12 @@
           <div class="player-inputs">
             <h4>Jugador 1</h4>
             <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" 
-                     data-team="A" data-player="1" 
-                     oninput="window.formatCedula(this)" 
-                     onblur="window.validateCedula(this)">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="1" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-A1"></div>
+            </div>
+            <div class="player-status" id="player-status-A1"></div>
+            <div class="error-message" id="error-A1" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
               <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="1" disabled>
               <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="1" disabled>
             </div>
@@ -2998,10 +3016,12 @@
           <div class="player-inputs">
             <h4>Jugador 2</h4>
             <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" 
-                     data-team="A" data-player="2" 
-                     oninput="window.formatCedula(this)" 
-                     onblur="window.validateCedula(this)">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-A2"></div>
+            </div>
+            <div class="player-status" id="player-status-A2"></div>
+            <div class="error-message" id="error-A2" style="display: none;">El set debe terminar en 6-4</div>
+            <div class="player-name">
               <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="2" disabled>
               <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="2" disabled>
             </div>
@@ -3013,10 +3033,12 @@
           <div class="player-inputs">
             <h4>Jugador 3</h4>
             <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" 
-                     data-team="B" data-player="1" 
-                     oninput="window.formatCedula(this)" 
-                     onblur="window.validateCedula(this)">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="1" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B1"></div>
+            </div>
+            <div class="player-status" id="player-status-B1"></div>
+            <div class="error-message" id="error-B1" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
               <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="1" disabled>
               <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="1" disabled>
             </div>
@@ -3024,10 +3046,12 @@
           <div class="player-inputs">
             <h4>Jugador 4</h4>
             <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" 
-                     data-team="B" data-player="2" 
-                     oninput="window.formatCedula(this)" 
-                     onblur="window.validateCedula(this)">
+              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="2" onblur="window.validateCedula(this)">
+              <div class="cedula-validation" id="cedula-status-B2"></div>
+            </div>
+            <div class="player-status" id="player-status-B2"></div>
+            <div class="error-message" id="error-B2" style="display: none;">El set debe terminar en 4-6</div>
+            <div class="player-name">
               <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="2" disabled>
               <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="2" disabled>
             </div>
