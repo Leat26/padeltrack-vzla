@@ -1699,9 +1699,10 @@
           }
           
           // Validar formato RIF
-          clubRif = clubRif.toUpperCase();
-          if (document.getElementById('club-rif')) {
-            document.getElementById('club-rif').value = clubRif;
+          if (!validateRifFormat(clubRif)) {
+            document.getElementById('rif-error').textContent = 'Formato de RIF inválido. Debe ser como J-123456789 (8-9 dígitos)';
+            document.getElementById('rif-error').style.display = 'block';
+            return;
           }
           
           if (!window.validateRifFormat(clubRif)) {
