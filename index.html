@@ -1617,36 +1617,58 @@
         }
 
         // Función para registrar un nuevo club - Versión optimizada y corregida
+
         window.registerClub = async function() {
           // Obtener elementos del DOM
-          const clubName = document.getElementById('club-name')?.value?.trim() || '';
-
-          // Obtener tipo y número del RIF
-          const rifType = document.getElementById('rif-type')?.value?.trim();
-          const rifNumberInput = document.getElementById('rif-number')?.value?.trim();
-		  let clubRif = '';
-
-          const courtCount = document.getElementById('court-count')?.value?.trim() || '';
-          const email = document.getElementById('register-email')?.value?.trim() || '';
-          const password = document.getElementById('register-password')?.value || '';
-          const confirmPassword = document.getElementById('register-confirm')?.value || '';
-          
-          // Obtener y validar número de teléfono
-          const phonePrefix = document.getElementById('phone-prefix')?.value?.trim() || '';
-          const phoneSuffix = document.getElementById('phone-suffix')?.value?.trim() || '';
+          const clubNameInput = document.getElementById('club-name');
+          const courtCountInput = document.getElementById('court-count');
+          const emailInput = document.getElementById('register-email');
+          const passwordInput = document.getElementById('register-password');
+          const confirmPasswordInput = document.getElementById('register-confirm');
+        
+          const phonePrefixInput = document.getElementById('phone-prefix');
+          const phoneSuffixInput = document.getElementById('phone-suffix');
+        
+          const rifTypeSelect = document.getElementById('rif-type');
+          const rifNumberInputField = document.getElementById('rif-number');
+        
+          // Validar que todos los elementos existan
+          if (!clubNameInput || !courtCountInput || !emailInput || !passwordInput || 
+              !confirmPasswordInput || !phonePrefixInput || !phoneSuffixInput || 
+              !rifTypeSelect || !rifNumberInputField) {
+            window.showNotification('Error: Algunos campos no se encontraron. Recarga la página.');
+            console.error('Faltan elementos del DOM');
+            return;
+          }
+        
+          // Obtener valores
+          const clubName = clubNameInput.value?.trim() || '';
+          const courtCountStr = courtCountInput.value?.trim() || '';
+          const email = emailInput.value?.trim() || '';
+          const password = passwordInput.value || '';
+          const confirmPassword = confirmPasswordInput.value || '';
+        
+          const phonePrefix = phonePrefixInput.value?.trim() || '';
+          const phoneSuffix = phoneSuffixInput.value?.trim() || '';
+        
+          const rifType = rifTypeSelect.value?.trim();
+          const rifNumberStr = rifNumberInputField.value?.trim();
+        
           let phone = '';
-          
-          // Validaciones iniciales
-          if (!clubName || !clubRif || !courtCount || !email || !password || !confirmPassword) {
+          let clubRif = '';
+        
+          // Validaciones iniciales de campos obligatorios
+          if (!clubName || !courtCountStr || !email || !password || !confirmPassword) {
             window.showNotification('Por favor, completa todos los campos requeridos');
             return;
           }
-          
+        
+          // Validar teléfono
           if ((phonePrefix && !phoneSuffix) || (!phonePrefix && phoneSuffix)) {
             window.showNotification('Por favor, completa ambos campos del número de teléfono');
             return;
           }
-          
+        
           if (phonePrefix && phoneSuffix) {
             if (!/^\d{7}$/.test(phoneSuffix)) {
               window.showNotification('El número final debe tener exactamente 7 dígitos');
@@ -1654,116 +1676,113 @@
             }
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
-          
+        
           // Validar y construir RIF
-          if (!rifType || !rifNumberInput) {
+          if (!rifType || !rifNumberStr) {
             window.showNotification('Por favor, selecciona el tipo (J/G) y escribe el número del RIF');
             return;
           }
-		  
-          const rifNumber = parseInt(rifNumberInput, 10);
+        
+          const rifNumber = parseInt(rifNumberStr, 10);
           if (isNaN(rifNumber) || rifNumber < 10000000 || rifNumber > 999999999) {
             window.showNotification('El número del RIF debe tener entre 8 y 9 dígitos');
             return;
           }
-          
-          clubRif = `${rifType.toUpperCase()}-${rifNumber}`;	  
-          
+        
+          clubRif = `${rifType.toUpperCase()}-${rifNumber}`;
+        
           // Validar cantidad de canchas
-          const courts = parseInt(courtCount);
+          const courts = parseInt(courtCountStr, 10);
           if (isNaN(courts) || courts < 1 || courts > 20) {
             window.showNotification('La cantidad de canchas debe ser entre 1 y 20');
             return;
           }
-          
+        
           // Validar contraseñas
           if (password !== confirmPassword) {
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
-          
+        
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
             return;
           }
-          
+        
           // Mostrar estado de carga
           const registerBtn = document.querySelector('#register-screen .btn');
-          const originalBtnText = registerBtn.innerHTML;
-          registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-          registerBtn.disabled = true;
-          
+          const originalBtnText = registerBtn?.innerHTML || 'Registrar';
+          if (registerBtn) {
+            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+            registerBtn.disabled = true;
+          }
+        
           try {
-            // 1. VERIFICACIÓN DEL RIF - CORREGIDA
+            // 1. VERIFICACIÓN DEL RIF
             console.log("Verificando RIF:", clubRif);
-            
-            // Usar una variable constante para evitar modificaciones
             const rifToCheck = clubRif;
-            
+        
             const { data: existingClub, error: checkError } = await window.supabase
               .from('clubs')
               .select('rif')
               .eq('rif', rifToCheck)
               .maybeSingle();
-            
+        
             if (checkError) {
               console.error("Error al verificar RIF:", checkError);
-              
               if (checkError.code === '42501' || checkError.message.includes('permission')) {
                 window.showNotification('Error de permisos. Contacta al administrador.');
               } else {
                 window.showNotification('Error al verificar el RIF. Intenta nuevamente.');
               }
-              
-              resetButton(registerBtn, originalBtnText);
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
+        
             if (existingClub) {
               console.log("RIF ya existe:", existingClub);
               window.showNotification('Este RIF ya está registrado en nuestro sistema');
-			  resetRegistrationForm();
-              resetButton(registerBtn, originalBtnText);
+              resetRegistrationForm();
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
+        
             // 2. Verificar si el email ya existe
             console.log("Verificando email:", email);
-            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando email...';
-            
+            if (registerBtn) {
+              registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando email...';
+            }
+        
             const { data: existingEmail, error: emailError } = await window.supabase
               .from('clubs')
               .select('email')
               .eq('email', email)
               .maybeSingle();
-            
+        
             if (emailError) {
               console.error("Error al verificar email:", emailError);
               window.showNotification('Error al verificar el email. Intenta nuevamente.');
-			  
-              document.getElementById('register-email').value = '';
-              document.getElementById('register-password').value = '';
-              document.getElementById('register-confirm').value = '';			  
-			  
-              resetButton(registerBtn, originalBtnText);
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
+        
             if (existingEmail) {
               console.log("Email ya existe:", existingEmail);
               window.showNotification('Este correo electrónico ya está registrado');
-              resetButton(registerBtn, originalBtnText);
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
+        
             // 3. Registrar usuario en Supabase Auth
-            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
-            
+            if (registerBtn) {
+              registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
+            }
+        
             const { data, error } = await window.supabase.auth.signUp({
               email: email,
               password: password
             });
-            
+        
             if (error) {
               console.error("Error al registrar usuario:", error);
               if (error.message.includes('email already exists')) {
@@ -1771,49 +1790,48 @@
               } else {
                 window.showNotification(`Error: ${error.message}`);
               }
-              resetButton(registerBtn, originalBtnText);
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
+        
             if (!data.user) {
               window.showNotification('Verifica tu correo electrónico para completar el registro');
-              resetButton(registerBtn, originalBtnText);
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
-            // 4. Crear club en la tabla clubs - CORRECCIÓN CRÍTICA
-            registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
-            
-            // Asegurar que todos los valores estén definidos
+        
+            // 4. Crear club en la tabla clubs
+            if (registerBtn) {
+              registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando información...';
+            }
+        
             const clubData = {
               id: data.user.id,
-              rif: clubRif, // Usar la variable original que ya está validada
+              rif: clubRif,
               name: clubName,
               court_count: courts,
               email: email,
-              phone: phone || '000-0000', // Valor por defecto si está vacío
+              phone: phone || '000-0000',
               status: "active"
             };
-            
+        
             console.log("Datos a insertar en clubs:", clubData);
-            
+        
             const { error: clubError } = await window.supabase
               .from('clubs')
               .insert([clubData]);
-            
+        
             if (clubError) {
               console.error("Error al crear club:", clubError);
-              
-              // Intentar eliminar el usuario de Auth si falla la creación del club
               try {
                 await window.supabase.auth.signOut();
               } catch (authError) {
                 console.error("Error al cerrar sesión:", authError);
               }
-              
+        
               if (clubError.code === '23505') {
                 window.showNotification('Este RIF ya está registrado. Por favor, usa un RIF diferente.');
-				resetRegistrationForm();
+                resetRegistrationForm();
               } else if (clubError.code === '42501') {
                 window.showNotification('Error de permisos. Contacta al administrador del sistema.');
               } else if (clubError.code === '23502') {
@@ -1821,30 +1839,30 @@
               } else {
                 window.showNotification(`Error al registrar club: ${clubError.message}`);
               }
-              
-              resetButton(registerBtn, originalBtnText);
+        
+              if (registerBtn) resetButton(registerBtn, originalBtnText);
               return;
             }
-            
-            // 5. Éxito - establecer usuario actual y redirigir
+        
+            // 5. Éxito
             window.currentUser = data.user;
-            
             const clubNameWelcome = document.getElementById('club-name-welcome');
             if (clubNameWelcome) {
               clubNameWelcome.textContent = clubName;
             }
-            
+        
             window.showNotification('¡Club registrado exitosamente!');
-            resetButton(registerBtn, originalBtnText);
-            
+            if (registerBtn) resetButton(registerBtn, originalBtnText);
+        
             setTimeout(() => {
               window.goToScreen('welcome');
             }, 100);
-            
+        
           } catch (error) {
             console.error("Error inesperado al registrar club:", error);
             window.showNotification(`Error inesperado: ${error.message}`);
-            resetButton(registerBtn, originalBtnText);
+            const registerBtn = document.querySelector('#register-screen .btn');
+            if (registerBtn) resetButton(registerBtn, originalBtnText);
           }
         };
         
@@ -2830,7 +2848,8 @@
             id="rif-number" 
             placeholder="123456789" 
             min="10000000" 
-            max="999999999" 
+            max="999999999"
+            maxlength="9"			
             style="flex: 1; padding: 10px; font-size: 16px;" 
             required>
         </div>
