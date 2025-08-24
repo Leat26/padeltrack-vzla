@@ -1623,7 +1623,7 @@
             if (statusElement) statusElement.innerHTML = '';
             if (playerStatusElement) playerStatusElement.textContent = '';
             if (errorElement) errorElement.style.display = 'none';
-          });
+			
           // Deshabilitar campos de nombre y apellido
           document.querySelectorAll('.first-name, .last-name').forEach(input => {
             input.value = '';
@@ -1682,7 +1682,6 @@
         }
 
         // Función para registrar un nuevo club - Versión optimizada y corregida
-
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubNameInput = document.getElementById('club-name');
@@ -1935,7 +1934,6 @@
           button.innerHTML = originalText;
           button.disabled = false;
         }
-
 
         // Iniciar sesión
         window.loginUser = async function() {
