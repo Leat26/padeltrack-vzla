@@ -1421,124 +1421,183 @@
             }
           });
         }
-        
-		// Validar formato de cédula venezolana
-		window.validateCedulaFormat = function(cedula) {
-		  // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
-		  const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
-		  return cedulaRegex.test(cedula);
-		};
 
 		// Validar cédula (buscar en Supabase)
 		window.validateCedula = async function(input) {
-		  let cedula = input.value.trim();
-		  const team = input.dataset.team;
-		  const player = input.dataset.player;
+		  // Obtener el contenedor .cedula-input (padre directo o el que contiene ambos campos)
+		  const container = input.closest('.cedula-input') ||
+		                   (input.classList.contains('cedula-number') ? input.parentNode : null) ||
+		                   (input.classList.contains('cedula-type') ? input.parentNode : null);
+		
+		  if (!container) {
+		    console.error('No se encontró el contenedor .cedula-input para el input:', input);
+		    return;
+		  }
+		
+		  // Obtener los elementos de tipo y número
+		  const typeSelect = container.querySelector('.cedula-type');
+		  const numberInput = container.querySelector('.cedula-number');
+		
+		  // Extraer identificadores del jugador
+		  const team = input.dataset?.team;
+		  const player = input.dataset?.player;
 		  const id = team + player;
-		  
-		  // Limpiar validación previa
+		
+		  // Elementos de interfaz
 		  const statusElement = document.getElementById(`cedula-status-${id}`);
 		  const playerStatusElement = document.getElementById(`player-status-${id}`);
 		  const errorElement = document.getElementById(`error-${id}`);
-		  
-		  if (statusElement) statusElement.innerHTML = '';
-		  if (playerStatusElement) playerStatusElement.textContent = '';
-		  if (errorElement) errorElement.style.display = 'none';
-		  
-		  // Si está vacío, no validar
-		  if (!cedula) return;
-		  
-		  // Asegurar que la cédula esté en mayúsculas
-		  cedula = cedula.toUpperCase();
-		  input.value = cedula;
-		  
-		  // Validar formato
-		  if (!window.validateCedulaFormat(cedula)) {
-			if (statusElement) {
-			  statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-			  statusElement.className = 'cedula-validation invalid';
-			}
-			if (playerStatusElement) {
-			  playerStatusElement.textContent = 'Formato inválido (ej: V-12345678)';
-			}
-			return;
+		
+		  // Limpiar estado previo
+		  if (statusElement) {
+		    statusElement.innerHTML = '';
+		    statusElement.className = 'cedula-validation loading';
 		  }
-		  
+		  if (playerStatusElement) {
+		    playerStatusElement.textContent = 'Validando...';
+		  }
+		  if (errorElement) {
+		    errorElement.style.display = 'none';
+		  }
+		
+		  // Obtener valores
+		  const type = typeSelect?.value?.trim();
+		  const number = numberInput?.value?.trim();
+		
+		  // Validar que ambos campos estén completos
+		  if (!type || !number) {
+		    if (statusElement) {
+		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+		      statusElement.className = 'cedula-validation invalid';
+		    }
+		    if (playerStatusElement) {
+		      playerStatusElement.textContent = 'Completa tipo y número';
+		    }
+		    // Limpiar datos del jugador
+		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
+		    return;
+		  }
+		
+		  // Validar que el número tenga entre 7 y 8 dígitos
+		  if (!/^\d{7,8}$/.test(number)) {
+		    if (statusElement) {
+		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+		      statusElement.className = 'cedula-validation invalid';
+		    }
+		    if (playerStatusElement) {
+		      playerStatusElement.textContent = '7-8 dígitos requeridos';
+		    }
+		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
+		    return;
+		  }
+		
+		  // ✅ Construir cédula final en formato V-12345678
+		  const cedula = `${type.toUpperCase()}-${number}`;
+		
+		  // Guardar temporalmente en playersData
+		  window.playersData[id] = {
+		    ...(window.playersData[id] || {}),
+		    cedula: cedula
+		  };
+		
 		  // Mostrar estado de carga
 		  if (statusElement) {
-			  statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
-			  statusElement.className = 'cedula-validation loading';
+		    statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
+		    statusElement.className = 'cedula-validation loading';
 		  }
-		  
-		  // Buscar en Supabase (solo en el club actual)
-		  const { data, error } = await window.supabase
-			.from('players')
-			.select('*')
-			.eq('cedula', cedula)
-			.eq('club_id', window.currentUser.id)
-			.single();
-		  
-		  if (error) {
-			if (error.code === 'PGRST116') {  // No se encontraron resultados
-			  // Nuevo jugador PARA ESTE CLUB
-			  if (statusElement) {
-				statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
-				statusElement.className = 'cedula-validation valid';
-			  }
-			  if (playerStatusElement) {
-				playerStatusElement.textContent = 'Nuevo jugador en este club';
-			  }
-			  
-			  // Habilitar campos de nombre y apellido
-			  const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
-			  const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-			  
-			  if (firstNameInput) firstNameInput.disabled = false;
-			  if (lastNameInput) lastNameInput.disabled = false;
-			  
-			  // Guardar datos (solo cédula por ahora)
-			  window.playersData[id] = {
-				cedula: cedula,
-				firstName: '',
-				lastName: '',
-				exists: false
-			  };
-			} else {
-			  console.error("Error al validar cédula:", error);
-			  if (statusElement) {
-				statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
-				statusElement.className = 'cedula-validation invalid';
-			  }
-			  if (playerStatusElement) {
-				playerStatusElement.textContent = 'Error al verificar';
-			  }
-			}
-		  } else {
-			// Jugador existe EN ESTE CLUB
-			if (statusElement) {
-			  statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
-			  statusElement.className = 'cedula-validation valid';
-			}
-			if (playerStatusElement) {
-			  playerStatusElement.textContent = 'Jugador existente en este club';
-			}
-			
-			// Rellenar nombre y apellido
-			const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
-			const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-			
-			if (firstNameInput) firstNameInput.value = data.first_name || '';
-			if (lastNameInput) lastNameInput.value = data.last_name || '';
-			if (firstNameInput) firstNameInput.disabled = true;
-			if (lastNameInput) lastNameInput.disabled = true;
-			
-			// Guardar datos
-			window.playersData[id] = {
-			  cedula: cedula,
-			  firstName: data.first_name || '',
-			  lastName: data.last_name || '',
-			  exists: true
-			};
+		
+		  try {
+		    // Buscar jugador en Supabase (solo en el club actual)
+		    const { data, error } = await window.supabase
+		      .from('players')
+		      .select('*')
+		      .eq('cedula', cedula)
+		      .eq('club_id', window.currentUser.id)
+		      .single();
+		
+		    if (error) {
+		      if (error.code === 'PGRST116') {
+		        // Jugador no encontrado → nuevo en este club
+		        if (statusElement) {
+		          statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
+		          statusElement.className = 'cedula-validation valid';
+		        }
+		        if (playerStatusElement) {
+		          playerStatusElement.textContent = 'Nuevo jugador en este club';
+		        }
+		
+		        // Habilitar campos de nombre y apellido
+		        const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+		        const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+		        if (firstNameInput) {
+		          firstNameInput.disabled = false;
+		          firstNameInput.focus();
+		        }
+		        if (lastNameInput) {
+		          lastNameInput.disabled = false;
+		        }
+		
+		        // Guardar en playersData
+		        window.playersData[id] = {
+		          cedula: cedula,
+		          firstName: '',
+		          lastName: '',
+		          exists: false
+		        };
+		
+		      } else {
+		        console.error("Error al validar cédula:", error);
+		        if (statusElement) {
+		          statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+		          statusElement.className = 'cedula-validation invalid';
+		        }
+		        if (playerStatusElement) {
+		          playerStatusElement.textContent = 'Error al verificar';
+		        }
+		        window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
+		      }
+		      return;
+		    }
+		
+		    // Jugador encontrado → existente en este club
+		    if (statusElement) {
+		      statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
+		      statusElement.className = 'cedula-validation valid';
+		    }
+		    if (playerStatusElement) {
+		      playerStatusElement.textContent = 'Jugador existente en este club';
+		    }
+		
+		    // Rellenar y deshabilitar nombre y apellido
+		    const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
+		    const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+		    if (firstNameInput) {
+		      firstNameInput.value = data.first_name || '';
+		      firstNameInput.disabled = true;
+		    }
+		    if (lastNameInput) {
+		      lastNameInput.value = data.last_name || '';
+		      lastNameInput.disabled = true;
+		    }
+		
+		    // Guardar en playersData
+		    window.playersData[id] = {
+		      cedula: cedula,
+		      firstName: data.first_name || '',
+		      lastName: data.last_name || '',
+		      exists: true
+		    };
+		
+		  } catch (err) {
+		    console.error("Error inesperado al validar cédula:", err);
+		    if (statusElement) {
+		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+		      statusElement.className = 'cedula-validation invalid';
+		    }
+		    if (playerStatusElement) {
+		      playerStatusElement.textContent = 'Error';
+		    }
+		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 		  }
 		};
         
@@ -1548,8 +1607,18 @@
             window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
           });
           // Limpiar campos
-          document.querySelectorAll('.cedula').forEach(input => {
-            input.value = '';
+
+          document.querySelectorAll('.cedula-number').forEach(input => {
+            input.addEventListener('blur', function() {
+              window.validateCedula(this);
+            });
+          });
+		  
+          document.querySelectorAll('.cedula-type').forEach(select => {
+            select.addEventListener('change', function() {
+              window.validateCedula(this);
+            });
+          });		  
             const id = input.dataset.team + input.dataset.player;
             const statusElement = document.getElementById(`cedula-status-${id}`);
             const playerStatusElement = document.getElementById(`player-status-${id}`);
@@ -2964,28 +3033,60 @@
           <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name">
           <div class="player-inputs">
             <h4>Jugador 1</h4>
-            <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="1" onblur="window.validateCedula(this)">
+            <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
+              <select 
+                class="cedula-type" 
+                data-team="A" 
+                data-player="1" 
+                style="width: 60px; padding: 10px; font-size: 16px;" 
+                required>
+                <option value="">Tipo</option>
+                <option value="V">V</option>
+                <option value="E">E</option>
+                <option value="P">P</option>
+              </select>
+              <input 
+                type="text" 
+                class="cedula-number" 
+                data-team="A" 
+                data-player="1" 
+                placeholder="12345678" 
+                maxlength="8" 
+                pattern="\d{7,8}"
+                inputmode="numeric"
+                style="flex: 1; padding: 10px; font-size: 16px;" 
+                required 
+                onblur="window.validateCedula(this)">
               <div class="cedula-validation" id="cedula-status-A1"></div>
-            </div>
-            <div class="player-status" id="player-status-A1"></div>
-            <div class="error-message" id="error-A1" style="display: none;">El set debe terminar en 6-4</div>
-            <div class="player-name">
-              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="1" disabled>
-              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="1" disabled>
             </div>
           </div>
           <div class="player-inputs">
             <h4>Jugador 2</h4>
-            <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="A" data-player="2" onblur="window.validateCedula(this)">
+            <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
+              <select 
+                class="cedula-type" 
+                data-team="A" 
+                data-player="2" 
+                style="width: 60px; padding: 10px; font-size: 16px;" 
+                required>
+                <option value="">Tipo</option>
+                <option value="V">V</option>
+                <option value="E">E</option>
+                <option value="P">P</option>
+              </select>
+              <input 
+                type="text" 
+                class="cedula-number" 
+                data-team="A" 
+                data-player="2" 
+                placeholder="12345678" 
+                maxlength="8" 
+                pattern="\d{7,8}"
+                inputmode="numeric"
+                style="flex: 1; padding: 10px; font-size: 16px;" 
+                required 
+                onblur="window.validateCedula(this)">
               <div class="cedula-validation" id="cedula-status-A2"></div>
-            </div>
-            <div class="player-status" id="player-status-A2"></div>
-            <div class="error-message" id="error-A2" style="display: none;">El set debe terminar en 6-4</div>
-            <div class="player-name">
-              <input type="text" placeholder="Nombre" class="first-name" data-team="A" data-player="2" disabled>
-              <input type="text" placeholder="Apellido" class="last-name" data-team="A" data-player="2" disabled>
             </div>
           </div>
         </div>
@@ -2994,28 +3095,60 @@
           <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name">
           <div class="player-inputs">
             <h4>Jugador 3</h4>
-            <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="1" onblur="window.validateCedula(this)">
+            <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
+              <select 
+                class="cedula-type" 
+                data-team="B" 
+                data-player="1" 
+                style="width: 60px; padding: 10px; font-size: 16px;" 
+                required>
+                <option value="">Tipo</option>
+                <option value="V">V</option>
+                <option value="E">E</option>
+                <option value="P">P</option>
+              </select>
+              <input 
+                type="text" 
+                class="cedula-number" 
+                data-team="B" 
+                data-player="1" 
+                placeholder="12345678" 
+                maxlength="8" 
+                pattern="\d{7,8}"
+                inputmode="numeric"
+                style="flex: 1; padding: 10px; font-size: 16px;" 
+                required 
+                onblur="window.validateCedula(this)">
               <div class="cedula-validation" id="cedula-status-B1"></div>
-            </div>
-            <div class="player-status" id="player-status-B1"></div>
-            <div class="error-message" id="error-B1" style="display: none;">El set debe terminar en 4-6</div>
-            <div class="player-name">
-              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="1" disabled>
-              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="1" disabled>
             </div>
           </div>
           <div class="player-inputs">
             <h4>Jugador 4</h4>
-            <div class="cedula-input">
-              <input type="text" placeholder="Cédula (ej: V-12345678)" class="cedula" data-team="B" data-player="2" onblur="window.validateCedula(this)">
+            <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
+              <select 
+                class="cedula-type" 
+                data-team="B" 
+                data-player="2" 
+                style="width: 60px; padding: 10px; font-size: 16px;" 
+                required>
+                <option value="">Tipo</option>
+                <option value="V">V</option>
+                <option value="E">E</option>
+                <option value="P">P</option>
+              </select>
+              <input 
+                type="text" 
+                class="cedula-number" 
+                data-team="B" 
+                data-player="2" 
+                placeholder="12345678" 
+                maxlength="8" 
+                pattern="\d{7,8}"
+                inputmode="numeric"
+                style="flex: 1; padding: 10px; font-size: 16px;" 
+                required 
+                onblur="window.validateCedula(this)">
               <div class="cedula-validation" id="cedula-status-B2"></div>
-            </div>
-            <div class="player-status" id="player-status-B2"></div>
-            <div class="error-message" id="error-B2" style="display: none;">El set debe terminar en 4-6</div>
-            <div class="player-name">
-              <input type="text" placeholder="Nombre" class="first-name" data-team="B" data-player="2" disabled>
-              <input type="text" placeholder="Apellido" class="last-name" data-team="B" data-player="2" disabled>
             </div>
           </div>
         </div>
