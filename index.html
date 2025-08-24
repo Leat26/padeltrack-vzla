@@ -2839,7 +2839,7 @@
         <p><strong>RIF (Ej: J-123456789)</strong></p>
         <div class="rif-input" style="display: flex; gap: 10px; align-items: center;">
           <select id="rif-type" style="width: 60px; padding: 10px; font-size: 16px;" required>
-            <option value="">Tipo</option>
+            <option value="">--</option>
             <option value="J">J</option>
             <option value="G">G</option>
           </select>
@@ -2847,9 +2847,8 @@
             type="number" 
             id="rif-number" 
             placeholder="123456789" 
-            min="10000000" 
-            max="999999999"
-            maxlength="9"			
+            maxlength="9" 
+            pattern="[0-9]*"
             style="flex: 1; padding: 10px; font-size: 16px;" 
             required>
         </div>
