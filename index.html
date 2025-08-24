@@ -1423,8 +1423,9 @@
         }
 
 		// Validar cédula (buscar en Supabase)
+
 		window.validateCedula = async function(input) {
-		  // Obtener el contenedor .cedula-input (padre directo o el que contiene ambos campos)
+		  // Obtener el contenedor .cedula-input
 		  const container = input.closest('.cedula-input') ||
 		                   (input.classList.contains('cedula-number') ? input.parentNode : null) ||
 		                   (input.classList.contains('cedula-type') ? input.parentNode : null);
@@ -1434,16 +1435,16 @@
 		    return;
 		  }
 		
-		  // Obtener los elementos de tipo y número
+		  // Obtener elementos
 		  const typeSelect = container.querySelector('.cedula-type');
 		  const numberInput = container.querySelector('.cedula-number');
 		
-		  // Extraer identificadores del jugador
+		  // Datos del jugador
 		  const team = input.dataset?.team;
 		  const player = input.dataset?.player;
 		  const id = team + player;
 		
-		  // Elementos de interfaz
+		  // Elementos de UI
 		  const statusElement = document.getElementById(`cedula-status-${id}`);
 		  const playerStatusElement = document.getElementById(`player-status-${id}`);
 		  const errorElement = document.getElementById(`error-${id}`);
@@ -1464,7 +1465,7 @@
 		  const type = typeSelect?.value?.trim();
 		  const number = numberInput?.value?.trim();
 		
-		  // Validar que ambos campos estén completos
+		  // Validar campos
 		  if (!type || !number) {
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
@@ -1473,12 +1474,11 @@
 		    if (playerStatusElement) {
 		      playerStatusElement.textContent = 'Completa tipo y número';
 		    }
-		    // Limpiar datos del jugador
 		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 		    return;
 		  }
 		
-		  // Validar que el número tenga entre 7 y 8 dígitos
+		  // Validar longitud del número
 		  if (!/^\d{7,8}$/.test(number)) {
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
@@ -1491,23 +1491,22 @@
 		    return;
 		  }
 		
-		  // ✅ Construir cédula final en formato V-12345678
+		  // Construir cédula final
 		  const cedula = `${type.toUpperCase()}-${number}`;
 		
-		  // Guardar temporalmente en playersData
+		  // Guardar en playersData
 		  window.playersData[id] = {
 		    ...(window.playersData[id] || {}),
 		    cedula: cedula
 		  };
 		
-		  // Mostrar estado de carga
+		  // Mostrar carga
 		  if (statusElement) {
 		    statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
 		    statusElement.className = 'cedula-validation loading';
 		  }
 		
 		  try {
-		    // Buscar jugador en Supabase (solo en el club actual)
 		    const { data, error } = await window.supabase
 		      .from('players')
 		      .select('*')
@@ -1517,7 +1516,7 @@
 		
 		    if (error) {
 		      if (error.code === 'PGRST116') {
-		        // Jugador no encontrado → nuevo en este club
+		        // Jugador nuevo
 		        if (statusElement) {
 		          statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
 		          statusElement.className = 'cedula-validation valid';
@@ -1526,9 +1525,9 @@
 		          playerStatusElement.textContent = 'Nuevo jugador en este club';
 		        }
 		
-		        // Habilitar campos de nombre y apellido
 		        const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
 		        const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+		
 		        if (firstNameInput) {
 		          firstNameInput.disabled = false;
 		          firstNameInput.focus();
@@ -1537,14 +1536,12 @@
 		          lastNameInput.disabled = false;
 		        }
 		
-		        // Guardar en playersData
 		        window.playersData[id] = {
-		          cedula: cedula,
+		          cedula,
 		          firstName: '',
 		          lastName: '',
 		          exists: false
 		        };
-		
 		      } else {
 		        console.error("Error al validar cédula:", error);
 		        if (statusElement) {
@@ -1559,7 +1556,7 @@
 		      return;
 		    }
 		
-		    // Jugador encontrado → existente en este club
+		    // Jugador existente
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
 		      statusElement.className = 'cedula-validation valid';
@@ -1568,9 +1565,9 @@
 		      playerStatusElement.textContent = 'Jugador existente en este club';
 		    }
 		
-		    // Rellenar y deshabilitar nombre y apellido
 		    const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
 		    const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
+		
 		    if (firstNameInput) {
 		      firstNameInput.value = data.first_name || '';
 		      firstNameInput.disabled = true;
@@ -1580,9 +1577,8 @@
 		      lastNameInput.disabled = true;
 		    }
 		
-		    // Guardar en playersData
 		    window.playersData[id] = {
-		      cedula: cedula,
+		      cedula,
 		      firstName: data.first_name || '',
 		      lastName: data.last_name || '',
 		      exists: true
@@ -1606,19 +1602,19 @@
           Object.keys(window.playersData).forEach(key => {
             window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
           });
-          // Limpiar campos
-
-          document.querySelectorAll('.cedula-number').forEach(input => {
+          // Añadir eventos a los campos de cédula
+          document.querySelectorAll('.cedula-number').forEach(function(input) {
             input.addEventListener('blur', function() {
               window.validateCedula(this);
             });
           });
-		  
-          document.querySelectorAll('.cedula-type').forEach(select => {
+          
+          document.querySelectorAll('.cedula-type').forEach(function(select) {
             select.addEventListener('change', function() {
               window.validateCedula(this);
             });
-          });		  
+          });
+	  
             const id = input.dataset.team + input.dataset.player;
             const statusElement = document.getElementById(`cedula-status-${id}`);
             const playerStatusElement = document.getElementById(`player-status-${id}`);
