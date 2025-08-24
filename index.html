@@ -869,40 +869,6 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
-
-
-        // Formatear automáticamente el campo RIF (J-12345678-9 o G-12345678-9)
-        const rifInput = document.getElementById('club-rif');
-        if (rifInput) {
-            rifInput.addEventListener('input', function (e) {
-                let value = e.target.value.toUpperCase();
-                let cleaned = value.replace(/[^JGjg0-9]/g, '');
-                let formatted = '';
-        
-                if (cleaned) {
-                    const firstChar = cleaned[0];
-                    const digits = cleaned.slice(1).replace(/[^0-9]/g, '');
-        
-                    formatted = firstChar;
-        
-                    if (digits.length >= 8) {
-                        formatted += '-' + digits.substring(0, 8) + '-';
-                        if (digits.length > 8) {
-                            formatted += digits.charAt(8);
-                        }
-                    } else {
-                        const firstPart = digits.substring(0, 8);
-                        if (firstPart) formatted += '-' + firstPart;
-                        const ninthDigit = digits.length > 8 ? digits.charAt(8) : '';
-                        if (ninthDigit) formatted += '-' + ninthDigit;
-                    }
-                }
-        
-                e.target.value = formatted;
-            });
-        } else {
-            console.warn('No se encontró el campo #club-rif para aplicar formato.');
-        }
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
