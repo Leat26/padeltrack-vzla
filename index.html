@@ -1683,8 +1683,8 @@
             return;
           }
         
-          const rifNumber = parseInt(rifNumberStr, 10);
-          if (isNaN(rifNumber) || rifNumber < 10000000 || rifNumber > 999999999) {
+          const rifNumberStr = rifNumberInputField.value?.trim();
+          if (!rifNumberStr || rifNumberStr.length < 8 || rifNumberStr.length > 9) {
             window.showNotification('El número del RIF debe tener entre 8 y 9 dígitos');
             return;
           }
@@ -2844,11 +2844,11 @@
             <option value="G">G</option>
           </select>
           <input 
-            type="number" 
+            type="text" 
             id="rif-number" 
             placeholder="123456789" 
             maxlength="9" 
-            pattern="[0-9]*"
+            pattern="[0-9]*" 
             style="flex: 1; padding: 10px; font-size: 16px;" 
             required>
         </div>
