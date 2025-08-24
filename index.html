@@ -825,41 +825,6 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
-
-    /* Nuevos estilos para los campos RIF */
-    .rif-container {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      width: 100%;
-      margin: 10px 0;
-    }
-    
-    .rif-type {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: 'Montserrat', sans-serif;
-    }
-    
-    .rif-number {
-      flex: 3;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: 'Montserrat', sans-serif;
-      text-align: center;
-    }
-    
-    .rif-separator {
-      font-weight: bold;
-      color: #555;
-      padding: 0 5px;
-    }	
-	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -904,6 +869,40 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
+
+
+        // Formatear automáticamente el campo RIF (J-12345678-9 o G-12345678-9)
+        const rifInput = document.getElementById('club-rif');
+        if (rifInput) {
+            rifInput.addEventListener('input', function (e) {
+                let value = e.target.value.toUpperCase();
+                let cleaned = value.replace(/[^JGjg0-9]/g, '');
+                let formatted = '';
+        
+                if (cleaned) {
+                    const firstChar = cleaned[0];
+                    const digits = cleaned.slice(1).replace(/[^0-9]/g, '');
+        
+                    formatted = firstChar;
+        
+                    if (digits.length >= 8) {
+                        formatted += '-' + digits.substring(0, 8) + '-';
+                        if (digits.length > 8) {
+                            formatted += digits.charAt(8);
+                        }
+                    } else {
+                        const firstPart = digits.substring(0, 8);
+                        if (firstPart) formatted += '-' + firstPart;
+                        const ninthDigit = digits.length > 8 ? digits.charAt(8) : '';
+                        if (ninthDigit) formatted += '-' + ninthDigit;
+                    }
+                }
+        
+                e.target.value = formatted;
+            });
+        } else {
+            console.warn('No se encontró el campo #club-rif para aplicar formato.');
+        }
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
@@ -1456,33 +1455,14 @@
             }
           });
         }
-		
-		// Función para construir el RIF a partir de los campos individuales
-		window.buildRif = function() {
-		const rifType = document.getElementById('rif-type').value;
-		const rifNumber = document.getElementById('rif-number').value;
-		
-		// Validar que todos los campos estén completos
-		if (!rifType || !rifNumber) {
-			return null;
-		}
-		
-		// Validar formato del número (8-9 dígitos)
-		if (!/^\d{8,9}$/.test(rifNumber)) {
-			return null;
-		}
-		
-		// Formato: J-123456789
-		return `${rifType}-${rifNumber}`;
-		};		
         
 		// Validar formato de cédula venezolana
-		window.validateRifFormat = function(rif) {
-		  // Formato RIF venezolano: J-12345678 o J-123456789 (8-9 dígitos)
-		  const rifRegex = /^[JG]-\d{8,9}$/;
-		  return rifRegex.test(rif);
+		window.validateCedulaFormat = function(cedula) {
+		  // Formato venezolano: V-, E-, P- seguido de 7-8 dígitos
+		  const cedulaRegex = /^[VvEePp]-\d{7,8}$/;
+		  return cedulaRegex.test(cedula);
 		};
-		
+
 		// Validar cédula (buscar en Supabase)
 		window.validateCedula = async function(input) {
 		  let cedula = input.value.trim();
@@ -1668,16 +1648,17 @@
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubName = document.getElementById('club-name')?.value?.trim() || '';
-          let clubRif = window.buildRif();
+
+          // Obtener tipo y número del RIF
+          const rifType = document.getElementById('rif-type')?.value?.trim();
+          const rifNumberInput = document.getElementById('rif-number')?.value?.trim();
+		  let clubRif = '';
+
           const courtCount = document.getElementById('court-count')?.value?.trim() || '';
           const email = document.getElementById('register-email')?.value?.trim() || '';
           const password = document.getElementById('register-password')?.value || '';
           const confirmPassword = document.getElementById('register-confirm')?.value || '';
-
-
-          // Resetear mensajes de error
-          document.getElementById('rif-error').style.display = 'none';
-	  
+          
           // Obtener y validar número de teléfono
           const phonePrefix = document.getElementById('phone-prefix')?.value?.trim() || '';
           const phoneSuffix = document.getElementById('phone-suffix')?.value?.trim() || '';
@@ -1702,17 +1683,20 @@
             phone = `${phonePrefix}-${phoneSuffix}`;
           }
           
-          // Validar formato RIF
-          if (!validateRifFormat(clubRif)) {
-            document.getElementById('rif-error').textContent = 'Formato de RIF inválido. Debe ser como J-123456789 (8-9 dígitos)';
-            document.getElementById('rif-error').style.display = 'block';
+          // Validar y construir RIF
+          if (!rifType || !rifNumberInput) {
+            window.showNotification('Por favor, selecciona el tipo (J/G) y escribe el número del RIF');
+            return;
+          }
+		  
+          const rifNumber = parseInt(rifNumberInput, 10);
+          if (isNaN(rifNumber) || rifNumber < 10000000 || rifNumber > 9999999999) {
+            window.showNotification('El número del RIF debe tener entre 8 y 9 dígitos');
             return;
           }
           
-          if (!window.validateRifFormat(clubRif)) {
-            window.showNotification('Formato de RIF inválido. Debe ser como J-123456789 o G-123456781');
-            return;
-          }
+          // Formato final: J-123456789
+          clubRif = `${rifType.toUpperCase()}-${rifNumber}`;		  
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -1726,17 +1710,6 @@
             window.showNotification('Las contraseñas no coinciden');
             return;
           }
-		  
-          // Simular registro exitoso
-          showNotification(`¡Club registrado exitosamente!\nNombre: ${clubName}\nRIF: ${clubRif}`);
-          
-          // Aquí iría el código para enviar los datos al servidor
-          console.log('Datos del club:', {
-            name: clubName,
-            rif: clubRif,
-            courtCount: courtCount,
-            email: email
-          });		  
           
           if (password.length < 6) {
             window.showNotification('La contraseña debe tener al menos 6 caracteres');
@@ -2874,19 +2847,22 @@
       <div class="stats" style="margin: 20px auto; width: 90%;">
         <p><strong>Nombre del Club</strong></p>
         <input type="text" id="club-name" placeholder="Club Pádel Venezuela" style="width: 100%; margin: 10px 0;">
-        <p><strong>RIF</strong></p>
-        <div class="rif-container">
-          <select id="rif-type" class="rif-type">
+        <p><strong>RIF (Ej: J-123456789)</strong></p>
+        <div class="rif-input" style="display: flex; gap: 10px; align-items: center;">
+          <select id="rif-type" style="width: 60px; padding: 10px; font-size: 16px;" required>
             <option value="">Tipo</option>
             <option value="J">J</option>
             <option value="G">G</option>
           </select>
-          <span class="rif-separator">-</span>
-          <input type="text" id="rif-number" class="rif-number" placeholder="12345678" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <input 
+            type="number" 
+            id="rif-number" 
+            placeholder="123456789" 
+            min="10000000" 
+            max="9999999999" 
+            style="flex: 1; padding: 10px; font-size: 16px;" 
+            required>
         </div>
-        <p style="font-size: 12px; color: #666; margin-top: -10px; margin-bottom: 10px;">
-          Formato: J-123456789
-        </p>
         <p><strong>Cantidad de canchas</strong></p>
         <input type="number" id="court-count" min="1" max="20" value="2" style="width: 100%; margin: 10px 0;">
         <p><strong>Correo electrónico</strong></p>
