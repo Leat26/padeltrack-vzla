@@ -1612,7 +1612,13 @@
         function resetRegistrationForm() {
           // Limpiar todos los campos del formulario
           document.getElementById('club-name').value = '';
-          document.getElementById('club-rif').value = '';
+
+          // ✅ Limpiar nuevos campos de RIF
+          const rifType = document.getElementById('rif-type');
+          const rifNumber = document.getElementById('rif-number');
+          if (rifType) rifType.value = '';
+          if (rifNumber) rifNumber.value = '';
+
           document.getElementById('court-count').value = '';
           document.getElementById('register-email').value = '';
           document.getElementById('phone-prefix').value = '';
@@ -1690,13 +1696,12 @@
           }
 		  
           const rifNumber = parseInt(rifNumberInput, 10);
-          if (isNaN(rifNumber) || rifNumber < 10000000 || rifNumber > 9999999999) {
+          if (isNaN(rifNumber) || rifNumber < 10000000 || rifNumber > 999999999) {
             window.showNotification('El número del RIF debe tener entre 8 y 9 dígitos');
             return;
           }
           
-          // Formato final: J-123456789
-          clubRif = `${rifType.toUpperCase()}-${rifNumber}`;		  
+          clubRif = `${rifType.toUpperCase()}-${rifNumber}`;	  
           
           // Validar cantidad de canchas
           const courts = parseInt(courtCount);
@@ -2859,7 +2864,7 @@
             id="rif-number" 
             placeholder="123456789" 
             min="10000000" 
-            max="9999999999" 
+            max="999999999" 
             style="flex: 1; padding: 10px; font-size: 16px;" 
             required>
         </div>
