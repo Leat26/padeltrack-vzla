@@ -1154,16 +1154,31 @@
 
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
-          const teamAName = document.getElementById('teamA-name')?.value;
-          const teamBName = document.getElementById('teamB-name')?.value;
-          window.teamNames.teamA = teamAName || "Equipo A";
-          window.teamNames.teamB = teamBName || "Equipo B";
+          // Obtener valores del DOM
+          const teamANameInput = document.getElementById('teamA-name');
+          const teamBNameInput = document.getElementById('teamB-name');
           
+          const teamAName = teamANameInput?.value?.trim();
+          const teamBName = teamBNameInput?.value?.trim();
+        
+          // Actualizar variable global
+          window.teamNames = {
+            teamA: teamAName || "Equipo A",
+            teamB: teamBName || "Equipo B"
+          };
+        
+          // Actualizar UI
           const teamAElement = document.getElementById('teamA-display');
           const teamBElement = document.getElementById('teamB-display');
-          
-          if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
-          if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
+        
+          if (teamAElement) {
+            teamAElement.textContent = window.teamNames.teamA;
+          }
+          if (teamBElement) {
+            teamBElement.textContent = window.teamNames.teamB;
+          }
+        
+          console.log("Nombres de equipos actualizados:", window.teamNames);
         };
         
         // Seleccionar sistema de puntuación
