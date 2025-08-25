@@ -223,6 +223,7 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 10px;
+	  align-items: stretch;
     }
     .player-name {
       display: flex;
@@ -230,9 +231,26 @@
     }
     .player-name input {
       flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #f8f9fa;
+      color: #333;
+      height: 40px;
+      box-sizing: border-box;
     }
+    .player-name input:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      background: #e9ecef;
+      color: #495057;
+    }	
     .cedula-input {
-      position: relative;
+      display: flex;
+	  position: relative;
+      gap: 10px;
+      align-items: center;
     }
     .cedula-validation {
       position: absolute;
@@ -240,6 +258,11 @@
       top: 50%;
       transform: translateY(-50%);
       font-size: 16px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;	  
     }
     .cedula-validation.valid {
       color: #4CAF50;
@@ -448,6 +471,8 @@
       text-align: center;
       font-style: italic;
       color: #666;
+	  min-height: 40px;
+	  box-sizing: border-box;
     }
     /* Player status */
     .player-status {
