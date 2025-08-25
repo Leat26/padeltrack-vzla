@@ -2408,90 +2408,81 @@
         
         // Función para cargar ranking
         window.loadRanking = async function() {
-          if (!window.currentUser) {
+            if (!window.currentUser) {
+                const rankingList = document.getElementById('ranking-list');
+                if (rankingList) {
+                    rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error:</strong> Por favor, inicia sesión primero</div>`;
+                }
+                return;
+            }
+        
+            // Mostrar estado de carga
             const rankingList = document.getElementById('ranking-list');
             if (rankingList) {
-              rankingList.innerHTML = `
-                <div class="alert">
-                  <i class="fas fa-exclamation-circle"></i> 
-                  <strong>Error:</strong> Por favor, inicia sesión primero
-                </div>
-              `;
+                rankingList.innerHTML = `<p>Cargando ranking...</p>`;
             }
-            return;
-          }
-          
-          // Mostrar mensaje de carga
-          const rankingList = document.getElementById('ranking-list');
-          if (rankingList) {
-            rankingList.innerHTML = `
-              <p style="display: flex; align-items: center; justify-content: center; height: 60px;">
-                <i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Cargando ranking...
-              </p>
-            `;
-          }
-          
-          // Consulta a Supabase
-          const { data, error } = await window.supabase
-            .from('players')
-            .select('*')
-            .eq('club_id', window.currentUser.id)
-            .order('matches_won', { ascending: false })
-            .limit(10);
-          
-          if (error) {
-            console.error("Error al cargar ranking:", error);
-            if (rankingList) {
-              rankingList.innerHTML = `
-                <div class="alert" style="margin: 15px 0;">
-                  <i class="fas fa-exclamation-circle"></i> 
-                  <strong>Error al cargar ranking: ${error.message}</strong>
-                </div>
-              `;
+        
+            // Calcular fecha de hace 7 días
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const lastWeek = new Date(today);
+            lastWeek.setDate(today.getDate() - 7);
+        
+            try {
+                const { data, error } = await window.supabase
+                    .from('players')
+                    .select('*')
+                    .eq('club_id', window.currentUser.id)
+                    .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' ')) // Formato timestamp
+                    .gt('matches_played', 0) // Solo jugadores activos con partidos
+                    .order('matches_won', { ascending: false });
+        
+                if (error) {
+                    console.error("Error al cargar ranking:", error);
+                    if (rankingList) {
+                        rankingList.innerHTML = `<div class="alert" style="margin: 15px 0;"><i class="fas fa-exclamation-circle"></i><strong>Error al cargar ranking: ${error.message}</strong></div>`;
+                    }
+                    return;
+                }
+        
+                if (!data || data.length === 0) {
+                    if (rankingList) {
+                        rankingList.innerHTML = `<p style="text-align: center; padding: 15px; color: #666;"><i class="fas fa-user-friends" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>No hay jugadores activos esta semana</p>`;
+                    }
+                    return;
+                }
+        
+                // Generar HTML del ranking
+                let html = '';
+                let rank = 1;
+                data.forEach(player => {
+                    const matchesPlayed = player.matches_played || 0;
+                    const matchesWon = player.matches_won || 0;
+                    const winPercentage = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
+                    html += `
+                        <div class="ranking-item">
+                            <span class="ranking-rank">${rank}.</span>
+                            <span style="flex: 1;">
+                                <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
+                                <div class="win-percentage">${winPercentage}% de victorias</div>
+                            </span>
+                            <span>
+                                <span class="ranking-wins">${matchesWon}</span>-
+                                <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
+                            </span>
+                        </div>`;
+                    rank++;
+                });
+        
+                if (rankingList) {
+                    rankingList.innerHTML = html;
+                }
+            } catch (error) {
+                console.error("Error crítico al cargar ranking:", error);
+                if (rankingList) {
+                    rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error crítico:</strong> ${error.message}</div>`;
+                }
             }
-            return;
-          }
-          
-          if (!data || data.length === 0) {
-            if (rankingList) {
-              rankingList.innerHTML = `
-                <p style="text-align: center; padding: 15px; color: #666;">
-                  <i class="fas fa-user-friends" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>
-                  No hay jugadores registrados en tu club
-                </p>
-              `;
-            }
-            return;
-          }
-          
-          // Generar HTML del ranking
-          let html = '';
-          let rank = 1;
-          data.forEach(player => {
-            const matchesPlayed = player.matches_played || 0;
-            const matchesWon = player.matches_won || 0;
-            const winPercentage = matchesPlayed > 0 ? 
-              Math.round((matchesWon / matchesPlayed) * 100) : 0;
-            
-            html += `
-              <div class="ranking-item">
-                <span class="ranking-rank">${rank}.</span>
-                <span style="flex: 1;">
-                  <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
-                  <div class="win-percentage">${winPercentage}% de victorias</div>
-                </span>
-                <span>
-                  <span class="ranking-wins">${matchesWon}</span>-
-                  <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
-                </span>
-              </div>
-            `;
-            rank++;
-          });
-          
-          if (rankingList) {
-            rankingList.innerHTML = html;
-          }
         };
 
 		// Función para cargar dashboard
@@ -2561,17 +2552,13 @@
 			}
 			
 			// 3. Top 5 jugadores
-			console.log("Fecha de referencia:", lastWeek.toISOString());
-			console.log("Datos obtenidos:", topPlayersData);
 			const { data: topPlayersData, error: topPlayersError } = await window.supabase
 			  .from('players')
 			  .select('*')
 			  .eq('club_id', clubId)
-			  .gt('matches_played', 0)
-			  .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
+			  .gte('last_match_date', lastWeek.toISOString())
 			  .order('matches_won', { ascending: false })
 			  .limit(5);
-			console.log("Datos obtenidos para ranking:", topPlayersData);
 			
 			if (topPlayersError) {
 			  console.error("Error al obtener top jugadores:", topPlayersError);
