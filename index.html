@@ -1529,7 +1529,7 @@
 		    // Buscar jugador en Supabase (solo en el club actual)
 		    const { data, error } = await window.supabase
 		      .from('players')
-		      .select('cedula, first_name, last_name, matches_played, matches_won, last_match_date, club_id')
+		      .select('*')
 		      .eq('cedula', cedula)
 		      .eq('club_id', window.currentUser.id)
 		      .single();
@@ -1639,7 +1639,16 @@
             input.value = '';
             input.disabled = true;
           });
-        
+		  
+          // ✅ Limpiar nombres de equipo
+          const teamANameInput = document.getElementById('teamA-name');
+          const teamBNameInput = document.getElementById('teamB-name');
+          if (teamANameInput) teamANameInput.value = '';
+          if (teamBNameInput) teamBNameInput.value = '';		  
+
+          // ✅ Resetear variable de nombres de equipo
+          window.teamNames = { teamA: "Equipo A", teamB: "Equipo B" };                  
+
           // Limpiar estado visual: iconos y mensajes
           document.querySelectorAll('.cedula-validation').forEach(el => {
             el.innerHTML = '';
@@ -2048,6 +2057,29 @@
                 window.goToScreen('login');
             }
         };
+
+		// Iniciar temporizador del partido
+		window.startTimer = function() {
+		  if (window.interval) {
+		    clearInterval(window.interval);
+		  }
+		
+		  window.interval = setInterval(function() {
+		    window.seconds++;
+		    if (window.seconds >= 60) {
+		      window.minutes++;
+		      window.seconds = 0;
+		    }
+		
+		    const timerElement = document.getElementById('timer');
+		    if (timerElement) {
+		      timerElement.textContent = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
+		    }
+		
+		    // Actualizar duración del juego
+		    window.gameDuration = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
+		  }, 1000);
+		};
         
 		// Función para registrar jugadores
 		window.startGame = async function() {
@@ -2159,9 +2191,13 @@
 		  
 		  // Éxito - resetear marcador y redirigir
 		  window.resetGame(); // Asegura que todo esté limpio antes de empezar
+		  window.updateTeamNamesDisplay();
 		  window.goToScreen('game');
 		  
-		  // Iniciar temporizador automáticamente
+		  // ✅ Actualizar nombres de equipos en el marcador
+		  window.updateTeamNamesDisplay();
+		  
+		  // ✅ Iniciar temporizador
 		  window.startTimer();
 		};
         
