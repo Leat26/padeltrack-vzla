@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+window.goToScreen(id)<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -16,7 +16,7 @@
       background: url('fondo-cancha.jpg') no-repeat center center fixed;
       background-size: cover;
       opacity: 0.95;
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Montserrat', sans-serif;window.goToScreen(id)
       color: white;
       min-height: 100vh;
       display: flex;
@@ -1004,6 +1004,17 @@
           // Si es registro, resetear validaciones
           if (id === 'register') {
             window.resetPlayerValidation();
+            
+            // Asegurar que los inputs de nombre de equipo existan
+            if (!document.getElementById('teamA-name')) {
+              const teamInputs = document.querySelector('.team-inputs');
+              if (teamInputs) {
+                teamInputs.innerHTML = `
+                  <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name" oninput="window.updateTeamNamesDisplay()">
+                  <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name" oninput="window.updateTeamNamesDisplay()">
+                `;
+              }
+            }
           }
           
           // Si es ranking, cargar ranking
@@ -1154,31 +1165,35 @@
 
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
-          // Obtener valores del DOM
+          // Asegurar que window.teamNames esté inicializado
+          if (!window.teamNames) {
+            window.teamNames = {
+              teamA: "Equipo A",
+              teamB: "Equipo B"
+            };
+          }
+        
+          // Actualizar desde los inputs solo si existen
           const teamANameInput = document.getElementById('teamA-name');
           const teamBNameInput = document.getElementById('teamB-name');
           
-          const teamAName = teamANameInput?.value?.trim();
-          const teamBName = teamBNameInput?.value?.trim();
-        
-          // Actualizar variable global
-          window.teamNames = {
-            teamA: teamAName || "Equipo A",
-            teamB: teamBName || "Equipo B"
-          };
+          if (teamANameInput) {
+            window.teamNames.teamA = teamANameInput.value || "Equipo A";
+          }
+          if (teamBNameInput) {
+            window.teamNames.teamB = teamBNameInput.value || "Equipo B";
+          }
         
           // Actualizar UI
           const teamAElement = document.getElementById('teamA-display');
           const teamBElement = document.getElementById('teamB-display');
-        
+          
           if (teamAElement) {
             teamAElement.textContent = window.teamNames.teamA;
           }
           if (teamBElement) {
             teamBElement.textContent = window.teamNames.teamB;
           }
-        
-          console.log("Nombres de equipos actualizados:", window.teamNames);
         };
         
         // Seleccionar sistema de puntuación
@@ -2206,11 +2221,14 @@
 		  
 		  // Éxito - resetear marcador y redirigir
 		  window.resetGame(); // Asegura que todo esté limpio antes de empezar
-		  window.updateTeamNamesDisplay();
+
+		  // Guardar nombres de equipos en window.teamNames
+		  window.teamNames = {
+		    teamA: document.getElementById('teamA-name')?.value || "Equipo A",
+		    teamB: document.getElementById('teamB-name')?.value || "Equipo B"
+		  };
+
 		  window.goToScreen('game');
-		  
-		  // ✅ Actualizar nombres de equipos en el marcador
-		  window.updateTeamNamesDisplay();
 		  
 		  // ✅ Iniciar temporizador
 		  window.startTimer();
