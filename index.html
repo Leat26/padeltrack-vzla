@@ -1630,6 +1630,14 @@
           });
           document.querySelectorAll('.cedula-number').forEach(input => {
             input.value = '';
+            const id = input.dataset.team + input.dataset.player;
+            const statusElement = document.getElementById(`cedula-status-${id}`);
+            const playerStatusElement = document.getElementById(`player-status-${id}`);
+            const errorElement = document.getElementById(`error-${id}`);
+            
+            if (statusElement) statusElement.innerHTML = '';
+            if (playerStatusElement) playerStatusElement.textContent = '';
+            if (errorElement) errorElement.style.display = 'none';																 
           });
         
           // Limpiar nombres y apellidos
@@ -2757,13 +2765,6 @@
           // Resetear colores y clases
           if (scoreAElement) scoreAElement.style.color = '#D32F2F';
           if (scoreBElement) scoreBElement.style.color = '#1976D2';
-        
-          // Limpiar nombres de equipos (opcional)
-          window.teamNames = { teamA: "Equipo A", teamB: "Equipo B" };
-          const teamANameInput = document.getElementById('teamA-name');
-          const teamBNameInput = document.getElementById('teamB-name');
-          if (teamANameInput) teamANameInput.value = '';
-          if (teamBNameInput) teamBNameInput.value = '';
         
           console.log("Marcador y temporizador reseteados correctamente");
         };		
