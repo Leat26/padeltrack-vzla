@@ -2029,26 +2029,49 @@
 		  // Validar que todos los jugadores tengan datos completos
 		  const missingData = [];
 		  Object.keys(window.playersData).forEach(key => {
-			const data = window.playersData[key];
-			if (!data.cedula) {
-			  missingData.push(`Jugador ${key}`);
-			} else if (!data.exists) {
-			  // Para jugadores nuevos, obtener los nombres del DOM
-			  const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			  const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			  
-			  const firstName = firstNameInput?.value?.trim() || '';
-			  const lastName = lastNameInput?.value?.trim() || '';
-			  
-			  if (!firstName || !lastName) {
-				missingData.push(`Jugador ${key}`);
-			  }
-			}
+		    const data = window.playersData[key];
+		    if (!data.cedula) {
+		      missingData.push(`Jugador ${key}`);
+		    } else if (!data.exists) {
+		      const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+		      const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+		      const firstName = firstNameInput?.value?.trim() || '';
+		      const lastName = lastNameInput?.value?.trim() || '';
+		      if (!firstName || !lastName) {
+		        missingData.push(`Jugador ${key}`);
+		      }
+		    }
 		  });
-		  
+		
 		  if (missingData.length > 0) {
-			window.showNotification(`Faltan datos de: ${missingData.join(', ')}`);
-			return;
+		    window.showNotification('Por favor, completa todos los datos de los siguientes jugadores: ' + missingData.join(', '));
+		    return;
+		  }
+		
+		  // ✅ Validar que no haya cédulas duplicadas entre los jugadores
+		  const cedulas = [];
+		  const duplicates = [];
+		
+		  Object.keys(window.playersData).forEach(key => {
+		    const data = window.playersData[key];
+		    if (data.cedula) {
+		      if (cedulas.includes(data.cedula)) {
+		        duplicates.push(data.cedula);
+		      } else {
+		        cedulas.push(data.cedula);
+		      }
+		    }
+		  });
+		
+		  if (duplicates.length > 0) {
+		    const cedulaDuplicada = duplicates[0];
+		    const jugadores = Object.keys(window.playersData)
+		      .filter(key => window.playersData[key].cedula === cedulaDuplicada)
+		      .map(key => `Jugador ${key}`)
+		      .join(' y ');
+		
+		    window.showNotification(`La cédula ${cedulaDuplicada} está repetida en ${jugadores}. No se permite que un jugador participe dos veces en el mismo partido.`);
+		    return;
 		  }
 		  
 		  if (!window.currentUser) {
