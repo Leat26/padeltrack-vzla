@@ -1163,7 +1163,7 @@
           }
         };
 
-        // Actualizar nombres de equipos en el marcador
+        // Función para actualizar nombres de equipos en el marcador - VERSIÓN CORREGIDA
         window.updateTeamNamesDisplay = function() {
           // Asegurar que window.teamNames esté inicializado
           if (!window.teamNames) {
@@ -1173,18 +1173,7 @@
             };
           }
         
-          // Actualizar desde los inputs solo si existen
-          const teamANameInput = document.getElementById('teamA-name');
-          const teamBNameInput = document.getElementById('teamB-name');
-          
-          if (teamANameInput) {
-            window.teamNames.teamA = teamANameInput.value || "Equipo A";
-          }
-          if (teamBNameInput) {
-            window.teamNames.teamB = teamBNameInput.value || "Equipo B";
-          }
-        
-          // Actualizar UI
+          // Actualizar UI - BUSCAR ELEMENTOS EN LA PANTALLA ACTUAL
           const teamAElement = document.getElementById('teamA-display');
           const teamBElement = document.getElementById('teamB-display');
           
@@ -2113,6 +2102,16 @@
         
 		// Función para registrar jugadores
 		window.startGame = async function() {
+		  const teamANameInput = document.getElementById('teamA-name');
+		  const teamBNameInput = document.getElementById('teamB-name');
+		  
+		  if (teamANameInput && teamBNameInput) {
+		    window.teamNames = {
+		      teamA: teamANameInput.value || "Equipo A",
+		      teamB: teamBNameInput.value || "Equipo B"
+		    };
+		  }		  
+		
 		  // Validar que todos los jugadores tengan datos completos
 		  const missingData = [];
 		  Object.keys(window.playersData).forEach(key => {
@@ -2221,17 +2220,15 @@
 		  
 		  // Éxito - resetear marcador y redirigir
 		  window.resetGame(); // Asegura que todo esté limpio antes de empezar
-
-		  // Guardar nombres de equipos en window.teamNames
-		  window.teamNames = {
-		    teamA: document.getElementById('teamA-name')?.value || "Equipo A",
-		    teamB: document.getElementById('teamB-name')?.value || "Equipo B"
-		  };
-
 		  window.goToScreen('game');
 		  
 		  // ✅ Iniciar temporizador
 		  window.startTimer();
+		  
+		  // ✅ ACTUALIZAR NOMBRES INMEDIATAMENTE AL ENTRAR A LA PANTALLA
+		  setTimeout(() => {
+		    window.updateTeamNamesDisplay();
+		  }, 100);		  
 		};
         
         // Función para finalizar partido
