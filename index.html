@@ -2517,7 +2517,6 @@
 		  today.setHours(0, 0, 0, 0);
 		  const lastWeek = new Date();
 		  lastWeek.setDate(today.getDate() - 7);
-		  lastWeek.setHours(0, 0, 0, 0);
 		  
 		  try {
 			// 1. Partidos del día
@@ -2562,14 +2561,17 @@
 			}
 			
 			// 3. Top 5 jugadores
+			console.log("Fecha de referencia:", lastWeek.toISOString());
+			console.log("Datos obtenidos:", topPlayersData);
 			const { data: topPlayersData, error: topPlayersError } = await window.supabase
 			  .from('players')
 			  .select('*')
 			  .eq('club_id', clubId)
-			  .gte('last_match_date', lastWeek.toISOString())
 			  .gt('matches_played', 0)
+			  .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
 			  .order('matches_won', { ascending: false })
 			  .limit(5);
+			console.log("Datos obtenidos para ranking:", topPlayersData);
 			
 			if (topPlayersError) {
 			  console.error("Error al obtener top jugadores:", topPlayersError);
