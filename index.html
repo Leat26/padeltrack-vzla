@@ -1018,8 +1018,7 @@
             if (rankingList) {
               rankingList.innerHTML = '<p>Cargando ranking...</p>';
             }
-            // Cargar ranking después de un breve retraso
-            setTimeout(window.loadRanking, 100);
+			window.loadRanking();
           }
           
           // Si es la pantalla de bienvenida, actualizar con el nombre del club
@@ -2427,6 +2426,17 @@
             today.setHours(0, 0, 0, 0);
             const lastWeek = new Date(today);
             lastWeek.setDate(today.getDate() - 7);
+			
+            // Mostrar fecha de corte del ranking
+            const cutoffDate = lastWeek.toLocaleDateString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            });
+            const cutoffElement = document.getElementById('ranking-cutoff');
+            if (cutoffElement) {
+                cutoffElement.textContent = `Activos desde el ${cutoffDate}`;
+            }			
         
             try {
                 const { data, error } = await window.supabase
@@ -2447,7 +2457,12 @@
         
                 if (!data || data.length === 0) {
                     if (rankingList) {
-                        rankingList.innerHTML = `<p style="text-align: center; padding: 15px; color: #666;"><i class="fas fa-user-friends" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>No hay jugadores activos esta semana</p>`;
+                        rankingList.innerHTML = `<p style="text-align: center; padding: 15px; color: #666;">
+													<i class="fas fa-trophy" style="font-size: 24px; opacity: 0.5; display: block; margin-bottom: 10px;"></i>
+													<strong>¡Anímate a jugar!</strong><br>
+													No hay partidos esta semana.<br>
+													Sé el primero en marcar un partido.
+												</p>`;
                     }
                     return;
                 }
@@ -2540,7 +2555,8 @@
 			  .from('players')
 			  .select('id')
 			  .eq('club_id', clubId)
-			  .gte('last_match_date', lastWeek.toISOString());
+			  .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
+			  .gt('matches_played', 0)
 			
 			if (activePlayersError) {
 			  console.error("Error al obtener jugadores activos:", activePlayersError);
@@ -2553,56 +2569,65 @@
 			
 			// 3. Top 5 jugadores
 			const { data: topPlayersData, error: topPlayersError } = await window.supabase
-			  .from('players')
-			  .select('*')
-			  .eq('club_id', clubId)
-			  .gte('last_match_date', lastWeek.toISOString())
-			  .order('matches_won', { ascending: false })
-			  .limit(5);
+			    .from('players')
+			    .select('*')
+			    .eq('club_id', clubId)
+			    .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
+			    .gt('matches_played', 0) // Solo jugadores que han jugado al menos 1 partido
+			    .limit(10); // Traemos más para ordenar mejor
 			
 			if (topPlayersError) {
-			  console.error("Error al obtener top jugadores:", topPlayersError);
-			  const topPlayersList = document.getElementById('top-players-list');
-			  if (topPlayersList) {
-				topPlayersList.innerHTML = `
-				  <div class="alert">
-					<i class="fas fa-exclamation-circle"></i> 
-					<strong>Error:</strong> ${topPlayersError.message}
-				  </div>
-				`;
-			  }
+			    console.error("Error al obtener top jugadores:", topPlayersError);
+			    const topPlayersList = document.getElementById('top-players-list');
+			    if (topPlayersList) {
+			        topPlayersList.innerHTML = `
+			            <div class="alert">
+			                <i class="fas fa-exclamation-circle"></i> 
+			                <strong>Error:</strong> ${topPlayersError.message}
+			            </div>
+			        `;
+			    }
 			} else {
-			  let html = '';
-			  const topPlayersList = document.getElementById('top-players-list');
-			  
-			  if (!topPlayersList) return;
-			  
-			  if (topPlayersData.length === 0) {
-				html = '<p>No hay jugadores activos esta semana</p>';
-			  } else {
-				let rank = 1;
-				topPlayersData.forEach(player => {
-				  const matchesPlayed = player.matches_played;
-				  const matchesWon = window.safeNumber(player.matches_won, 0);
-				  const winPercentage = matchesPlayed > 0 ? 
-					Math.round((matchesWon / matchesPlayed) * 100) : 0;
-				  html += `
-					<div class="ranking-item">
-					  <span class="ranking-rank">${rank}.</span>
-					  <span style="flex: 1;">
-						<strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
-						<div class="win-percentage">${winPercentage}% de victorias</div>
-					  </span>
-					  <span>
-						<span class="ranking-wins">${matchesWon}</span>-
-						<span class="ranking-losses">${matchesPlayed - matchesWon}</span>
-					  </span>
-					</div>
-				  `;
-				  rank++;
-				});
-			  }
-			  topPlayersList.innerHTML = html;
+			    const topPlayersList = document.getElementById('top-players-list');
+			    
+			    if (!topPlayersList) return;
+			
+			    if (topPlayersData.length === 0) {
+			        topPlayersList.innerHTML = '<p>No hay jugadores activos esta semana</p>';
+			    } else {
+			        // ✅ Ordenar por porcentaje de victorias
+			        const sortedTopPlayers = topPlayersData
+			            .sort((a, b) => {
+			                const winRateA = a.matches_played > 0 ? a.matches_won / a.matches_played : 0;
+			                const winRateB = b.matches_played > 0 ? b.matches_won / b.matches_played : 0;
+			                return winRateB - winRateA; // Mayor porcentaje primero
+			            })
+			            .slice(0, 5); // Limitar a solo 5 después de ordenar
+			
+			        let html = '';
+			        let rank = 1;
+			        sortedTopPlayers.forEach(player => {
+			            const matchesPlayed = player.matches_played;
+			            const matchesWon = window.safeNumber(player.matches_won, 0);
+			            const winPercentage = matchesPlayed > 0 ? 
+			                Math.round((matchesWon / matchesPlayed) * 100) : 0;
+			            html += `
+			                <div class="ranking-item">
+			                    <span class="ranking-rank">${rank}.</span>
+			                    <span style="flex: 1;">
+			                        <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
+			                        <div class="win-percentage">${winPercentage}% de victorias</div>
+			                    </span>
+			                    <span>
+			                        <span class="ranking-wins">${matchesWon}</span>-
+			                        <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
+			                    </span>
+			                </div>
+			            `;
+			            rank++;
+			        });
+			        topPlayersList.innerHTML = html;
+			    }
 			}
 			
 			// 4. Uso de canchas
@@ -3356,7 +3381,8 @@
       </header>
       <h2><i class="fas fa-crown"></i> Ranking Semanal</h2>
       <div class="stats">
-        <p id="ranking-list">
+        <p id="ranking-cutoff"></p>
+		<p id="ranking-list">
           <strong>Cargando ranking...</strong>
         </p>
       </div>
