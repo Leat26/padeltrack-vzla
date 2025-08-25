@@ -2566,6 +2566,7 @@
 			  .select('*')
 			  .eq('club_id', clubId)
 			  .gte('last_match_date', lastWeek.toISOString())
+			  .gt('matches_played', 0)
 			  .order('matches_won', { ascending: false })
 			  .limit(5);
 			
