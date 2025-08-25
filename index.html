@@ -1423,25 +1423,18 @@
         }
 
 		// Validar cédula (buscar en Supabase)
-
 		window.validateCedula = async function(input) {
 		  // Obtener el contenedor .cedula-input
-		  const container = input.closest('.cedula-input') ||
-		                   (input.classList.contains('cedula-number') ? input.parentNode : null) ||
-		                   (input.classList.contains('cedula-type') ? input.parentNode : null);
+		  const container = input.closest('.cedula-input');
+		  if (!container) return;
 		
-		  if (!container) {
-		    console.error('No se encontró el contenedor .cedula-input para el input:', input);
-		    return;
-		  }
-		
-		  // Obtener elementos
+		  // Obtener los elementos
 		  const typeSelect = container.querySelector('.cedula-type');
 		  const numberInput = container.querySelector('.cedula-number');
 		
-		  // Datos del jugador
-		  const team = input.dataset?.team;
-		  const player = input.dataset?.player;
+		  // Extraer datos del jugador
+		  const team = input.dataset.team;
+		  const player = input.dataset.player;
 		  const id = team + player;
 		
 		  // Elementos de UI
@@ -1465,7 +1458,7 @@
 		  const type = typeSelect?.value?.trim();
 		  const number = numberInput?.value?.trim();
 		
-		  // Validar campos
+		  // Validar que ambos estén completos
 		  if (!type || !number) {
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
@@ -1474,11 +1467,12 @@
 		    if (playerStatusElement) {
 		      playerStatusElement.textContent = 'Completa tipo y número';
 		    }
+		    // Limpiar datos del jugador
 		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 		    return;
 		  }
 		
-		  // Validar longitud del número
+		  // Validar que el número tenga entre 7 y 8 dígitos
 		  if (!/^\d{7,8}$/.test(number)) {
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
@@ -1491,7 +1485,7 @@
 		    return;
 		  }
 		
-		  // Construir cédula final
+		  // ✅ Construir cédula final
 		  const cedula = `${type.toUpperCase()}-${number}`;
 		
 		  // Guardar en playersData
@@ -1500,13 +1494,14 @@
 		    cedula: cedula
 		  };
 		
-		  // Mostrar carga
+		  // Mostrar estado de carga
 		  if (statusElement) {
 		    statusElement.innerHTML = '<i class="fas fa-spinner"></i>';
 		    statusElement.className = 'cedula-validation loading';
 		  }
 		
 		  try {
+		    // Buscar jugador en Supabase (solo en el club actual)
 		    const { data, error } = await window.supabase
 		      .from('players')
 		      .select('*')
@@ -1516,7 +1511,7 @@
 		
 		    if (error) {
 		      if (error.code === 'PGRST116') {
-		        // Jugador nuevo
+		        // Jugador no encontrado → nuevo
 		        if (statusElement) {
 		          statusElement.innerHTML = '<i class="fas fa-user-plus"></i>';
 		          statusElement.className = 'cedula-validation valid';
@@ -1525,9 +1520,9 @@
 		          playerStatusElement.textContent = 'Nuevo jugador en este club';
 		        }
 		
+		        // Habilitar campos de nombre y apellido
 		        const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
 		        const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-		
 		        if (firstNameInput) {
 		          firstNameInput.disabled = false;
 		          firstNameInput.focus();
@@ -1536,8 +1531,9 @@
 		          lastNameInput.disabled = false;
 		        }
 		
+		        // Guardar datos
 		        window.playersData[id] = {
-		          cedula,
+		          cedula: cedula,
 		          firstName: '',
 		          lastName: '',
 		          exists: false
@@ -1556,7 +1552,7 @@
 		      return;
 		    }
 		
-		    // Jugador existente
+		    // Jugador existe
 		    if (statusElement) {
 		      statusElement.innerHTML = '<i class="fas fa-check-circle"></i>';
 		      statusElement.className = 'cedula-validation valid';
@@ -1565,9 +1561,9 @@
 		      playerStatusElement.textContent = 'Jugador existente en este club';
 		    }
 		
+		    // Rellenar y deshabilitar nombre y apellido
 		    const firstNameInput = document.querySelector(`.first-name[data-team="${team}"][data-player="${player}"]`);
 		    const lastNameInput = document.querySelector(`.last-name[data-team="${team}"][data-player="${player}"]`);
-		
 		    if (firstNameInput) {
 		      firstNameInput.value = data.first_name || '';
 		      firstNameInput.disabled = true;
@@ -1577,8 +1573,9 @@
 		      lastNameInput.disabled = true;
 		    }
 		
+		    // Guardar datos
 		    window.playersData[id] = {
-		      cedula,
+		      cedula: cedula,
 		      firstName: data.first_name || '',
 		      lastName: data.last_name || '',
 		      exists: true
@@ -1596,25 +1593,15 @@
 		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 		  }
 		};
-        
+
         // Resetear validación de jugadores
         window.resetPlayerValidation = function() {
           Object.keys(window.playersData).forEach(key => {
             window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
           });
-          // Añadir eventos a los campos de cédula
-          document.querySelectorAll('.cedula-number').forEach(function(input) {
-            input.addEventListener('blur', function() {
-              window.validateCedula(this);
-            });
-          });
-          
-          document.querySelectorAll('.cedula-type').forEach(function(select) {
-            select.addEventListener('change', function() {
-              window.validateCedula(this);
-            });
-          });
-	  
+          // Limpiar campos
+          document.querySelectorAll('.cedula').forEach(input => {
+            input.value = '';
             const id = input.dataset.team + input.dataset.player;
             const statusElement = document.getElementById(`cedula-status-${id}`);
             const playerStatusElement = document.getElementById(`player-status-${id}`);
@@ -1623,7 +1610,7 @@
             if (statusElement) statusElement.innerHTML = '';
             if (playerStatusElement) playerStatusElement.textContent = '';
             if (errorElement) errorElement.style.display = 'none';
-			
+          });
           // Deshabilitar campos de nombre y apellido
           document.querySelectorAll('.first-name, .last-name').forEach(input => {
             input.value = '';
@@ -1682,6 +1669,7 @@
         }
 
         // Función para registrar un nuevo club - Versión optimizada y corregida
+
         window.registerClub = async function() {
           // Obtener elementos del DOM
           const clubNameInput = document.getElementById('club-name');
@@ -1934,6 +1922,7 @@
           button.innerHTML = originalText;
           button.disabled = false;
         }
+
 
         // Iniciar sesión
         window.loginUser = async function() {
@@ -2815,6 +2804,21 @@
           }
         });
         
+        if (document.querySelector('.cedula-number') || document.querySelector('.cedula-type')) {
+          document.querySelectorAll('.cedula-number').forEach(input => {
+            input.addEventListener('blur', function() {
+              window.validateCedula(this);
+            });
+          });
+        
+          document.querySelectorAll('.cedula-type').forEach(select => {
+            select.addEventListener('change', function() {
+              window.validateCedula(this);
+            });
+          });
+        }		
+		
+		
         // Temporizador de inactividad (cierra sesión después de 15 minutos sin actividad)
         let inactivityTimer;
         const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutos
