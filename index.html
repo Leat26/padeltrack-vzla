@@ -1638,15 +1638,6 @@
             input.disabled = true;
           });
 		  
-          // ✅ Limpiar nombres de equipo
-          const teamANameInput = document.getElementById('teamA-name');
-          const teamBNameInput = document.getElementById('teamB-name');
-          if (teamANameInput) teamANameInput.value = '';
-          if (teamBNameInput) teamBNameInput.value = '';		  
-
-          // ✅ Resetear variable de nombres de equipo
-          window.teamNames = { teamA: "Equipo A", teamB: "Equipo B" };                  
-
           // Limpiar estado visual: iconos y mensajes
           document.querySelectorAll('.cedula-validation').forEach(el => {
             el.innerHTML = '';
