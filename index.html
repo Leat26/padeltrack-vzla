@@ -471,8 +471,6 @@
       text-align: center;
       font-style: italic;
       color: #666;
-	  min-height: 40px;
-	  box-sizing: border-box;
     }
     /* Player status */
     .player-status {
@@ -1004,17 +1002,6 @@
           // Si es registro, resetear validaciones
           if (id === 'register') {
             window.resetPlayerValidation();
-            
-            // Asegurar que los inputs de nombre de equipo existan
-            if (!document.getElementById('teamA-name')) {
-              const teamInputs = document.querySelector('.team-inputs');
-              if (teamInputs) {
-                teamInputs.innerHTML = `
-                  <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name" oninput="window.updateTeamNamesDisplay()">
-                  <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name" oninput="window.updateTeamNamesDisplay()">
-                `;
-              }
-            }
           }
           
           // Si es ranking, cargar ranking
@@ -1163,31 +1150,18 @@
           }
         };
 
-        // Función CORREGIDA para actualizar nombres de equipos
+        // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
-          // Obtener los nombres de los inputs si estamos en la pantalla de registro
-          if (document.getElementById('register').classList.contains('active')) {
-            const teamANameInput = document.getElementById('teamA-name');
-            const teamBNameInput = document.getElementById('teamB-name');
-            
-            if (teamANameInput) {
-              window.teamNames.teamA = teamANameInput.value || "Equipo A";
-            }
-            if (teamBNameInput) {
-              window.teamNames.teamB = teamBNameInput.value || "Equipo B";
-            }
-          }
+          const teamAName = document.getElementById('teamA-name')?.value;
+          const teamBName = document.getElementById('teamB-name')?.value;
+          window.teamNames.teamA = teamAName || "Equipo A";
+          window.teamNames.teamB = teamBName || "Equipo B";
           
-          // Actualizar la UI en la pantalla de juego
           const teamAElement = document.getElementById('teamA-display');
           const teamBElement = document.getElementById('teamB-display');
           
-          if (teamAElement) {
-            teamAElement.textContent = window.teamNames.teamA;
-          }
-          if (teamBElement) {
-            teamBElement.textContent = window.teamNames.teamB;
-          }
+          if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
+          if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
         };
         
         // Seleccionar sistema de puntuación
@@ -2106,17 +2080,7 @@
 		};
         
 		// Función para registrar jugadores
-		window.startGame = async function() {
-		  const teamANameInput = document.getElementById('teamA-name');
-		  const teamBNameInput = document.getElementById('teamB-name');
-		  
-		  if (teamANameInput && teamBNameInput) {
-		    window.teamNames = {
-		      teamA: teamANameInput.value || "Equipo A",
-		      teamB: teamBNameInput.value || "Equipo B"
-		    };
-		  }		  
-		
+		window.startGame = async function() {	  
 		  // Validar que todos los jugadores tengan datos completos
 		  const missingData = [];
 		  Object.keys(window.playersData).forEach(key => {
@@ -2228,12 +2192,7 @@
 		  window.goToScreen('game');
 		  
 		  // ✅ Iniciar temporizador
-		  window.startTimer();
-		  
-		  // Actualizar nombres después de un breve delay
-		  setTimeout(() => {
-		    window.updateTeamNamesDisplay();
-		  }, 100);	  
+		  window.startTimer(); 	  
 		};
         
         // Función para finalizar partido
@@ -2786,7 +2745,9 @@
           window.minutes = 0;
           window.seconds = 0;
           window.gameDuration = "00:00";
-        
+          // Resetear UI
+          window.updateScoreboard();
+		  
           // Resetear indicadores visuales
           const scoreAElement = document.getElementById('scoreA');
           const scoreBElement = document.getElementById('scoreB');
@@ -2816,6 +2777,7 @@
           console.log("Marcador y temporizador reseteados correctamente");
         };		
         
+
         // Configurar listener de autenticación
         window.supabase.auth.onAuthStateChange((event, session) => {
           if (session) {
@@ -3187,7 +3149,7 @@
       <div class="teams">
         <div class="team" style="border-top: 4px solid #D32F2F;">
           <h3><i class="team-icon fas fa-circle" style="color:#D32F2F"></i> Equipo A</h3>
-          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name" oninput="window.updateTeamNamesDisplay()">
+          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamA-name">
           <div class="player-inputs">
             <h4>Jugador 1</h4>
             <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
@@ -3257,7 +3219,7 @@
         </div>
         <div class="team" style="border-top: 4px solid #1976D2;">
           <h3><i class="team-icon fas fa-circle" style="color:#1976D2"></i> Equipo B</h3>
-          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name" oninput="window.updateTeamNamesDisplay()">
+          <input type="text" class="team-name-input" placeholder="Nombre del equipo (opcional)" id="teamB-name">
           <div class="player-inputs">
             <h4>Jugador 3</h4>
             <div class="cedula-input" style="display: flex; gap: 10px; align-items: center;">
