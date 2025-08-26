@@ -1343,7 +1343,7 @@
             // Caso 1: Gana con 6 juegos (6-0, 6-1, 6-2, 6-3, 6-4)
             if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) || 
                 (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
-              window.finalizeGame();
+              window.completeSet();
               return;
             } 
             // Caso 2: Gana con 7 juegos (7-5)
@@ -3202,9 +3202,6 @@
       </div>
       <div class="mode-indicator" id="mode-description">
         Sistema oficial de pádel: Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5)
-      </div>
-      <div class="alert">
-        <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> Al presionar "Comenzar partido", los jugadores se registrarán automáticamente en la base de datos.
       </div>
       <div class="teams">
         <div class="team" style="border-top: 4px solid #D32F2F;">
