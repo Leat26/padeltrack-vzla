@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />  
   <style>
-    /* --- Estilo actual (mantenido y mejorado) --- */
     * {
       margin: 0;
       padding: 0;
@@ -59,7 +58,7 @@
       position: absolute;
       background: none;
       border: none;
-      color: #FFD700;
+      color: #FFD700; /* Cambiado de white a amarillo (#FFD700) */
       font-size: 20px;
       cursor: pointer;
       width: 40px;
@@ -224,7 +223,7 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 10px;
-      align-items: stretch;
+	  align-items: stretch;
     }
     .player-name {
       display: flex;
@@ -249,7 +248,7 @@
     }	
     .cedula-input {
       display: flex;
-      position: relative;
+	  position: relative;
       gap: 10px;
       align-items: center;
     }
@@ -279,74 +278,27 @@
       0% { transform: translateY(-50%) rotate(0deg); }
       100% { transform: translateY(-50%) rotate(360deg); }
     }
-    
-    /* === NUEVO DISEÑO DEL MARCADOR === */
+    /* Marcador */
     .scoreboard {
       display: flex;
       justify-content: space-around;
       align-items: center;
       margin: 20px 0;
       gap: 20px;
-      padding: 15px;
-      border-radius: 16px;
-      color: white;
-      font-family: 'Oswald', sans-serif;
-      position: relative;
-      border: 2px solid #fff;
-      overflow: hidden;
     }
-    
-    .scoreboard::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.2);
-      pointer-events: none;
-    }
-    
-    .team-score {
-      text-align: center;
-      flex: 1;
-      position: relative;
-    }
-    
-    .team-score h3 {
-      margin: 0 0 8px 0;
-      font-size: 1.3em;
+    .games-score {
+      font-size: 22px;
       font-weight: 600;
-      color: #FFD700;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-    }
-    
-    /* Sets ganados */
-    .sets-score {
-      font-size: 1.8em;
-      font-weight: bold;
-      color: #FFD700;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      color: #666;
       margin-bottom: 5px;
     }
-    
-    /* Juegos ganados */
-    .games-score {
-      font-size: 2.5em;
-      font-weight: bold;
-      color: white;
-      margin: 5px 0;
-      text-shadow: 0 0 8px rgba(255,255,255,0.7);
-    }
-    
-    /* Puntos actuales */
     .score {
-      font-size: 3.5em;
-      font-weight: bold;
-      color: #00ff00;
-      text-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+      font-size: 70px;
+      font-weight: 700;
+      color: #016B3A;
       font-family: 'Oswald', sans-serif;
-      margin: 10px 0;
+      transition: all 0.3s ease;
     }
-    
     .score.winner {
       color: #4CAF50;
       text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
@@ -354,7 +306,6 @@
     .score.loser {
       color: #D32F2F;
     }
-    
     .tiebreak-badge {
       background: #FFECB3;
       color: #5D4037;
@@ -365,13 +316,11 @@
       display: inline-block;
       margin: 5px 0;
     }
-    
     .sudden-death {
       background: #FFCCBC;
       color: #D84315;
       font-weight: 700;
     }
-    
     .controls {
       display: flex;
       justify-content: center;
@@ -393,89 +342,514 @@
     .controls button:active {
       transform: scale(0.9);
     }
-    
     .timer {
       font-size: 18px;
       margin: 15px 0;
       color: #555;
       font-weight: 500;
     }
-    
-    /* === NOTIFICACIÓN DE SET GANADO === */
-    #set-notification {
+    /* Estadísticas */
+    .stats {
+      text-align: left;
+      margin: 20px auto;
+      width: 90%;
+      background: #f8f9fa;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 16px;
+      color: #333;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      line-height: 1.6;
+    }
+    .stats strong {
+      color: #016B3A;
+    }
+    .scoring-badge {
+      background: #E8F5E9;
+      color: #016B3A;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    /* Iconos de equipos */
+    .team-icon {
+      font-size: 20px;
+      margin-right: 5px;
+    }
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 10px;
+    }
+    /* Ayuda */
+    .help-tip {
+      background: #e0e0e0;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-left: 5px;
+      cursor: help;
+      color: #016B3A;
+    }
+    /* Notificación */
+    .notification {
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
       background: #016B3A;
       color: white;
-      padding: 16px 30px;
-      border-radius: 12px;
-      font-size: 1.3em;
+      padding: 12px 25px;
+      border-radius: 30px;
       font-weight: 600;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 100;
       opacity: 0;
-      visibility: hidden;
-      transition: all 0.4s ease;
-      text-align: center;
-      max-width: 90%;
-      border: 2px solid #FFD700;
-      font-family: 'Montserrat', sans-serif;
+      transition: opacity 0.3s;
     }
-    
-    #set-notification.show {
+    .notification.show {
       opacity: 1;
-      visibility: visible;
     }
-    
-    #set-notification strong {
-      color: #FFD700;
-      text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+    /* Indicador de modo */
+    .mode-indicator {
+      background: #E3F2FD;
+      border-left: 4px solid #1976D2;
+      padding: 8px 15px;
+      margin: 10px 0;
+      border-radius: 0 8px 8px 0;
+      font-size: 14px;
+      color: #0D47A1;
+      text-align: left;
     }
-    
-    /* === Estilos existentes (sin cambios) === */
-    /* (El resto de tus estilos siguen igual) */
-    .stats { text-align: left; margin: 20px auto; width: 90%; background: #f8f9fa; padding: 18px; border-radius: 12px; font-size: 16px; color: #333; box-shadow: 0 2px 6px rgba(0,0,0,0.05); line-height: 1.6; }
-    .stats strong { color: #016B3A; }
-    .scoring-badge { background: #E8F5E9; color: #016B3A; padding: 6px 12px; border-radius: 20px; font-weight: 600; display: inline-block; margin: 10px 0; font-size: 14px; }
-    .team-icon { font-size: 20px; margin-right: 5px; }
-    .footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 10px; }
-    .help-tip { background: #e0e0e0; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; margin-left: 5px; cursor: help; color: #016B3A; }
-    .notification { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #016B3A; color: white; padding: 12px 25px; border-radius: 30px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 100; opacity: 0; transition: opacity 0.3s; }
-    .notification.show { opacity: 1; }
-    .mode-indicator { background: #E3F2FD; border-left: 4px solid #1976D2; padding: 8px 15px; margin: 10px 0; border-radius: 0 8px 8px 0; font-size: 14px; color: #0D47A1; text-align: left; }
-    .dashboard-stats { display: flex; justify-content: space-between; text-align: center; margin-bottom: 20px; }
-    .stat-item { background: #016B3A; color: white; border-radius: 16px; padding: 15px; flex: 1; margin: 0 5px; }
-    .stat-value { font-size: 24px; font-weight: bold; margin: 5px 0; }
-    .dashboard-actions { display: flex; gap: 10px; margin-top: 20px; }
-    .dashboard-actions .btn { flex: 1; padding: 12px; font-size: 16px; }
-    .team-name-input { width: 90%; padding: 8px; margin: 10px auto 15px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; text-align: center; font-style: italic; color: #666; min-height: 40px; box-sizing: border-box; }
-    .player-status { font-size: 12px; margin-top: -5px; margin-bottom: 5px; text-align: left; padding-left: 5%; color: #4CAF50; }
-    .error-message { color: #D32F2F; font-size: 14px; margin-top: -5px; margin-bottom: 5px; text-align: left; padding-left: 5%; font-weight: 600; }
-    .ranking-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; text-align: left; }
-    .ranking-rank { font-weight: bold; width: 30px; text-align: center; }
-    .ranking-wins { color: #4CAF50; font-weight: bold; }
-    .ranking-losses { color: #D32F2F; }
-    .win-percentage { background: #E8F5E9; color: #388E3C; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 12px; }
-    .alert { background: #FFF8E1; color: #5D4037; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: left; }
-    .alert strong { color: #D84315; }
-    #welcome { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-    #welcome h2 { font-size: 28px; color: #016B3A; margin-bottom: 15px; }
-    #welcome .subtitle { font-size: 18px; color: #555; margin-bottom: 20px; }
-    .handshake-container { margin: 30px 0; }
-    .handshake-img { max-width: 200px; border-radius: 12px; }
-    
-    /* === RESPONSIVE === */
-    :root { --vh: 1vh; }
-    @media (max-width: 768px) { .container { border-radius: 20px; height: 95vh; } header { padding: 15px; font-size: 24px; } header #logo { height: 80px; } .screen { padding: 20px 15px; } .btn { margin: 8px 0; width: 90%; } .teams { gap: 10px; } .team { min-width: 48%; padding: 12px; } .player-inputs { gap: 5px; } .scoreboard { gap: 10px; } .score { font-size: 56px; } .controls button { width: 50px; height: 50px; font-size: 20px; } .dashboard-stats { gap: 8px; } .stat-item { padding: 12px; } .stat-value { font-size: 20px; } #welcome h2 { font-size: 24px; } .btn-green { padding: 12px 20px; font-size: 16px; } }
-    @media (max-width: 480px) { .container { border-radius: 16px; height: 100vh; max-width: 100%; overflow-y: auto; } header { padding: 12px 10px; font-size: 22px; } header #logo { height: 80px; } .screen { padding: 15px 10px; overflow-y: auto; } h2 { font-size: 22px; margin: 12px 0; } h3 { font-size: 16px; margin: 8px 0; } .btn { padding: 12px 20px; font-size: 16px; margin: 8px 0; } .teams { flex-direction: column; gap: 8px; } .team { min-width: 100%; padding: 10px; } input { width: 95%; padding: 8px; font-size: 13px; } .player-inputs { gap: 4px; } .player-name input { font-size: 12px; } .scoreboard { flex-direction: column; gap: 15px; } .score { font-size: 48px; } .games-score { font-size: 18px; } .controls { gap: 15px; } .controls button { width: 45px; height: 45px; font-size: 18px; } .timer { font-size: 16px; } .stats { width: 95%; font-size: 14px; padding: 12px; } .dashboard-stats { flex-direction: column; gap: 10px; } .stat-item { margin: 5px 0; } .ranking-item { padding: 8px 0; } .footer { font-size: 11px; } .help-tip { width: 20px; height: 20px; font-size: 10px; } .mode-indicator { font-size: 12px; padding: 6px 10px; } .scoring-badge { font-size: 12px; padding: 4px 8px; } .tiebreak-badge { font-size: 12px; padding: 2px 6px; } .player-status, .error-message { font-size: 11px; } .win-percentage { font-size: 10px; padding: 1px 6px; } #welcome h2 { font-size: 22px; } #welcome .subtitle { font-size: 16px; } }
-    @media (max-height: 500px) and (orientation: landscape) { .container { height: 100vh; overflow-y: auto; } .screen { overflow-y: auto; padding-bottom: 50px; } .scoreboard { flex-direction: row; gap: 5px; } .score { font-size: 36px; } .games-score { font-size: 16px; } .controls { gap: 5px; } .controls button { width: 35px; height: 35px; font-size: 14px; } .timer { font-size: 14px; } .btn { margin: 5px 0; padding: 8px 15px; font-size: 14px; } .teams { gap: 5px; } .team { padding: 8px; } input { padding: 6px; font-size: 12px; } .footer { display: none; } }
-    @media (max-height: 400px) { .container { height: 100vh !important; } .score { font-size: 32px; } .games-score { font-size: 14px; } .controls button { width: 30px; height: 30px; font-size: 12px; } .footer { display: none; } .btn { margin: 4px 0; padding: 6px 12px; font-size: 12px; } .teams { gap: 4px; } .team { padding: 6px; } h2 { font-size: 20px; margin: 8px 0; } h3 { font-size: 14px; margin: 6px 0; } }
-    .screen { -webkit-overflow-scrolling: touch; }
-    input:focus { font-size: 16px !important; }
-    .btn:active, .team:active { transform: scale(0.98); opacity: 0.9; }
-    .container { height: calc(var(--vh, 1vh) * 100); }
+    /* Dashboard */
+    .dashboard-stats {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      background: #016B3A;
+      color: white;
+      border-radius: 16px;
+      padding: 15px;
+      flex: 1;
+      margin: 0 5px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .dashboard-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .dashboard-actions .btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+    }
+    /* Team name input */
+    .team-name-input {
+      width: 90%;
+      padding: 8px;
+      margin: 10px auto 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      font-style: italic;
+      color: #666;
+      min-height: 40px; /* Asegura altura mínima */
+      box-sizing: border-box;	  
+    }
+    /* Player status */
+    .player-status {
+      font-size: 12px;
+      margin-top: -5px;
+      margin-bottom: 5px;
+      text-align: left;
+      padding-left: 5%;
+      color: #4CAF50;
+    }
+    /* Error messages */
+    .error-message {
+      color: #D32F2F;
+      font-size: 14px;
+      margin-top: -5px;
+      margin-bottom: 5px;
+      text-align: left;
+      padding-left: 5%;
+      font-weight: 600;
+    }
+    /* Ranking */
+    .ranking-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    .ranking-rank {
+      font-weight: bold;
+      width: 30px;
+      text-align: center;
+    }
+    .ranking-wins {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .ranking-losses {
+      color: #D32F2F;
+    }
+    .win-percentage {
+      background: #E8F5E9;
+      color: #388E3C;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    /* Alertas */
+    .alert {
+      background: #FFF8E1;
+      color: #5D4037;
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      text-align: left;
+    }
+    .alert strong {
+      color: #D84315;
+    }
+    /* Pantalla de Bienvenida */
+    #welcome {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    #welcome h2 {
+      font-size: 28px;
+      color: #016B3A;
+      margin-bottom: 15px;
+    }
+    #welcome .subtitle {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    .handshake-container {
+      margin: 30px 0;
+    }
+    .handshake-img {
+      max-width: 200px;
+      border-radius: 12px;
+    }								
+    /* ================================= */
+    /* =========== RESPONSIVE ========== */
+    /* ================================= */
+    /* Variables para altura en móviles */
+    :root {
+      --vh: 1vh;
+    }
+    /* Ajustes para tablets */
+    @media (max-width: 768px) {
+      .container {
+        border-radius: 20px;
+        height: 95vh;
+      }
+      header {
+        padding: 15px;
+        font-size: 24px;
+      }
+      header #logo {
+        height: 80px;
+      }
+      .screen {
+        padding: 20px 15px;
+      }
+      .btn {
+        margin: 8px 0;
+        width: 90%;
+      }
+      .teams {
+        gap: 10px;
+      }
+      .team {
+        min-width: 48%;
+        padding: 12px;
+      }
+      .player-inputs {
+        gap: 5px;
+      }
+      .scoreboard {
+        gap: 10px;
+      }
+      .score {
+        font-size: 56px;
+      }
+      .controls button {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+      .dashboard-stats {
+        gap: 8px;
+      }
+      .stat-item {
+        padding: 12px;
+      }
+      .stat-value {
+        font-size: 20px;
+      }
+      #welcome h2 {
+        font-size: 24px;
+      }
+      .btn-green {
+        padding: 12px 20px;
+        font-size: 16px;
+      }   
+    }
+    /* Ajustes para móviles pequeños */
+    @media (max-width: 480px) {
+      .container {
+        border-radius: 16px;
+        height: 100vh;
+        max-width: 100%;
+        overflow-y: auto;
+      }
+      header {
+        padding: 12px 10px;
+        font-size: 22px;
+      }
+      header #logo {
+        height: 80px;
+      }
+      .screen {
+        padding: 15px 10px;
+        overflow-y: auto;
+      }
+      h2 {
+        font-size: 22px;
+        margin: 12px 0;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        margin: 8px 0;
+      }
+      .teams {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .team {
+        min-width: 100%;
+        padding: 10px;
+      }
+      input {
+        width: 95%;
+        padding: 8px;
+        font-size: 13px;
+      }
+      .player-inputs {
+        gap: 4px;
+      }
+      .player-name input {
+        font-size: 12px;
+      }
+      .scoreboard {
+        flex-direction: column;
+        gap: 15px;
+      }
+      .score {
+        font-size: 48px;
+      }
+      .games-score {
+        font-size: 18px;
+      }
+      .controls {
+        gap: 15px;
+      }
+      .controls button {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+      }
+      .timer {
+        font-size: 16px;
+      }
+      .stats {
+        width: 95%;
+        font-size: 14px;
+        padding: 12px;
+      }
+      .dashboard-stats {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .stat-item {
+        margin: 5px 0;
+      }
+      .ranking-item {
+        padding: 8px 0;
+      }
+      .footer {
+        font-size: 11px;
+      }
+      .help-tip {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+      }
+      .mode-indicator {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+      .scoring-badge {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      .tiebreak-badge {
+        font-size: 12px;
+        padding: 2px 6px;
+      }
+      .player-status, .error-message {
+        font-size: 11px;
+      }
+      .win-percentage {
+        font-size: 10px;
+        padding: 1px 6px;
+      }
+      #welcome h2 {
+        font-size: 22px;
+      }
+      #welcome .subtitle {
+        font-size: 16px;
+      }
+    }
+    /* Para pantallas en modo horizontal en móviles */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .container {
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .screen {
+        overflow-y: auto;
+        padding-bottom: 50px;
+      }
+      .scoreboard {
+        flex-direction: row;
+        gap: 5px;
+      }
+      .score {
+        font-size: 36px;
+      }
+      .games-score {
+        font-size: 16px;
+      }
+      .controls {
+        gap: 5px;
+      }
+      .controls button {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+      }
+      .timer {
+        font-size: 14px;
+      }
+      .btn {
+        margin: 5px 0;
+        padding: 8px 15px;
+        font-size: 14px;
+      }
+      .teams {
+        gap: 5px;
+      }
+      .team {
+        padding: 8px;
+      }
+      input {
+        padding: 6px;
+        font-size: 12px;
+      }
+      .footer {
+        display: none;
+      }
+    }
+    /* Para pantallas muy pequeñas */
+    @media (max-height: 400px) {
+      .container {
+        height: 100vh !important;
+      }
+      .score {
+        font-size: 32px;
+      }
+      .games-score {
+        font-size: 14px;
+      }
+      .controls button {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+      }
+      .footer {
+        display: none;
+      }
+      .btn {
+        margin: 4px 0;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .teams {
+        gap: 4px;
+      }
+      .team {
+        padding: 6px;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 8px 0;
+      }
+      h3 {
+        font-size: 14px;
+        margin: 6px 0;
+      }
+    }
+    /* Scroll suave en móviles */
+    .screen {
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Evitar el zoom al enfocar inputs en iOS */
+    input:focus {
+      font-size: 16px !important;
+    }
+    /* Mejorar la experiencia táctil */
+    .btn:active, .team:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    /* Ajustar altura del contenedor en móviles */
+    .container {
+      height: calc(var(--vh, 1vh) * 100);
+    }
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -531,17 +905,16 @@
         };
         
         // Mostrar notificación
-        window.showNotification = function(message,duration = 3000) {
+        window.showNotification = function(message) {
           const notification = document.getElementById('notification');
           if (!notification) return;
           
-          notification.innerHTML = message;
-		  //notification.textContent = message;
+          notification.textContent = message;
           notification.classList.add('show');
           
           setTimeout(() => {
             notification.classList.remove('show');
-          }, duration);
+          }, 3000);
         };
         
         // Función para verificar autenticación																		
@@ -2452,29 +2825,34 @@
                 winnerSet = window.gamesA > window.gamesB ? 'A' : 'B';
             }
         
-            const teamName = winnerSet === 'A' ? window.teamNames.teamA : window.teamNames.teamB;
-            const setNumber = (window.setsA + window.setsB) + 1;
+            // Aumentar set ganado
+            if (winnerSet === 'A') {
+                window.setsA++;
+            } else {
+                window.setsB++;
+            }
         
-            if (winnerSet === 'A') window.setsA++;
-            else window.setsB++;
-        
-            window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
-        
+            // Verificar si alguien ganó el partido (2 sets)
             if (window.setsA === 2 || window.setsB === 2) {
-                window.finalizeGame();
+                window.finalizeGame(); // Aquí sí termina el partido
                 return;
             }
         
-            window.gamesA = 0;
-            window.gamesB = 0;
+            // Reiniciar solo el marcador del set, no todo el partido
             window.scoreA = 0;
             window.scoreB = 0;
+            window.gamesA = 0;
+            window.gamesB = 0;
             window.inTiebreak = false;
             window.tiebreakPointsA = 0;
             window.tiebreakPointsB = 0;
         
+            // Actualizar UI (sin reiniciar temporizador)
             window.updateScoreboard();
-        };        
+        
+            // Mostrar notificación
+            window.showNotification(`Set ${winnerSet === 'A' ? 'A' : 'B'} ganado. Nuevo set iniciado.`);
+        };
 
         // Resetear el juego (marcador, temporizador, variables)
         window.resetGame = function() {
@@ -3039,8 +3417,6 @@
           <i class="fas fa-arrow-left"></i>
         </button>
       </header>
-	  <!-- Notificación de set ganado -->
-	  <div id="set-notification" class="set-notification"></div>
       <!-- Indicador del sistema activo -->
       <div class="scoring-badge" id="scoring-mode">
         <i class="fas fa-info-circle"></i> Modo Tradicional
