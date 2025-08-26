@@ -1304,7 +1304,11 @@
         
         // Manejar puntos en modo tradicional
         window.addTraditionalPoint = function(team) {
-            // Si está en tiebreak, manejar puntos de tiebreak
+			// ✅ Validación: si el partido ya terminó, no hacer nada
+			if (window.gameEnded) {
+			    return;
+			}            
+			// Si está en tiebreak, manejar puntos de tiebreak
             if (window.inTiebreak) {
                 if (team === 'A') window.tiebreakPointsA++;
                 else window.tiebreakPointsB++;
