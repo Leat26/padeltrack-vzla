@@ -280,127 +280,133 @@
       100% { transform: translateY(-50%) rotate(360deg); }
     }
     
-    /* === NUEVO DISEÑO DEL MARCADOR === */
+    /* === MARCADOR NUEVO ESTILO === */
+    
     .scoreboard {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      margin: 20px 0;
-      gap: 20px;
-      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-      padding: 15px;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      color: white;
-      font-family: 'Oswald', sans-serif;
-      position: relative;
-      border: 2px solid #fff;
-      overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 20px 0;
+        gap: 20px;
+        background: #1a1a1a; /* Fondo oscuro */
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        color: white;
+        font-family: 'Oswald', sans-serif;
+        position: relative;
+        overflow: hidden;
     }
     
-    .scoreboard::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.2);
-      pointer-events: none;
+    /* Icono de raquetas en la parte superior */
+    .scoreboard .raquetas {
+        position: absolute;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 80px;
+        background: url('https://i.imgur.com/7kqWQ9F.png') no-repeat center center;
+        background-size: contain;
+        opacity: 0.8;
     }
     
-    .team-score {
-      text-align: center;
-      flex: 1;
-      position: relative;
+    /* Tablero principal */
+    .scoreboard .score-board {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
     }
     
-    .team-score h3 {
-      margin: 0 0 8px 0;
-      font-size: 1.3em;
-      font-weight: 600;
-      color: #FFD700;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+    /* Cada sección (puntos, juegos, sets) */
+    .score-section {
+        background: #2d2d2d;
+        border: 2px solid #444;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
     }
     
-    /* Sets ganados */
-    .sets-score {
-      font-size: 1.8em;
-      font-weight: bold;
-      color: #FFD700;
-      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-      margin-bottom: 5px;
+    /* Título de cada sección */
+    .score-label {
+        font-size: 12px;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
     }
+    
+    /* Puntos (15, 30, 40) */
+    .score-points {
+        font-size: 48px;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1;
+        display: inline-block;
+        min-width: 50px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .score-points.teamA { background: #2196F3; color: white; }
+    .score-points.teamB { background: #F44336; color: white; }
     
     /* Juegos ganados */
-    .games-score {
-      font-size: 2.5em;
-      font-weight: bold;
-      color: white;
-      margin: 5px 0;
-      text-shadow: 0 0 8px rgba(255,255,255,0.7);
+    .score-games {
+        font-size: 32px;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1;
+        display: inline-block;
+        min-width: 50px;
+        text-align: center;
+        transition: all 0.3s ease;
     }
     
-    /* Puntos actuales */
-    .score {
-      font-size: 3.5em;
-      font-weight: bold;
-      color: #00ff00;
-      text-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
-      font-family: 'Oswald', sans-serif;
-      margin: 10px 0;
+    .score-games.teamA { background: #4CAF50; color: white; }
+    .score-games.teamB { background: #FF9800; color: white; }
+    
+    /* Sets ganados */
+    .score-sets {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 0;
+        line-height: 1;
+        display: inline-block;
+        min-width: 50px;
+        text-align: center;
+        transition: all 0.3s ease;
     }
     
-    .score.winner {
-      color: #4CAF50;
-      text-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-    }
-    .score.loser {
-      color: #D32F2F;
-    }
+    .score-sets.teamA { background: #009688; color: white; }
+    .score-sets.teamB { background: #9C27B0; color: white; }
     
-    .tiebreak-badge {
-      background: #FFECB3;
-      color: #5D4037;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 14px;
-      display: inline-block;
-      margin: 5px 0;
-    }
-    
-    .sudden-death {
-      background: #FFCCBC;
-      color: #D84315;
-      font-weight: 700;
-    }
-    
+    /* Controles */
     .controls {
-      display: flex;
-      justify-content: center;
-      gap: 25px;
-      margin: 15px 0;
-    }
-    .controls button {
-      font-size: 24px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: none;
-      background: #016B3A;
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-    .controls button:active {
-      transform: scale(0.9);
+        display: flex;
+        justify-content: center;
+        gap: 25px;
+        margin: 15px 0;
     }
     
-    .timer {
-      font-size: 18px;
-      margin: 15px 0;
-      color: #555;
-      font-weight: 500;
+    .controls button {
+        font-size: 24px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: none;
+        background: #016B3A;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .controls button:active {
+        transform: scale(0.9);
     }
     
     /* === NOTIFICACIÓN DE SET GANADO === */
@@ -868,6 +874,15 @@
           const setsBElement = document.getElementById('setsB');
           if (setsAElement) setsAElement.textContent = window.setsA;
           if (setsBElement) setsBElement.textContent = window.setsB;
+
+          // Actualizar colores si es necesario
+          if (window.scoreA > window.scoreB) {
+              scoreAElement.style.backgroundColor = '#2196F3';
+              scoreBElement.style.backgroundColor = '#F44336';
+          } else if (window.scoreB > window.scoreA) {
+              scoreAElement.style.backgroundColor = '#2196F3';
+              scoreBElement.style.backgroundColor = '#F44336';
+          }
           
           // Actualizar puntos actuales
           if (window.inTiebreak) {
@@ -876,10 +891,7 @@
             
             if (scoreAElement) scoreAElement.textContent = window.tiebreakPointsA;
             if (scoreBElement) scoreBElement.textContent = window.tiebreakPointsB;
-            
-            if (scoreAElement) scoreAElement.style.color = '#016B3A';
-            if (scoreBElement) scoreBElement.style.color = '#016B3A';
-            
+
             // Mostrar notificación de tiebreak
             const tiebreakNotification = document.getElementById('tiebreak-notification');
             if (tiebreakNotification) tiebreakNotification.style.display = 'block';
@@ -889,9 +901,6 @@
             
             if (scoreAElement) scoreAElement.textContent = window.getDisplayScore(window.scoreA);
             if (scoreBElement) scoreBElement.textContent = window.getDisplayScore(window.scoreB);
-            
-            if (scoreAElement) scoreAElement.style.color = '#D32F2F';
-            if (scoreBElement) scoreBElement.style.color = '#1976D2';
             
             const tiebreakNotification = document.getElementById('tiebreak-notification');
             if (tiebreakNotification) tiebreakNotification.style.display = 'none';
@@ -3048,26 +3057,22 @@
         <i class="fas fa-info-circle"></i> Modo Tradicional
       </div>
       <div class="scoreboard">
-          <div>
-              <h3 style="color:#D32F2F"><i class="fas fa-user"></i> <span id="teamA-display">Equipo A</span></h3>
-              <!-- Nuevo: Sets ganados -->
-              <div class="set-score" id="setsA">0</div>
-              <div class="games-score" id="gamesA">0</div>
-              <div class="score" id="scoreA">0</div>
-              <div class="controls">
-                  <button onclick="window.addPoint('A')"><i class="fas fa-plus"></i></button>
-                  <button onclick="window.subPoint('A')"><i class="fas fa-minus"></i></button>
+          <div class="raquetas"></div> <!-- Icono de raquetas -->
+          <div class="score-board">
+              <div class="score-section">
+                  <h4 class="score-label">PUNTOS</h4>
+                  <div class="score-points teamA" id="scoreA">15</div>
+                  <div class="score-points teamB" id="scoreB">30</div>
               </div>
-          </div>
-          <div>
-              <h3 style="color:#1976D2"><i class="fas fa-user"></i> <span id="teamB-display">Equipo B</span></h3>
-              <!-- Nuevo: Sets ganados -->
-              <div class="set-score" id="setsB">0</div>
-              <div class="games-score" id="gamesB">0</div>
-              <div class="score" id="scoreB">0</div>
-              <div class="controls">
-                  <button onclick="window.addPoint('B')"><i class="fas fa-plus"></i></button>
-                  <button onclick="window.subPoint('B')"><i class="fas fa-minus"></i></button>
+              <div class="score-section">
+                  <h4 class="score-label">JUEGOS</h4>
+                  <div class="score-games teamA" id="gamesA">0</div>
+                  <div class="score-games teamB" id="gamesB">0</div>
+              </div>
+              <div class="score-section">
+                  <h4 class="score-label">SETS</h4>
+                  <div class="score-sets teamA" id="setsA">0</div>
+                  <div class="score-sets teamB" id="setsB">0</div>
               </div>
           </div>
       </div>
