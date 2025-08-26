@@ -2274,6 +2274,9 @@
             window.goToScreen('login');
             return;
           }
+		  
+          // ✅ Marcar el partido como terminado
+          window.gameEnded = true;		  
           
           // Determinar ganador
           let winner = '';
