@@ -2939,7 +2939,11 @@
 		
         // Resetear el juego (marcador, temporizador, variables)
         window.resetGame = function() {
-          // Resetear variables de puntuación
+		
+		  // ✅ Reiniciar estado del juego
+		  window.gameEnded = false;
+          
+		  // Resetear variables de puntuación
           window.scoreA = 0;
           window.scoreB = 0;
           window.gamesA = 0;
@@ -3544,7 +3548,7 @@
           <i class="fas fa-arrow-left"></i>
         </button>
       </header>
-      <h2>¡Partido finalizado! 🎉</h2>
+      <h2>🎉 ¡Partido finalizado! 🎉</h2>
       <h3 id="result-title" style="color:#016B3A">
         <i class="fas fa-trophy"></i> ¡Equipo A se lleva la victoria!
       </h3>
