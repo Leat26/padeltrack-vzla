@@ -2274,9 +2274,9 @@
             window.goToScreen('login');
             return;
           }
-		  
+          
           // ✅ Marcar el partido como terminado
-          window.gameEnded = true;		  
+          window.gameEnded = true;  
           
           // Determinar ganador
           let winner = '';
@@ -2351,7 +2351,7 @@
                 winner: winner === 'A' ? 'teamA' : 'teamB'
               }
             });
-
+        
             // Mensaje más específico para errores de RLS
             if (error.code === '42501') {
               window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
@@ -2398,7 +2398,7 @@
             // Actualizar estadísticas de jugadores
             await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
           }
-
+        
           // --- 1. Actualizar duración real ---
           const durationEl = document.getElementById('final-duration');
           if (durationEl) {
@@ -2437,10 +2437,40 @@
               serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
             }
           }
-          
+        
+          // --- ✅ 3. Mostrar resultado real del partido en #set-scores ---
+          const setScoresEl = document.getElementById('set-scores');
+          if (setScoresEl) {
+            let scoreHtml = '';
+        
+            if (window.scoringType === 'traditional') {
+              // Modo tradicional: mostrar juegos y tiebreak si aplica
+              if (window.inTiebreak) {
+                scoreHtml = `
+                  <strong>Set 1:</strong> ${window.gamesA}-${window.gamesB} <br>
+                  <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
+                `;
+              } else {
+                scoreHtml = `<strong>Set 1:</strong> ${window.gamesA}-${window.gamesB}`;
+              }
+            } else {
+              // Modo americano: mostrar puntos finales
+              if (window.inTiebreak) {
+                scoreHtml = `
+                  <strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
+                  <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
+                `;
+              } else {
+                scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
+              }
+            }
+        
+            setScoresEl.innerHTML = scoreHtml;
+          }
+        
           // Mostrar pantalla de finalización
           window.goToScreen('end');
-        };
+        };		
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
