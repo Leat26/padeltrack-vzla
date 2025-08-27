@@ -2430,31 +2430,34 @@
             // Opcional: mejorar el mensaje según quién dominó
             const serveP = servePercentageEl.parentElement;
             if (percentage > 50) {
-              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor del Equipo A`;
+              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor de <strong>${window.teamNames.teamA}</strong>`;
             } else if (percentage < 50) {
-              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor del Equipo B`;
+              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor de <strong>${window.teamNames.teamB}</strong>`;
             } else {
               serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
             }
           }
         
-          // --- ✅ 3. Mostrar resultado real del partido en #set-scores ---
+          // --- ✅ Mostrar resultado de todos los sets ---
           const setScoresEl = document.getElementById('set-scores');
           if (setScoresEl) {
             let scoreHtml = '';
-        
+          
             if (window.scoringType === 'traditional') {
-              // Modo tradicional: mostrar juegos y tiebreak si aplica
-              if (window.inTiebreak) {
-                scoreHtml = `
-                  <strong>Set 1:</strong> ${window.gamesA}-${window.gamesB} <br>
-                  <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
-                `;
+              if (window.setHistory && window.setHistory.length > 0) {
+                const setLines = window.setHistory.map((set, i) => {
+                  let setLine = `<strong>Set ${i + 1}:</strong> ${set.gamesA}-${set.gamesB}`;
+                  if (set.tiebreak) {
+                    setLine += ` (Tiebreak: ${set.tiebreakA}-${set.tiebreakB})`;
+                  }
+                  return setLine;
+                });
+                scoreHtml = setLines.join('<br>');
               } else {
-                scoreHtml = `<strong>Set 1:</strong> ${window.gamesA}-${window.gamesB}`;
+                scoreHtml = 'No se completó ningún set';
               }
             } else {
-              // Modo americano: mostrar puntos finales
+              // Modo americano
               if (window.inTiebreak) {
                 scoreHtml = `
                   <strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
@@ -2464,7 +2467,7 @@
                 scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
               }
             }
-        
+          
             setScoresEl.innerHTML = scoreHtml;
           }
         
