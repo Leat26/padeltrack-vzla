@@ -910,7 +910,7 @@
           const notification = document.getElementById('notification');
           if (!notification) return;
           
-          notification.textContent = message;
+          notification.innerHTML = message;
           notification.classList.add('show');
           
           setTimeout(() => {
