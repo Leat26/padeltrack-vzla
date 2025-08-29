@@ -2655,7 +2655,6 @@
                 }
         
                 // Generar HTML del ranking
-
                 let html = '';
                 let rank = 1;
                 data.forEach(player => {
@@ -2677,8 +2676,9 @@
                 
                   // Línea 2: Nivel + porcentaje
                   const levelLine = `
-                    <div class="ranking-level">
-                      <i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)
+                    <div style="margin-left: 32px; margin-top: 4px; font-size: 14px;">
+                      <i class="fas fa-${level.icon}" style="color: ${level.color};"></i>
+                      <span style="color: ${level.color};">${level.name} (${winPercentage}%)</span>
                     </div>
                   `;
                 
