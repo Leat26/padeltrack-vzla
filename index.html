@@ -885,7 +885,7 @@
       margin-top: 6px;
       font-size: 13px;
       color: #666;
-    }	
+    }
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2655,18 +2655,8 @@
                 }
         
                 // Generar HTML del ranking
-
                 let html = '';
                 let rank = 1;
-                
-                // Mapa de colores por nivel
-                const levelColors = {
-                  "Diamante": "#1C369C",
-                  "Oro": "#FFD700",
-                  "Plata": "#C0C0C0",
-                  "Bronce": "#CD7F32"
-                };
-                
                 data.forEach(player => {
                   const matchesPlayed = player.matches_played || 0;
                   const matchesWon = window.safeNumber(player.matches_won, 0);
@@ -2675,23 +2665,9 @@
                   const level = window.getPlayerLevel(winPercentage);
                   const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
                 
-                  // Color del nivel (correcto)
-                  const levelColor = levelColors[level.name] || "#016B3A";
-                
                   // Línea 1: Avatar + iniciales + nombre (con fondo verde claro)
                   const nameLine = `
-                    <div style="
-                      background: #E8F5E9;
-                      border-radius: 12px;
-                      padding: 8px 12px;
-                      margin-bottom: 6px;
-                      font-size: 16px;
-                      color: #016B3A;
-                      font-weight: 600;
-                      display: flex;
-                      align-items: center;
-                      gap: 8px;
-                    ">
+                    <div class="ranking-name">
                       <span>👤</span>
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
@@ -2700,14 +2676,14 @@
                 
                   // Línea 2: Nivel + porcentaje
                   const levelLine = `
-                    <div style="margin-left: 32px; margin-top: 4px; font-size: 14px; color: ${levelColor};">
-                      <i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)
+                    <div class="ranking-level">
+                      <i class="fas fa-${level.icon}" style="color: ${level.color};"></i> ${level.name} (${winPercentage}%)
                     </div>
                   `;
                 
                   // Línea 3: Estadísticas
                   const statsLine = `
-                    <div style="margin-left: 32px; margin-top: 6px; font-size: 13px; color: #666;">
+                    <div class="ranking-stats">
                       <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
                       <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
                       <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
@@ -2715,8 +2691,8 @@
                   `;
                 
                   html += `
-                  <div class="ranking-item" style="margin: 12px 0;">
-                    <span class="ranking-rank" style="font-weight: bold; color: #555; margin-right: 8px;">${rank}.</span>
+                  <div class="ranking-item">
+                    <span class="ranking-rank">${rank}.</span>
                     ${nameLine}
                     ${levelLine}
                     ${statsLine}
