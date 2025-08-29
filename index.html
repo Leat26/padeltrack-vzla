@@ -494,18 +494,6 @@
       font-weight: 600;
     }
     /* Ranking */
-    .ranking-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 0;
-      border-bottom: 1px solid #eee;
-      text-align: left;
-    }
-    .ranking-rank {
-      font-weight: bold;
-      width: 30px;
-      text-align: center;
-    }
     .ranking-wins {
       color: #4CAF50;
       font-weight: bold;
@@ -850,6 +838,54 @@
     .container {
       height: calc(var(--vh, 1vh) * 100);
     }
+	
+    /* Estilo personalizado para ranking semanal */
+    .ranking-item {
+      display: block;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    
+    .ranking-rank {
+      font-weight: bold;
+      color: #555;
+      margin-right: 8px;
+      display: inline-block;
+    }
+    
+    /* Línea 1: Avatar + iniciales + nombre */
+    .ranking-name {
+      background: #E8F5E9;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 16px;
+      color: #016B3A;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .ranking-name span {
+      font-weight: bold;
+    }
+    
+    /* Línea 2: Nivel + porcentaje */
+    .ranking-level {
+      margin-left: 32px;
+      margin-top: 4px;
+      font-size: 14px;
+      color: #016B3A;
+    }
+    
+    /* Línea 3: Estadísticas */
+    .ranking-stats {
+      margin-left: 32px;
+      margin-top: 6px;
+      font-size: 13px;
+      color: #666;
+    }	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2619,6 +2655,7 @@
                 }
         
                 // Generar HTML del ranking
+
                 let html = '';
                 let rank = 1;
                 data.forEach(player => {
@@ -2631,18 +2668,7 @@
                 
                   // Línea 1: Avatar + iniciales + nombre (con fondo verde claro)
                   const nameLine = `
-                    <div style="
-                      background: #E8F5E9;
-                      border-radius: 12px;
-                      padding: 8px 12px;
-                      margin-bottom: 6px;
-                      font-size: 16px;
-                      color: #016B3A;
-                      font-weight: 600;
-                      display: flex;
-                      align-items: center;
-                      gap: 8px;
-                    ">
+                    <div class="ranking-name">
                       <span>👤</span>
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
@@ -2651,14 +2677,14 @@
                 
                   // Línea 2: Nivel + porcentaje
                   const levelLine = `
-                    <div style="margin-left: 32px; margin-top: 4px; font-size: 14px; color: ${level.color};">
+                    <div class="ranking-level">
                       <i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)
                     </div>
                   `;
                 
                   // Línea 3: Estadísticas
                   const statsLine = `
-                    <div style="margin-left: 32px; margin-top: 6px; font-size: 13px; color: #666;">
+                    <div class="ranking-stats">
                       <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
                       <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
                       <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
@@ -2666,8 +2692,8 @@
                   `;
                 
                   html += `
-                  <div class="ranking-item" style="margin: 12px 0;">
-                    <span class="ranking-rank" style="font-weight: bold; color: #555;">${rank}.</span>
+                  <div class="ranking-item">
+                    <span class="ranking-rank">${rank}.</span>
                     ${nameLine}
                     ${levelLine}
                     ${statsLine}
