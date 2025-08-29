@@ -2630,20 +2630,30 @@
                   const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
                 
                   html += `
-                  <div class="ranking-item" style="margin: 12px 0; line-height: 1.5;">
+                  <div class="ranking-item" style="margin: 12px 0;">
                     <span class="ranking-rank" style="font-weight: bold; color: #555;">${rank}.</span>
                 
-                    <!-- Línea 1: Avatar + Iniciales + Nombre (resaltado en verde) -->
-                    <div style="display: flex; align-items: center; gap: 8px; margin-left: 8px; font-size: 16px; color: #016B3A; font-weight: 600;">
+                    <!-- Línea 1: Avatar + iniciales + nombre con fondo verde claro -->
+                    <div style="
+                      background: #E8F5E9;
+                      border-radius: 12px;
+                      padding: 8px 12px;
+                      margin-bottom: 6px;
+                      font-size: 16px;
+                      color: #016B3A;
+                      font-weight: 600;
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                    ">
                       <span>👤</span>
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
                     </div>
                 
-                    <!-- Línea 2: Nivel -->
-                    <div style="margin-left: 32px; margin-top: 4px; font-size: 14px; color: #016B3A;">
-                      <i class="fas fa-${level.icon}" style="color: ${level.color};"></i>
-                      <strong> ${level.name}</strong>
+                    <!-- Línea 2: Nivel + porcentaje -->
+                    <div style="margin-left: 32px; margin-top: 4px; font-size: 14px; color: ${level.color};">
+                      <i class="fas fa-${level.icon}"></i> ${level.name} <strong>(${winPercentage}%)</strong>
                     </div>
                 
                     <!-- Línea 3: Estadísticas -->
