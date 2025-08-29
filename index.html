@@ -2629,11 +2629,8 @@
                   const level = window.getPlayerLevel(winPercentage);
                   const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
                 
-                  html += `
-                  <div class="ranking-item" style="margin: 12px 0;">
-                    <span class="ranking-rank" style="font-weight: bold; color: #555;">${rank}.</span>
-                
-                    <!-- Línea 1: Avatar + iniciales + nombre con fondo verde claro -->
+                  // Línea 1: Avatar + iniciales + nombre (con fondo verde claro)
+                  const nameLine = `
                     <div style="
                       background: #E8F5E9;
                       border-radius: 12px;
@@ -2650,22 +2647,34 @@
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
                     </div>
+                  `;
                 
-                    <!-- Línea 2: Nivel + porcentaje -->
+                  // Línea 2: Nivel + porcentaje
+                  const levelLine = `
                     <div style="margin-left: 32px; margin-top: 4px; font-size: 14px; color: ${level.color};">
-                      <i class="fas fa-${level.icon}"></i> ${level.name} <strong>(${winPercentage}%)</strong>
+                      <i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)
                     </div>
+                  `;
                 
-                    <!-- Línea 3: Estadísticas -->
+                  // Línea 3: Estadísticas
+                  const statsLine = `
                     <div style="margin-left: 32px; margin-top: 6px; font-size: 13px; color: #666;">
                       <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
                       <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
                       <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
                     </div>
+                  `;
+                
+                  html += `
+                  <div class="ranking-item" style="margin: 12px 0;">
+                    <span class="ranking-rank" style="font-weight: bold; color: #555;">${rank}.</span>
+                    ${nameLine}
+                    ${levelLine}
+                    ${statsLine}
                   </div>`;
                   rank++;
                 });
-
+				
                 if (rankingList) {
                     rankingList.innerHTML = html;
                 }
