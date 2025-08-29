@@ -2619,37 +2619,35 @@
                 }
         
                 // Generar HTML del ranking
-                let html = '';
-                let rank = 1;
-                data.forEach(player => {
-                  const matchesPlayed = player.matches_played || 0;
-                  const matchesWon = player.matches_won || 0;
-                  const matchesLost = matchesPlayed - matchesWon;
-                  const winPercentage = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
-                  const level = window.getPlayerLevel(winPercentage);
-                  const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
-                
-                  html += `
-                  <div class="ranking-item">
-                    <span class="ranking-rank">${rank}.</span>
-                    <div style="flex: 1; text-align: left;">
-                      <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #555;">
-                        <span>👤</span>
-                        <strong style="font-size: 16px;">${initials}</strong>
-                      </div>
-                      <div style="margin-left: 8px;">
-                        <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong><br>
-                        <small style="color: ${level.color};"><i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)</small><br>
-                        <small style="color: #666; font-size: 12px;">
-                          🎾 ${matchesPlayed} jugados | ✅ ${matchesWon} ganados | ❌ ${matchesLost} perdidos
-                        </small>
-                      </div>
-                    </div>
-                  </div>`;
-                  rank++;
-                });
-
-                topPlayersList.innerHTML = html;
+               let html = '';
+               let rank = 1;
+               data.forEach(player => {
+                 const matchesPlayed = player.matches_played || 0;
+                 const matchesWon = player.matches_won || 0;
+                 const matchesLost = matchesPlayed - matchesWon;
+                 const winPercentage = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
+                 const level = window.getPlayerLevel(winPercentage);
+                 const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
+               
+                 html += `
+                 <div class="ranking-item">
+                   <span class="ranking-rank">${rank}.</span>
+                   <div style="flex: 1; text-align: left;">
+                     <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: #555;">
+                       <span>👤</span>
+                       <strong style="font-size: 16px;">${initials}</strong>
+                     </div>
+                     <div style="margin-left: 8px;">
+                       <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong><br>
+                       <small style="color: ${level.color};"><i class="fas fa-${level.icon}"></i> ${level.name} (${winPercentage}%)</small><br>
+                       <small style="color: #666; font-size: 12px;">
+                         🎾 ${matchesPlayed} jugados | ✅ ${matchesWon} ganados | ❌ ${matchesLost} perdidos
+                       </small>
+                     </div>
+                   </div>
+                 </div>`;
+                 rank++;
+               });
 
                 if (rankingList) {
                     rankingList.innerHTML = html;
