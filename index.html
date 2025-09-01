@@ -850,6 +850,7 @@
       font-size: 14px;
       margin-right: 8px;
       align-self: flex-start;
+	  margin-bottom: 0;
     }
     
     /* Línea 1: Avatar + iniciales + nombre */
@@ -864,6 +865,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+	  flex-wrap: wrap;
     }
     
     .ranking-name span {
@@ -2666,8 +2668,8 @@
                 
                   html += `
                   <div class="ranking-item">
-                    <span class="ranking-rank">${rank}.</span>
                     <div class="ranking-name">
+                      <span class="ranking-rank">${rank}.</span>
                       <span>👤</span>
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
