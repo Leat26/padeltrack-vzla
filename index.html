@@ -6,6 +6,7 @@
   <title>PadelTrack - Sistema Profesional</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * {
       margin: 0;
@@ -1090,117 +1091,212 @@
         // Actualizar la pantalla de inicio con los datos del club
         window.updateHomeScreen = async function() {
           if (!window.currentUser) return;
-          
+        
           // Mostrar estado de carga inicial
           const clubNameDisplay = document.getElementById('club-name-display');
           const canchasStatus = document.getElementById('canchas-status');
           const courtsContainer = document.getElementById('courts-container');
-          
+        
+          // Elementos del dashboard
+          const totalMatches = document.getElementById('total-matches');
+          const activePlayers = document.getElementById('active-players');
+          const totalHours = document.getElementById('total-hours');
+          const playersTodayList = document.getElementById('players-today-list');
+        
           if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
           if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
           if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
           
+          // Limpiar métricas
+          if (totalMatches) totalMatches.textContent = '0';
+          if (activePlayers) activePlayers.textContent = '0';
+          if (totalHours) totalHours.textContent = '0';
+          if (playersTodayList) playersTodayList.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+        
           try {
-            // ✅ CORRECCIÓN: Uso correcto de .select()
+            // ✅ Obtener datos del club
             const { data, error } = await window.supabase
               .from('clubs')
               .select('*')
               .eq('id', window.currentUser.id)
               .single();
-            
+        
             if (error) {
               console.error("Error al obtener datos del club:", error);
-              // CREAR EL CLUB AUTOMÁTICAMENTE SI NO EXISTE
               const { error: createError } = await window.supabase
                 .from('clubs')
-                .insert([
-                  {
-                    id: window.currentUser.id,
-                    name: "Nuevo Club",
-                    court_count: 0,
-                    email: window.currentUser.email,
-                    phone: "N/A",  // ¡Este campo es obligatorio!
-                    status: "active"
-                  }
-                ]);
+                .insert([{
+                  id: window.currentUser.id,
+                  name: "Nuevo Club",
+                  court_count: 0,
+                  email: window.currentUser.email,
+                  phone: "N/A",
+                  status: "active"
+                }]);
               
               if (createError) {
-                console.error("Error al crear club automáticamente:", createError);
+                console.error("Error al crear club:", createError);
                 if (clubNameDisplay) clubNameDisplay.textContent = "Club";
                 if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${createError.code}`;
-                if (courtsContainer) courtsContainer.innerHTML = `
-                  <div class="alert" style="margin: 20px auto; width: 90%;">
-                    <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}
-                  </div>
-                `;
+                if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}</div>`;
                 return;
               }
-              
-              // Volver a intentar cargar los datos
               window.updateHomeScreen();
               return;
             }
-            
-            if (data) {
-              const clubData = data;
-              const clubName = clubData.name || "Club";
-              const courtCount = window.safeNumber(clubData.court_count, 0);
-              
-              // Actualizar nombre del club
-              if (clubNameDisplay) clubNameDisplay.textContent = clubName;
-              
-              // Almacenar los datos del club
-              window.currentClub = clubData;
-              
-              // Actualizar estado de canchas
-              if (courtCount <= 0) {
-                if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
-                // Mensaje específico para 0 canchas
-                if (courtsContainer) courtsContainer.innerHTML = `
-                  <div class="alert" style="margin: 20px auto; width: 90%;">
-                    <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
-                  </div>
-                  <button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
-                    <i class="fas fa-cog"></i> Configurar canchas
-                  </button>
-                `;
-              } else {
-                // Mostrar cantidad correcta de canchas
-                if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
-                // Generar botones de canchas
-                if (courtsContainer) {
-                  courtsContainer.innerHTML = '';
-                  for (let i = 1; i <= courtCount; i++) {
-                    const courtBtn = document.createElement('button');
-                    courtBtn.className = 'btn';
-                    courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
-                    courtBtn.onclick = function() {
-                      window.selectedCourt = `Cancha ${i}`;
-                      window.goToScreen('scoring-type');
-                    };
-                    courtsContainer.appendChild(courtBtn);
-                  }
-                }
-              }
-            } else {
-              // El club no existe (caso improbable con Supabase)
+        
+            if (!data) {
               if (clubNameDisplay) clubNameDisplay.textContent = "Club";
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
+              if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró el club.</div>`;
+              return;
+            }
+        
+            // ✅ Guardar datos del club
+            const clubData = data;
+            window.currentClub = clubData;
+            if (clubNameDisplay) clubNameDisplay.textContent = clubData.name || "Club";
+        
+            // ✅ Obtener partidos del día
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+        
+            const { data: matchesData, error: matchesError } = await window.supabase
+              .from('matches')
+              .select('*')
+              .eq('club_id', window.currentUser.id)
+              .gte('created_at', today.toISOString().slice(0, 19).replace('T', ' '))
+              .lt('created_at', tomorrow.toISOString().slice(0, 19).replace('T', ' '));
+        
+            if (matchesError) {
+              console.error("Error al cargar partidos:", matchesError);
+            }
+        
+            const totalMatchCount = matchesData?.length || 0;
+            if (totalMatches) totalMatches.textContent = totalMatchCount;
+        
+            // ✅ Calcular horas jugadas (promedio de 45 min por partido)
+            const totalHoursCount = Math.round((totalMatchCount * 45) / 60 * 100) / 100;
+            if (totalHours) totalHours.textContent = totalHoursCount;
+        
+            // ✅ Obtener jugadores activos (última semana)
+            const lastWeek = new Date(today);
+            lastWeek.setDate(today.getDate() - 7);
+            const uniquePlayers = new Set();
+            matchesData?.forEach(match => {
+              if (Array.isArray(match.team_a_players)) match.team_a_players.forEach(id => uniquePlayers.add(id));
+              if (Array.isArray(match.team_b_players)) match.team_b_players.forEach(id => uniquePlayers.add(id));
+            });
+            const activePlayerCount = uniquePlayers.size;
+            if (activePlayers) activePlayers.textContent = activePlayerCount;
+        
+            // ✅ Jugador del día (más victorias hoy)
+            const winsToday = {};
+            matchesData?.forEach(match => {
+              const winner = match.winner_team;
+              const playersKey = winner === 'A' ? 'team_a_players' : 'team_b_players';
+              const playerIds = match[playersKey];
+              if (Array.isArray(playerIds)) {
+                playerIds.forEach(id => {
+                  winsToday[id] = (winsToday[id] || 0) + 1;
+                });
+              }
+            });
+        
+            let topPlayerId = null;
+            let maxWins = 0;
+            for (const [id, wins] of Object.entries(winsToday)) {
+              if (wins > maxWins) {
+                maxWins = wins;
+                topPlayerId = id;
+              }
+            }
+        
+            if (playersTodayList) {
+              if (topPlayerId && window.playersData?.[topPlayerId]) {
+                const player = window.playersData[topPlayerId];
+                playersTodayList.innerHTML = `
+                  <div style="background: #E8F5E9; padding: 12px; border-radius: 12px; font-size: 14px;">
+                    <strong>🏆 Jugador del día:</strong> ${player.first_name} ${player.last_name}<br>
+                    <small>Victorias hoy: ${maxWins}</small>
+                  </div>
+                `;
+              } else {
+                playersTodayList.innerHTML = '<p>No hay partidos hoy.</p>';
+              }
+            }
+        
+            // ✅ Gráfico de uso de canchas
+            const ctx = document.getElementById('courtsChart');
+            if (ctx && matchesData) {
+              const courtCounts = {};
+              matchesData.forEach(match => {
+                const court = match.court || 'Cancha desconocida';
+                courtCounts[court] = (courtCounts[court] || 0) + 1;
+              });
+        
+              const labels = Object.keys(courtCounts);
+              const data = Object.values(courtCounts);
+        
+              if (window.courtsChart) {
+                window.courtsChart.destroy();
+              }
+        
+              window.courtsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Partidos jugados',
+                    data: data,
+                    backgroundColor: '#016B3A',
+                    borderRadius: 4
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+              });
+            }
+        
+            // ✅ Mostrar canchas del club
+            const courtCount = window.safeNumber(clubData.court_count, 0);
+            if (courtCount <= 0) {
+              if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
               if (courtsContainer) courtsContainer.innerHTML = `
                 <div class="alert" style="margin: 20px auto; width: 90%;">
-                  <i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró información del club.
+                  <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
                 </div>
+                <button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
+                  <i class="fas fa-cog"></i> Configurar canchas
+                </button>
               `;
+            } else {
+              if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
+              if (courtsContainer) {
+                courtsContainer.innerHTML = '';
+                for (let i = 1; i <= courtCount; i++) {
+                  const courtBtn = document.createElement('button');
+                  courtBtn.className = 'btn';
+                  courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
+                  courtBtn.onclick = function() {
+                    window.selectedCourt = `Cancha ${i}`;
+                    window.goToScreen('scoring-type');
+                  };
+                  courtsContainer.appendChild(courtBtn);
+                }
+              }
             }
+        
           } catch (error) {
             console.error("Error crítico al actualizar pantalla de inicio:", error);
             if (clubNameDisplay) clubNameDisplay.textContent = "Club";
             if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error crítico';
-            if (courtsContainer) courtsContainer.innerHTML = `
-              <div class="alert" style="margin: 20px auto; width: 90%;">
-                <i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}
-              </div>
-            `;
+            if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}</div>`;
           }
         };
 
@@ -3344,20 +3440,47 @@
     <!-- Pantalla 3: Inicio -->
     <div class="screen" id="home">
       <h2>Bienvenido, <span id="club-name-display">Cargando...</span></h2>
-      <p style="font-size: 16px; color: #555; margin-bottom: 20px;">
-        <i class="fas fa-spinner fa-spin"></i> <span id="canchas-status">Cargando información del club...</span>
-      </p>
-      <h2>Selecciona tu cancha</h2>
-      <div class="teams" id="courts-container">
-        <p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>
+      
+      <!-- Métricas clave -->
+      <div class="metrics-container" style="display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap;">
+        <div class="metric-card" style="flex: 1; min-width: 140px; background: #E8F5E9; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <i class="fas fa-tennis-ball" style="color: #016B3A; font-size: 24px;"></i>
+          <div>
+            <h3 style="margin: 8px 0; color: #016B3A;" id="total-matches">0</h3>
+            <p style="margin: 0; color: #555; font-size: 14px;">Partidos hoy</p>
+          </div>
+        </div>
+        <div class="metric-card" style="flex: 1; min-width: 140px; background: #E3F2FD; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <i class="fas fa-users" style="color: #1976D2; font-size: 24px;"></i>
+          <div>
+            <h3 style="margin: 8px 0; color: #1976D2;" id="active-players">0</h3>
+            <p style="margin: 0; color: #555; font-size: 14px;">Jugadores activos</p>
+          </div>
+        </div>
+        <div class="metric-card" style="flex: 1; min-width: 140px; background: #FFF3E0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <i class="fas fa-clock" style="color: #FF8F00; font-size: 24px;"></i>
+          <div>
+            <h3 style="margin: 8px 0; color: #FF8F00;" id="total-hours">0</h3>
+            <p style="margin: 0; color: #555; font-size: 14px;">Horas jugadas</p>
+          </div>
+        </div>
       </div>
+      
+      <h2>Uso de canchas</h2>
+      <canvas id="courtsChart" height="100"></canvas>
+      
+      <h2>Jugadores del día</h2>
+      <div id="players-today-list" style="margin: 10px 0;"></div>
+      
+      <h2>Selecciona tu cancha</h2>
+      <div class="teams" id="courts-container"><p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p></div>
       <p><a href="#" class="link" onclick="window.goToScreen('ranking')"><i class="fas fa-trophy"></i> Ver ranking semanal</a></p>
-      <p><a href="#" class="link" onclick="window.goToScreen('dashboard')"><i class="fas fa-tachometer-alt"></i> Panel de control</a></p>
       <button class="btn btn-red" style="margin-top: 20px; max-width: 320px;" onclick="window.logoutUser()">
         <i class="fas fa-sign-out-alt"></i> Cerrar sesión
       </button>
       <div class="footer">© 2025 PadelTrack. Todos los puntos cuentan.</div>
     </div>
+    
     <!-- Pantalla 4: Tipo de Puntuación -->
     <div class="screen" id="scoring-type">
       <header>
