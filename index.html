@@ -2845,21 +2845,27 @@
 			  }
 			}
 			
-			// 2. Jugadores activos (últimos 7 días)
-			const { data: activePlayersData, error: activePlayersError } = await window.supabase
-			  .from('players')
-			  .select('id')
+			// 2. Jugadores activos (hoy)
+			const today = new Date();
+			today.setHours(0, 0, 0, 0);
+			const { data: matchesData, error: matchesError } = await window.supabase
+			  .from('matches')
+			  .select('team_a_players, team_b_players')
 			  .eq('club_id', clubId)
-			  .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
-			  .gt('matches_played', 0)
+			  .gte('created_at', today.toISOString());
 			
-			if (activePlayersError) {
-			  console.error("Error al obtener jugadores activos:", activePlayersError);
+			if (matchesError) {
+			  console.error("Error al obtener partidos:", matchesError);
 			  const activePlayers = document.getElementById('active-players');
 			  if (activePlayers) activePlayers.textContent = "0";
 			} else {
+			  const uniquePlayers = new Set();
+			  matchesData.forEach(match => {
+			    if (Array.isArray(match.team_a_players)) match.team_a_players.forEach(id => uniquePlayers.add(id));
+			    if (Array.isArray(match.team_b_players)) match.team_b_players.forEach(id => uniquePlayers.add(id));
+			  });
 			  const activePlayers = document.getElementById('active-players');
-			  if (activePlayers) activePlayers.textContent = activePlayersData.length;
+			  if (activePlayers) activePlayers.textContent = uniquePlayers.size;
 			}
 			
 			// 3. Top 5 jugadores
