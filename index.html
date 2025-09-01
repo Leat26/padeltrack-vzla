@@ -2547,24 +2547,24 @@
                     .eq('cedula', player.cedula)
                     .eq('club_id', window.currentUser.id)
                     .single();
-        
+              
                   if (playerError) {
                     console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
                     return;
                   }
-        
-                  // Insertar en match_players
+              
+                  // Insertar en match_players (SIN la columna position)
                   const { error: matchPlayerError } = await window.supabase
                     .from('match_players')
                     .insert([
                       {
                         match_id: matchData.id,
                         player_id: playerData.id,
-                        team: team,
-                        position: parseInt(playerKey[1]) // '1' o '2' según A1, A2, B1, B2
+                        team: team
+                        // Eliminado: position: parseInt(playerKey[1])
                       }
                     ]);
-        
+              
                   if (matchPlayerError) {
                     console.error(`Error al insertar jugador en match_players:`, matchPlayerError);
                   } else {
