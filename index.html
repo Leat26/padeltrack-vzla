@@ -1244,6 +1244,43 @@
               playersTodayList.innerHTML = '<p>No hay partidos hoy</p>';
             }
         
+            // ✅ Gráfico de uso de canchas
+            const ctx = document.getElementById('courtsChart');
+            if (ctx && matchesData) {
+              const courtCounts = {};
+              matchesData.forEach(match => {
+                const court = match.court || 'Cancha desconocida';
+                courtCounts[court] = (courtCounts[court] || 0) + 1;
+              });
+            
+              const labels = Object.keys(courtCounts);
+              const data = Object.values(courtCounts);
+            
+              // Destruir gráfico anterior si existe
+              if (window.courtsChart && typeof window.courtsChart.destroy === 'function') {
+                window.courtsChart.destroy();
+              }
+            
+              // Crear nuevo gráfico
+              window.courtsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Partidos jugados',
+                    data: data,
+                    backgroundColor: '#016B3A',
+                    borderRadius: 4
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+              });
+            }
+		
             // Mostrar canchas del club
             const courtCount = window.safeNumber(clubData.court_count, 0);
             if (courtCount <= 0) {
