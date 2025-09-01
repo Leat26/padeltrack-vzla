@@ -838,16 +838,18 @@
 	
     /* Estilo personalizado para ranking semanal */
     .ranking-item {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       margin: 12px 0;
-      font-size: 14px;
     }
     
     .ranking-rank {
       font-weight: bold;
       color: #555;
+      font-size: 14px;
       margin-right: 8px;
-      display: inline-block;
+      align-self: flex-start;
     }
     
     /* Línea 1: Avatar + iniciales + nombre */
@@ -892,8 +894,8 @@
       console.log("Inicializando aplicación con Supabase...");
       
       // Configuración de Supabase (REEMPLAZA CON TUS CREDENCIALES)
-      const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
+      const supabaseUrl = 'my_supabaseUrl'; // ¡REEMPLAZA ESTO!
+      const supabaseKey = 'my_supabaseKey'; // ¡REEMPLAZA ESTO!
       
       try {
         // Forma CORRECTA de inicializar Supabase
@@ -2652,7 +2654,6 @@
                 }
         
                 // Generar HTML del ranking
-
                 let html = '';
                 let rank = 1;
                 data.forEach(player => {
@@ -2663,37 +2664,22 @@
                   const level = window.getPlayerLevel(winPercentage);
                   const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
                 
-                  // Línea 1: Avatar + iniciales + nombre (con fondo verde claro)
-                  const nameLine = `
+                  html += `
+                  <div class="ranking-item">
+                    <span class="ranking-rank">${rank}.</span>
                     <div class="ranking-name">
                       <span>👤</span>
                       <strong>${initials}</strong>
                       <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
                     </div>
-                  `;
-                
-                  // Línea 2: Nivel + porcentaje
-                  const levelLine = `
                     <div class="ranking-level">
                       <i class="fas fa-${level.icon}" style="color: ${level.color};"></i> ${level.name} (${winPercentage}%)
                     </div>
-                  `;
-                
-                  // Línea 3: Estadísticas
-                  const statsLine = `
                     <div class="ranking-stats">
                       <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
                       <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
                       <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
                     </div>
-                  `;
-                
-                  html += `
-                  <div class="ranking-item">
-                    <span class="ranking-rank">${rank}.</span>
-                    ${nameLine}
-                    ${levelLine}
-                    ${statsLine}
                   </div>`;
                   rank++;
                 });
@@ -3640,7 +3626,7 @@
       <h2><i class="fas fa-crown"></i> Ranking Semanal</h2>
       <div class="stats">
         <p id="ranking-cutoff"></p>
-		<p id="ranking-list">
+		<div id="ranking-list"></div>
           <strong>Cargando ranking...</strong>
         </p>
       </div>
