@@ -2823,7 +2823,7 @@
 			// 1. Partidos del día
 			const { data: matchesData, error: matchesError } = await window.supabase
 			  .from('matches')
-			  .select('id')
+			  .select('id, team_a_players, team_b_players') // ✅ Importante: incluir los jugadores
 			  .eq('club_id', clubId)
 			  .gte('created_at', today.toISOString());
 			
@@ -2831,32 +2831,38 @@
 			  console.error("Error al obtener partidos:", matchesError);
 			  const totalMatches = document.getElementById('total-matches');
 			  const totalHours = document.getElementById('total-hours');
-			  
+			  const activePlayers = document.getElementById('active-players');
+			
 			  if (totalMatches) totalMatches.textContent = "0";
 			  if (totalHours) totalHours.textContent = "0";
+			  if (activePlayers) activePlayers.textContent = "0";
+			
 			} else {
+			  // ✅ 1. Partidos del día
 			  const totalMatches = document.getElementById('total-matches');
 			  if (totalMatches) totalMatches.textContent = matchesData.length;
-			  
+			
+			  // ✅ 2. Horas jugadas (aprox 1.5h por partido)
 			  const totalHours = document.getElementById('total-hours');
 			  if (totalHours) {
-				const totalHoursValue = Math.floor(matchesData.length * 1.5);
-				totalHours.textContent = totalHoursValue;
+			    const totalHoursValue = Math.floor(matchesData.length * 1.5);
+			    totalHours.textContent = totalHoursValue;
 			  }
-			}
 			
-			// 2. Jugadores activos (hoy)			
-			if (matchesData) {
-			  const uniquePlayers = new Set();
-			  matchesData.forEach(match => {
-			    if (Array.isArray(match.team_a_players)) match.team_a_players.forEach(id => uniquePlayers.add(id));
-			    if (Array.isArray(match.team_b_players)) match.team_b_players.forEach(id => uniquePlayers.add(id));
-			  });
+			  // ✅ 3. Jugadores activos (hoy) - Reutilizando matchesData
 			  const activePlayers = document.getElementById('active-players');
-			  if (activePlayers) activePlayers.textContent = uniquePlayers.size;
-			} else {
-			  const activePlayers = document.getElementById('active-players');
-			  if (activePlayers) activePlayers.textContent = "0";
+			  if (activePlayers) {
+			    const uniquePlayers = new Set();
+			    matchesData.forEach(match => {
+			      if (Array.isArray(match.team_a_players)) {
+			        match.team_a_players.forEach(id => uniquePlayers.add(id));
+			      }
+			      if (Array.isArray(match.team_b_players)) {
+			        match.team_b_players.forEach(id => uniquePlayers.add(id));
+			      }
+			    });
+			    activePlayers.textContent = uniquePlayers.size;
+			  }
 			}
 			
 			// 3. Top 5 jugadores
