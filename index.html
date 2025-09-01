@@ -2845,20 +2845,8 @@
 			  }
 			}
 			
-			// 2. Jugadores activos (hoy)
-			const today = new Date();
-			today.setHours(0, 0, 0, 0);
-			const { data: matchesData, error: matchesError } = await window.supabase
-			  .from('matches')
-			  .select('team_a_players, team_b_players')
-			  .eq('club_id', clubId)
-			  .gte('created_at', today.toISOString());
-			
-			if (matchesError) {
-			  console.error("Error al obtener partidos:", matchesError);
-			  const activePlayers = document.getElementById('active-players');
-			  if (activePlayers) activePlayers.textContent = "0";
-			} else {
+			// 2. Jugadores activos (hoy)			
+			if (matchesData) {
 			  const uniquePlayers = new Set();
 			  matchesData.forEach(match => {
 			    if (Array.isArray(match.team_a_players)) match.team_a_players.forEach(id => uniquePlayers.add(id));
@@ -2866,6 +2854,9 @@
 			  });
 			  const activePlayers = document.getElementById('active-players');
 			  if (activePlayers) activePlayers.textContent = uniquePlayers.size;
+			} else {
+			  const activePlayers = document.getElementById('active-players');
+			  if (activePlayers) activePlayers.textContent = "0";
 			}
 			
 			// 3. Top 5 jugadores
