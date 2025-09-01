@@ -6,7 +6,6 @@
   <title>PadelTrack - Sistema Profesional</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />  
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * {
       margin: 0;
@@ -891,6 +890,7 @@
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     // Inicialización CORRECTA de Supabase
     document.addEventListener('DOMContentLoaded', function() {
@@ -1227,7 +1227,7 @@
                 playersTodayList.innerHTML = '<p>No hay partidos hoy.</p>';
               }
             }
-        
+       
             // ✅ Gráfico de uso de canchas
             const ctx = document.getElementById('courtsChart');
             if (ctx && matchesData) {
@@ -1236,14 +1236,16 @@
                 const court = match.court || 'Cancha desconocida';
                 courtCounts[court] = (courtCounts[court] || 0) + 1;
               });
-        
+            
               const labels = Object.keys(courtCounts);
               const data = Object.values(courtCounts);
-        
-              if (window.courtsChart) {
+            
+              // Destruir gráfico anterior si existe
+              if (window.courtsChart && typeof window.courtsChart.destroy === 'function') {
                 window.courtsChart.destroy();
               }
-        
+            
+              // Crear nuevo gráfico
               window.courtsChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
