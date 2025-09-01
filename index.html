@@ -908,7 +908,8 @@
         console.log("Supabase client creado exitosamente");
         
         // Variables globales
-        window.currentUser = null;
+        window.lastMatchId = null;
+		window.currentUser = null;
         window.currentClub = null;
         window.selectedCourt = "Cancha 1";
         window.scoringType = null;
@@ -1180,69 +1181,78 @@
         
             // Jugador del día (más victorias hoy)
             if (matchesData && matchesData.length > 0) {
-              // Primero, obtener todos los jugadores del club
-              const { data: allPlayers, error: playersError } = await window.supabase
-                .from('players')
-                .select('*')
-                .eq('club_id', window.currentUser.id);
-        
-              if (playersError) {
-                console.error("Error al obtener jugadores:", playersError);
-                if (playersTodayList) {
+              // Obtener todos los IDs de partidos de hoy
+              const matchIds = matchesData.map(match => match.id);
+            
+              if (matchIds.length > 0) {
+                // Obtener las relaciones de jugadores en partidos de hoy
+                const { data: matchPlayersData, error: matchPlayersError } = await window.supabase
+                  .from('match_players')
+                  .select(`
+                    match_id,
+                    player_id,
+                    team,
+                    matches!inner(winner)
+                  `)
+                  .in('match_id', matchIds);
+            
+                if (matchPlayersError) {
+                  console.error("Error al obtener jugadores de partidos:", matchPlayersError);
                   playersTodayList.innerHTML = '<p>Error al cargar jugadores</p>';
-                }
-              } else {
-                // Contar victorias por jugador
-                const playerWins = {};
-                
-                matchesData.forEach(match => {
-                  // Determinar qué equipo ganó
-                  const winningTeam = match.winner === 'teamA' ? 'A' : 'B';
-                  
-                  // Obtener jugadores del equipo ganador
-                  const winningPlayers = winningTeam === 'A' ? 
-                    [match.team_a_player1, match.team_a_player2] : 
-                    [match.team_b_player1, match.team_b_player2];
-                    
-                  // Incrementar contador de victorias para cada jugador
-                  winningPlayers.forEach(playerId => {
-                    if (playerId) {
-                      playerWins[playerId] = (playerWins[playerId] || 0) + 1;
+                } else {
+                  // Contar victorias por jugador
+                  const playerWins = {};
+            
+                  matchPlayersData.forEach(mp => {
+                    const match = mp.matches;
+                    if (match && match.winner) {
+                      // Determinar si el jugador estaba en el equipo ganador
+                      const winningTeam = match.winner === 'teamA' ? 'A' : 'B';
+                      if (mp.team === winningTeam) {
+                        playerWins[mp.player_id] = (playerWins[mp.player_id] || 0) + 1;
+                      }
                     }
                   });
-                });
-        
-                // Encontrar al jugador con más victorias
-                let topPlayerId = null;
-                let maxWins = 0;
-                
-                for (const [playerId, wins] of Object.entries(playerWins)) {
-                  if (wins > maxWins) {
-                    maxWins = wins;
-                    topPlayerId = playerId;
+            
+                  // Encontrar al jugador con más victorias
+                  let topPlayerId = null;
+                  let maxWins = 0;
+                  for (const [playerId, wins] of Object.entries(playerWins)) {
+                    if (wins > maxWins) {
+                      maxWins = wins;
+                      topPlayerId = playerId;
+                    }
                   }
-                }
-        
-                // Mostrar información del jugador del día
-                if (topPlayerId && allPlayers) {
-                  const topPlayer = allPlayers.find(p => p.id === topPlayerId);
-                  if (topPlayer) {
-                    playersTodayList.innerHTML = `
-                      <div style="background: #E8F5E9; padding: 12px; border-radius: 12px; font-size: 14px;">
-                        <strong>🏆 Jugador del día:</strong> ${topPlayer.first_name} ${topPlayer.last_name}<br>
-                        <small>Victorias hoy: ${maxWins}</small>
-                      </div>
-                    `;
+            
+                  // Obtener información del jugador
+                  if (topPlayerId) {
+                    const { data: topPlayer, error: topPlayerError } = await window.supabase
+                      .from('players')
+                      .select('first_name, last_name')
+                      .eq('id', topPlayerId)
+                      .single();
+            
+                    if (topPlayerError) {
+                      console.error("Error al obtener jugador:", topPlayerError);
+                      playersTodayList.innerHTML = '<p>Error al cargar jugador</p>';
+                    } else {
+                      playersTodayList.innerHTML = `
+                        <div style="background: #E8F5E9; padding: 12px; border-radius: 12px; font-size: 14px;">
+                          <strong>🏆 Jugador del día:</strong> ${topPlayer.first_name} ${topPlayer.last_name}<br>
+                          <small>Victorias hoy: ${maxWins}</small>
+                        </div>
+                      `;
+                    }
                   } else {
-                    playersTodayList.innerHTML = '<p>No se encontró información del jugador</p>';
+                    playersTodayList.innerHTML = '<p>No hay jugadores con victorias hoy</p>';
                   }
-                } else {
-                  playersTodayList.innerHTML = '<p>No hay jugadores con victorias hoy</p>';
                 }
+              } else {
+                playersTodayList.innerHTML = '<p>No hay partidos hoy</p>';
               }
             } else {
               playersTodayList.innerHTML = '<p>No hay partidos hoy</p>';
-            }
+            }            
         
             // ✅ Gráfico de uso de canchas
             const ctx = document.getElementById('courtsChart');
@@ -2476,8 +2486,8 @@
           const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
           const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
           
-          // Guardar en Supabase
-          const { error } = await window.supabase
+          // Guardar en Supabase - partido
+          const { data: matchData, error } = await window.supabase
             .from('matches')
             .insert([
               {
@@ -2494,8 +2504,10 @@
                 tiebreak: window.inTiebreak,
                 duration: window.gameDuration
               }
-            ]);
-          
+            ])
+            .select('id') // Solicitar el ID del partido recién creado
+            .single(); // Obtener un solo resultado
+        
           if (error) {
             console.error("Error al guardar partido: ", {
               code: error.code,
@@ -2519,6 +2531,60 @@
               window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
             }
           } else {
+            // Guardar el ID del partido para uso posterior
+            window.lastMatchId = matchData.id;
+            
+            // Insertar jugadores en la tabla match_players
+            try {
+              // Función auxiliar para insertar jugador en match_players
+              const insertPlayerInMatch = async (playerKey, team) => {
+                const player = window.playersData[playerKey];
+                if (player.cedula) {
+                  // Buscar el ID del jugador por su cédula y club_id
+                  const { data: playerData, error: playerError } = await window.supabase
+                    .from('players')
+                    .select('id')
+                    .eq('cedula', player.cedula)
+                    .eq('club_id', window.currentUser.id)
+                    .single();
+        
+                  if (playerError) {
+                    console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
+                    return;
+                  }
+        
+                  // Insertar en match_players
+                  const { error: matchPlayerError } = await window.supabase
+                    .from('match_players')
+                    .insert([
+                      {
+                        match_id: matchData.id,
+                        player_id: playerData.id,
+                        team: team,
+                        position: parseInt(playerKey[1]) // '1' o '2' según A1, A2, B1, B2
+                      }
+                    ]);
+        
+                  if (matchPlayerError) {
+                    console.error(`Error al insertar jugador en match_players:`, matchPlayerError);
+                  } else {
+                    console.log(`Jugador ${player.cedula} insertado en match_players correctamente`);
+                  }
+                }
+              };
+        
+              // Insertar jugadores del equipo A
+              await insertPlayerInMatch('A1', 'A');
+              await insertPlayerInMatch('A2', 'A');
+        
+              // Insertar jugadores del equipo B
+              await insertPlayerInMatch('B1', 'B');
+              await insertPlayerInMatch('B2', 'B');
+        
+            } catch (error) {
+              console.error("Error al insertar jugadores en match_players:", error);
+            }
+        
             // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
             try {
               // Intentar llamar a la función RPC
@@ -2633,79 +2699,82 @@
         
           // Mostrar pantalla de finalización
           window.goToScreen('end');
-        };		
+        };
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
 		  if (!window.currentUser) return;
 		  
+		  // Obtener el ID del partido recién creado
+		  const matchId = window.lastMatchId;
+		  if (!matchId) {
+		    console.error("No se encontró ID de partido para actualizar estadísticas");
+		    return;
+		  }
+		  
 		  // Actualizar cada jugador
 		  for (const key in window.playersData) {
-			const player = window.playersData[key];
-			if (!player.cedula) continue;
-			
-			try {
-			  // Verificar si el jugador existe
-			  const { data: existingPlayer, error } = await window.supabase
-				.from('players')
-				.select('matches_played, matches_won')
-				.eq('cedula', player.cedula)
-				.eq('club_id', window.currentUser.id)
-				.single();
-			  
-			  if (error && error.code !== 'PGRST116') {  // PGRST116 = no encontrado
-				console.error(`Error al obtener jugador ${player.cedula}:`, error);
-				continue;
-			  }
-			  
-			  // Calcular nuevos valores
-			  let newMatchesPlayed = 1;
-			  let newMatchesWon = 0;
-			  
-			  if (existingPlayer) {
-				newMatchesPlayed = existingPlayer.matches_played + 1;
-				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
-					(winnerTeam === 'teamB' && key[0] === 'B')) {
-				  newMatchesWon = existingPlayer.matches_won + 1;
-				} else {
-				  newMatchesWon = existingPlayer.matches_won;
-				}
-			  } else {
-				if ((winnerTeam === 'teamA' && key[0] === 'A') || 
-					(winnerTeam === 'teamB' && key[0] === 'B')) {
-				  newMatchesWon = 1;
-				}
-			  }
-			  
-			  // Actualizar o crear jugador
-			  const { error: updateError } = await window.supabase
-				.from('players')
-				.upsert([
-				  {
-					cedula: player.cedula,
-					club_id: window.currentUser.id,
-					first_name: player.firstName,
-					last_name: player.lastName,
-					matches_played: newMatchesPlayed,
-					matches_won: newMatchesWon,
-					last_match_date: new Date().toISOString()
-				  }
-				], {
-				  onConflict: 'cedula,club_id'
-				});
-			  
-			  if (updateError) {
-				console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
-			  }
-			} catch (error) {
-			  console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
-			}
+		    const player = window.playersData[key];
+		    if (!player.cedula) continue;
+		    
+		    try {
+		      // Verificar si el jugador existe
+		      const { data: existingPlayer, error } = await window.supabase
+		        .from('players')
+		        .select('id, matches_played, matches_won')
+		        .eq('cedula', player.cedula)
+		        .eq('club_id', window.currentUser.id)
+		        .single();
+		      
+		      if (error && error.code !== 'PGRST116') {  // PGRST116 = no encontrado
+		        console.error(`Error al obtener jugador ${player.cedula}:`, error);
+		        continue;
+		      }
+		      
+		      // Determinar si este jugador ganó
+		      const playerWon = (winnerTeam === 'teamA' && key[0] === 'A') || 
+		                        (winnerTeam === 'teamB' && key[0] === 'B');
+		      
+		      // Calcular nuevos valores
+		      let newMatchesPlayed = 1;
+		      let newMatchesWon = playerWon ? 1 : 0;
+		      
+		      if (existingPlayer) {
+		        newMatchesPlayed = existingPlayer.matches_played + 1;
+		        newMatchesWon = existingPlayer.matches_won + (playerWon ? 1 : 0);
+		      }
+		      
+		      // Actualizar o crear jugador
+		      const { error: updateError } = await window.supabase
+		        .from('players')
+		        .upsert([
+		          {
+		            cedula: player.cedula,
+		            club_id: window.currentUser.id,
+		            first_name: player.firstName,
+		            last_name: player.lastName,
+		            matches_played: newMatchesPlayed,
+		            matches_won: newMatchesWon,
+		            last_match_date: new Date().toISOString()
+		          }
+		        ], {
+		          onConflict: 'cedula,club_id',
+		          ignoreDuplicates: false
+		        });
+		      
+		      if (updateError) {
+		        console.error(`Error al actualizar jugador ${player.cedula}:`, updateError);
+		      } else {
+		        console.log(`Estadísticas actualizadas para jugador ${player.cedula}`);
+		      }
+		    } catch (error) {
+		      console.error(`Error CRÍTICO al actualizar jugador ${player.cedula}:`, error);
+		    }
 		  }
 		  
 		  console.log("Estadísticas actualizadas correctamente");
 		  window.loadRanking();
-		};
-
+		};		
         
         // Función para cargar ranking
         window.loadRanking = async function() {
@@ -2741,13 +2810,18 @@
             }			
         
             try {
-                const { data, error } = await window.supabase
-                    .from('players')
-                    .select('*')
-                    .eq('club_id', window.currentUser.id)
-                    .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' ')) // Formato timestamp
-                    .gt('matches_played', 0) // Solo jugadores activos con partidos
-                    .order('matches_won', { ascending: false });
+				const { data, error } = await window.supabase
+				  .from('players')
+				  .select(`
+				    *,
+				    match_players!inner(
+				      matches!inner(created_at)
+				    )
+				  `)
+				  .eq('club_id', window.currentUser.id)
+				  .gte('match_players.matches.created_at', lastWeek.toISOString())
+				  .gt('matches_played', 0)
+				  .order('matches_won', { ascending: false });
         
                 if (error) {
                     console.error("Error al cargar ranking:", error);
@@ -2814,195 +2888,210 @@
 		// Función para cargar dashboard
 		window.loadDashboard = async function() {
 		  if (!window.currentUser) {
-			// Mostrar mensaje de error
-			const totalMatches = document.getElementById('total-matches');
-			const activePlayers = document.getElementById('active-players');
-			const totalHours = document.getElementById('total-hours');
-			const topPlayersList = document.getElementById('top-players-list');
-			const courtsUsage = document.getElementById('courts-usage');
-			
-			if (totalMatches) totalMatches.textContent = "0";
-			if (activePlayers) activePlayers.textContent = "0";
-			if (totalHours) totalHours.textContent = "0";
-			if (topPlayersList) topPlayersList.innerHTML = '<p>Por favor, inicia sesión primero</p>';
-			if (courtsUsage) courtsUsage.innerHTML = '<p>Inicia sesión para ver el uso de canchas</p>';
-			return;
+		    // Mostrar mensaje de error
+		    const totalMatches = document.getElementById('total-matches');
+		    const activePlayers = document.getElementById('active-players');
+		    const totalHours = document.getElementById('total-hours');
+		    const topPlayersList = document.getElementById('top-players-list');
+		    const courtsUsage = document.getElementById('courts-usage');
+		    
+		    if (totalMatches) totalMatches.textContent = "0";
+		    if (activePlayers) activePlayers.textContent = "0";
+		    if (totalHours) totalHours.textContent = "0";
+		    if (topPlayersList) topPlayersList.innerHTML = '<p>Por favor, inicia sesión primero</p>';
+		    if (courtsUsage) courtsUsage.innerHTML = '<p>Inicia sesión para ver el uso de canchas</p>';
+		    return;
 		  }
 		  
 		  const clubId = window.currentUser.id;
 		  const today = new Date();
 		  today.setHours(0, 0, 0, 0);
-		  const lastWeek = new Date();
+		  const tomorrow = new Date(today);
+		  tomorrow.setDate(tomorrow.getDate() + 1);
+		  const lastWeek = new Date(today);
 		  lastWeek.setDate(today.getDate() - 7);
 		  
 		  try {
-			// 1. Partidos del día
-			const { data: matchesData, error: matchesError } = await window.supabase
-			  .from('matches')
-			  .select('id, team_a_players, team_b_players') // ✅ Importante: incluir los jugadores
-			  .eq('club_id', clubId)
-			  .gte('created_at', today.toISOString());
-			
-			if (matchesError) {
-			  console.error("Error al obtener partidos:", matchesError);
-			  const totalMatches = document.getElementById('total-matches');
-			  const totalHours = document.getElementById('total-hours');
-			  const activePlayers = document.getElementById('active-players');
-			
-			  if (totalMatches) totalMatches.textContent = "0";
-			  if (totalHours) totalHours.textContent = "0";
-			  if (activePlayers) activePlayers.textContent = "0";
-			
-			} else {
-			  // ✅ 1. Partidos del día
-			  const totalMatches = document.getElementById('total-matches');
-			  if (totalMatches) totalMatches.textContent = matchesData.length;
-			
-			  // ✅ 2. Horas jugadas (aprox 1.5h por partido)
-			  const totalHours = document.getElementById('total-hours');
-			  if (totalHours) {
-			    const totalHoursValue = Math.floor(matchesData.length * 1.5);
-			    totalHours.textContent = totalHoursValue;
-			  }
-			
-			  // ✅ 3. Jugadores activos (hoy) - Reutilizando matchesData
-			  const activePlayers = document.getElementById('active-players');
-			  if (activePlayers) {
-			    const uniquePlayers = new Set();
-			    matchesData.forEach(match => {
-			      if (Array.isArray(match.team_a_players)) {
-			        match.team_a_players.forEach(id => uniquePlayers.add(id));
-			      }
-			      if (Array.isArray(match.team_b_players)) {
-			        match.team_b_players.forEach(id => uniquePlayers.add(id));
-			      }
-			    });
-			    activePlayers.textContent = uniquePlayers.size;
-			  }
-			}
-			
-			// 3. Top 5 jugadores
-			const { data: topPlayersData, error: topPlayersError } = await window.supabase
-			    .from('players')
-			    .select('*')
-			    .eq('club_id', clubId)
-			    .gte('last_match_date', lastWeek.toISOString().slice(0, 19).replace('T', ' '))
-			    .gt('matches_played', 0) // Solo jugadores que han jugado al menos 1 partido
-			    .limit(10); // Traemos más para ordenar mejor
-			
-			if (topPlayersError) {
-			    console.error("Error al obtener top jugadores:", topPlayersError);
-			    const topPlayersList = document.getElementById('top-players-list');
-			    if (topPlayersList) {
-			        topPlayersList.innerHTML = `
-			            <div class="alert">
-			                <i class="fas fa-exclamation-circle"></i> 
-			                <strong>Error:</strong> ${topPlayersError.message}
-			            </div>
-			        `;
-			    }
-			} else {
-			    const topPlayersList = document.getElementById('top-players-list');
-			    
-			    if (!topPlayersList) return;
-			
-			    if (topPlayersData.length === 0) {
-			        topPlayersList.innerHTML = '<p>No hay jugadores activos esta semana</p>';
-			    } else {
-			        // ✅ Ordenar por porcentaje de victorias
-			        const sortedTopPlayers = topPlayersData
-			            .sort((a, b) => {
-			                const winRateA = a.matches_played > 0 ? a.matches_won / a.matches_played : 0;
-			                const winRateB = b.matches_played > 0 ? b.matches_won / b.matches_played : 0;
-			                return winRateB - winRateA; // Mayor porcentaje primero
-			            })
-			            .slice(0, 5); // Limitar a solo 5 después de ordenar
-			
-			        let html = '';
-			        let rank = 1;
-			        sortedTopPlayers.forEach(player => {
-			            const matchesPlayed = player.matches_played;
-			            const matchesWon = window.safeNumber(player.matches_won, 0);
-			            const winPercentage = matchesPlayed > 0 ? 
-			                Math.round((matchesWon / matchesPlayed) * 100) : 0;
-			            html += `
-			                <div class="ranking-item">
-			                    <span class="ranking-rank">${rank}.</span>
-			                    <span style="flex: 1;">
-			                        <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
-			                        <div class="win-percentage">${winPercentage}% de victorias</div>
-			                    </span>
-			                    <span>
-			                        <span class="ranking-wins">${matchesWon}</span>-
-			                        <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
-			                    </span>
-			                </div>
-			            `;
-			            rank++;
-			        });
-			        topPlayersList.innerHTML = html;
-			    }
-			}
-			
-			// 4. Uso de canchas
-			const { data: courtsData, error: courtsError } = await window.supabase
-			  .from('court_usage')
-			  .select('*')
-			  .eq('club_id', clubId);
-			
-			if (courtsError) {
-			  console.error("Error al obtener canchas:", courtsError);
-			  const courtsUsage = document.getElementById('courts-usage');
-			  if (courtsUsage) {
-				courtsUsage.innerHTML = `
-				  <div class="alert">
-					<i class="fas fa-exclamation-circle"></i> 
-					<strong>Error:</strong> ${courtsError.message}
-				  </div>
-				`;
-			  }
-			} else {
-			  let html = '';
-			  const courtsUsage = document.getElementById('courts-usage');
-			  
-			  if (!courtsUsage) return;
-			  
-			  if (courtsData.length === 0) {
-				html = '<p>No hay datos de uso de canchas</p>';
-			  } else {
-				courtsData.forEach(court => {
-				  html += `
-					<p style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
-					  <span><strong>${court.court}</strong></span>
-					  <span>${court.match_count} hoy</span>
-					</p>
-				  `;
-				});
-			  }
-			  courtsUsage.innerHTML = html;
-			}
+		    // 1. Partidos del día
+		    const { data: matchesData, error: matchesError } = await window.supabase
+		      .from('matches')
+		      .select('id')
+		      .eq('club_id', clubId)
+		      .gte('created_at', today.toISOString())
+		      .lt('created_at', tomorrow.toISOString());
+		    
+		    if (matchesError) {
+		      console.error("Error al obtener partidos:", matchesError);
+		      const totalMatches = document.getElementById('total-matches');
+		      const totalHours = document.getElementById('total-hours');
+		      const activePlayers = document.getElementById('active-players');
+		    
+		      if (totalMatches) totalMatches.textContent = "0";
+		      if (totalHours) totalHours.textContent = "0";
+		      if (activePlayers) activePlayers.textContent = "0";
+		    
+		    } else {
+		      // ✅ 1. Partidos del día
+		      const totalMatches = document.getElementById('total-matches');
+		      if (totalMatches) totalMatches.textContent = matchesData.length;
+		    
+		      // ✅ 2. Horas jugadas (aprox 1.5h por partido)
+		      const totalHours = document.getElementById('total-hours');
+		      if (totalHours) {
+		        const totalHoursValue = Math.floor(matchesData.length * 1.5);
+		        totalHours.textContent = totalHoursValue;
+		      }
+		    
+		      // ✅ 3. Jugadores activos (hoy) - Usando match_players
+		      const activePlayers = document.getElementById('active-players');
+		      if (activePlayers) {
+		        // Obtener IDs de partidos de hoy
+		        const matchIds = matchesData.map(match => match.id);
+		        let uniquePlayersCount = 0;
+		        
+		        if (matchIds.length > 0) {
+		          // Consultar match_players para obtener jugadores de partidos de hoy
+		          const { data: matchPlayersData, error: matchPlayersError } = await window.supabase
+		            .from('match_players')
+		            .select('player_id')
+		            .in('match_id', matchIds);
+		          
+		          if (matchPlayersError) {
+		            console.error("Error al obtener jugadores de partidos:", matchPlayersError);
+		          } else {
+		            // Contar jugadores únicos
+		            const uniquePlayers = new Set();
+		            matchPlayersData.forEach(mp => uniquePlayers.add(mp.player_id));
+		            uniquePlayersCount = uniquePlayers.size;
+		          }
+		        }
+		        
+		        activePlayers.textContent = uniquePlayersCount;
+		      }
+		    }
+		    
+		    // 3. Top 5 jugadores (usando datos de la tabla players)
+		    const { data: topPlayersData, error: topPlayersError } = await window.supabase
+		      .from('players')
+		      .select('*')
+		      .eq('club_id', clubId)
+		      .gte('last_match_date', lastWeek.toISOString())
+		      .gt('matches_played', 0)
+		      .limit(10);
+		    
+		    if (topPlayersError) {
+		      console.error("Error al obtener top jugadores:", topPlayersError);
+		      const topPlayersList = document.getElementById('top-players-list');
+		      if (topPlayersList) {
+		        topPlayersList.innerHTML = `
+		          <div class="alert">
+		            <i class="fas fa-exclamation-circle"></i> 
+		            <strong>Error:</strong> ${topPlayersError.message}
+		          </div>
+		        `;
+		      }
+		    } else {
+		      const topPlayersList = document.getElementById('top-players-list');
+		      
+		      if (!topPlayersList) return;
+		    
+		      if (topPlayersData.length === 0) {
+		        topPlayersList.innerHTML = '<p>No hay jugadores activos esta semana</p>';
+		      } else {
+		        // ✅ Ordenar por porcentaje de victorias
+		        const sortedTopPlayers = topPlayersData
+		          .sort((a, b) => {
+		            const winRateA = a.matches_played > 0 ? a.matches_won / a.matches_played : 0;
+		            const winRateB = b.matches_played > 0 ? b.matches_won / b.matches_played : 0;
+		            return winRateB - winRateA; // Mayor porcentaje primero
+		          })
+		          .slice(0, 5); // Limitar a solo 5 después de ordenar
+		    
+		        let html = '';
+		        let rank = 1;
+		        sortedTopPlayers.forEach(player => {
+		          const matchesPlayed = player.matches_played;
+		          const matchesWon = window.safeNumber(player.matches_won, 0);
+		          const winPercentage = matchesPlayed > 0 ? 
+		            Math.round((matchesWon / matchesPlayed) * 100) : 0;
+		          html += `
+		            <div class="ranking-item">
+		              <span class="ranking-rank">${rank}.</span>
+		              <span style="flex: 1;">
+		                <strong>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</strong>
+		                <div class="win-percentage">${winPercentage}% de victorias</div>
+		              </span>
+		              <span>
+		                <span class="ranking-wins">${matchesWon}</span>-
+		                <span class="ranking-losses">${matchesPlayed - matchesWon}</span>
+		              </span>
+		            </div>
+		          `;
+		          rank++;
+		        });
+		        topPlayersList.innerHTML = html;
+		      }
+		    }
+		    
+		    // 4. Uso de canchas
+		    const { data: courtsData, error: courtsError } = await window.supabase
+		      .from('court_usage')
+		      .select('*')
+		      .eq('club_id', clubId);
+		    
+		    if (courtsError) {
+		      console.error("Error al obtener canchas:", courtsError);
+		      const courtsUsage = document.getElementById('courts-usage');
+		      if (courtsUsage) {
+		        courtsUsage.innerHTML = `
+		          <div class="alert">
+		            <i class="fas fa-exclamation-circle"></i> 
+		            <strong>Error:</strong> ${courtsError.message}
+		          </div>
+		        `;
+		      }
+		    } else {
+		      let html = '';
+		      const courtsUsage = document.getElementById('courts-usage');
+		      
+		      if (!courtsUsage) return;
+		      
+		      if (courtsData.length === 0) {
+		        html = '<p>No hay datos de uso de canchas</p>';
+		      } else {
+		        courtsData.forEach(court => {
+		          html += `
+		            <p style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee;">
+		              <span><strong>${court.court}</strong></span>
+		              <span>${court.match_count} hoy</span>
+		            </p>
+		          `;
+		        });
+		      }
+		      courtsUsage.innerHTML = html;
+		    }
 		  } catch (error) {
-			console.error("Error crítico al cargar dashboard:", error);
-			const topPlayersList = document.getElementById('top-players-list');
-			const courtsUsage = document.getElementById('courts-usage');
-			
-			if (topPlayersList) {
-			  topPlayersList.innerHTML = `
-				<div class="alert">
-				  <i class="fas fa-exclamation-circle"></i> 
-				  <strong>Error crítico:</strong> ${error.message}
-				</div>
-			  `;
-			}
-			
-			if (courtsUsage) {
-			  courtsUsage.innerHTML = `
-				<div class="alert">
-				  <i class="fas fa-exclamation-circle"></i> 
-				  <strong>Error crítico:</strong> ${error.message}
-				</div>
-			  `;
-			}
+		    console.error("Error crítico al cargar dashboard:", error);
+		    const topPlayersList = document.getElementById('top-players-list');
+		    const courtsUsage = document.getElementById('courts-usage');
+		    
+		    if (topPlayersList) {
+		      topPlayersList.innerHTML = `
+		        <div class="alert">
+		          <i class="fas fa-exclamation-circle"></i> 
+		          <strong>Error crítico:</strong> ${error.message}
+		        </div>
+		      `;
+		    }
+		    
+		    if (courtsUsage) {
+		      courtsUsage.innerHTML = `
+		        <div class="alert">
+		          <i class="fas fa-exclamation-circle"></i> 
+		          <strong>Error crítico:</strong> ${error.message}
+		        </div>
+		      `;
+		    }
 		  }
 		};
         
