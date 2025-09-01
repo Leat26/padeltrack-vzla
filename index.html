@@ -897,8 +897,8 @@
       console.log("Inicializando aplicación con Supabase...");
       
       // Configuración de Supabase (REEMPLAZA CON TUS CREDENCIALES)
-      const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
+      const supabaseUrl = 'my_supabaseUrl'; // ¡REEMPLAZA ESTO!
+      const supabaseKey = 'my_supabaseKey'; // ¡REEMPLAZA ESTO!
       
       try {
         // Forma CORRECTA de inicializar Supabase
@@ -1089,6 +1089,7 @@
         };
         
         // Actualizar la pantalla de inicio con los datos del club
+        
         window.updateHomeScreen = async function() {
           if (!window.currentUser) return;
         
@@ -1096,8 +1097,6 @@
           const clubNameDisplay = document.getElementById('club-name-display');
           const canchasStatus = document.getElementById('canchas-status');
           const courtsContainer = document.getElementById('courts-container');
-        
-          // Elementos del dashboard
           const totalMatches = document.getElementById('total-matches');
           const activePlayers = document.getElementById('active-players');
           const totalHours = document.getElementById('total-hours');
@@ -1114,50 +1113,31 @@
           if (playersTodayList) playersTodayList.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
         
           try {
-            // ✅ Obtener datos del club
-            const { data, error } = await window.supabase
+            // Obtener datos del club
+            const { data: clubData, error: clubError } = await window.supabase
               .from('clubs')
               .select('*')
               .eq('id', window.currentUser.id)
               .single();
         
-            if (error) {
-              console.error("Error al obtener datos del club:", error);
-              const { error: createError } = await window.supabase
-                .from('clubs')
-                .insert([{
-                  id: window.currentUser.id,
-                  name: "Nuevo Club",
-                  court_count: 0,
-                  email: window.currentUser.email,
-                  phone: "N/A",
-                  status: "active"
-                }]);
-              
-              if (createError) {
-                console.error("Error al crear club:", createError);
-                if (clubNameDisplay) clubNameDisplay.textContent = "Club";
-                if (canchasStatus) canchasStatus.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${createError.code}`;
-                if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> ${createError.message}</div>`;
-                return;
-              }
-              window.updateHomeScreen();
-              return;
-            }
-        
-            if (!data) {
+            if (clubError) {
+              console.error("Error al obtener datos del club:", clubError);
               if (clubNameDisplay) clubNameDisplay.textContent = "Club";
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
-              if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error:</strong> No se encontró el club.</div>`;
               return;
             }
         
-            // ✅ Guardar datos del club
-            const clubData = data;
+            if (!clubData) {
+              if (clubNameDisplay) clubNameDisplay.textContent = "Club";
+              if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
+              return;
+            }
+        
+            // Guardar datos del club
             window.currentClub = clubData;
             if (clubNameDisplay) clubNameDisplay.textContent = clubData.name || "Club";
         
-            // ✅ Obtener partidos del día
+            // Obtener partidos del día
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const tomorrow = new Date(today);
@@ -1167,8 +1147,8 @@
               .from('matches')
               .select('*')
               .eq('club_id', window.currentUser.id)
-              .gte('created_at', today.toISOString().slice(0, 19).replace('T', ' '))
-              .lt('created_at', tomorrow.toISOString().slice(0, 19).replace('T', ' '));
+              .gte('created_at', today.toISOString())
+              .lt('created_at', tomorrow.toISOString());
         
             if (matchesError) {
               console.error("Error al cargar partidos:", matchesError);
@@ -1177,95 +1157,95 @@
             const totalMatchCount = matchesData?.length || 0;
             if (totalMatches) totalMatches.textContent = totalMatchCount;
         
-            // ✅ Calcular horas jugadas (promedio de 45 min por partido)
+            // Calcular horas jugadas (promedio de 45 min por partido)
             const totalHoursCount = Math.round((totalMatchCount * 45) / 60 * 100) / 100;
             if (totalHours) totalHours.textContent = totalHoursCount;
         
-            // ✅ Obtener jugadores activos (última semana)
+            // Obtener jugadores activos (última semana)
             const lastWeek = new Date(today);
             lastWeek.setDate(today.getDate() - 7);
-            const uniquePlayers = new Set();
-            matchesData?.forEach(match => {
-              if (Array.isArray(match.team_a_players)) match.team_a_players.forEach(id => uniquePlayers.add(id));
-              if (Array.isArray(match.team_b_players)) match.team_b_players.forEach(id => uniquePlayers.add(id));
-            });
-            const activePlayerCount = uniquePlayers.size;
-            if (activePlayers) activePlayers.textContent = activePlayerCount;
+            
+            // Para jugadores activos, necesitamos consultar la tabla de players
+            const { data: activePlayersData, error: activePlayersError } = await window.supabase
+              .from('players')
+              .select('id')
+              .eq('club_id', window.currentUser.id)
+              .gte('last_match_date', lastWeek.toISOString());
         
-            // ✅ Jugador del día (más victorias hoy)
-            const winsToday = {};
-            matchesData?.forEach(match => {
-              const winner = match.winner_team;
-              const playersKey = winner === 'A' ? 'team_a_players' : 'team_b_players';
-              const playerIds = match[playersKey];
-              if (Array.isArray(playerIds)) {
-                playerIds.forEach(id => {
-                  winsToday[id] = (winsToday[id] || 0) + 1;
-                });
-              }
-            });
-        
-            let topPlayerId = null;
-            let maxWins = 0;
-            for (const [id, wins] of Object.entries(winsToday)) {
-              if (wins > maxWins) {
-                maxWins = wins;
-                topPlayerId = id;
-              }
+            if (activePlayersError) {
+              console.error("Error al obtener jugadores activos:", activePlayersError);
+            } else {
+              const activePlayerCount = activePlayersData?.length || 0;
+              if (activePlayers) activePlayers.textContent = activePlayerCount;
             }
         
-            if (playersTodayList) {
-              if (topPlayerId && window.playersData?.[topPlayerId]) {
-                const player = window.playersData[topPlayerId];
-                playersTodayList.innerHTML = `
-                  <div style="background: #E8F5E9; padding: 12px; border-radius: 12px; font-size: 14px;">
-                    <strong>🏆 Jugador del día:</strong> ${player.first_name} ${player.last_name}<br>
-                    <small>Victorias hoy: ${maxWins}</small>
-                  </div>
-                `;
-              } else {
-                playersTodayList.innerHTML = '<p>No hay partidos hoy.</p>';
-              }
-            }
-       
-            // ✅ Gráfico de uso de canchas
-            const ctx = document.getElementById('courtsChart');
-            if (ctx && matchesData) {
-              const courtCounts = {};
-              matchesData.forEach(match => {
-                const court = match.court || 'Cancha desconocida';
-                courtCounts[court] = (courtCounts[court] || 0) + 1;
-              });
-            
-              const labels = Object.keys(courtCounts);
-              const data = Object.values(courtCounts);
-            
-              // Destruir gráfico anterior si existe
-              if (window.courtsChart && typeof window.courtsChart.destroy === 'function') {
-                window.courtsChart.destroy();
-              }
-            
-              // Crear nuevo gráfico
-              window.courtsChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                  labels: labels,
-                  datasets: [{
-                    label: 'Partidos jugados',
-                    data: data,
-                    backgroundColor: '#016B3A',
-                    borderRadius: 4
-                  }]
-                },
-                options: {
-                  responsive: true,
-                  plugins: { legend: { display: false } },
-                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            // Jugador del día (más victorias hoy)
+            if (matchesData && matchesData.length > 0) {
+              // Primero, obtener todos los jugadores del club
+              const { data: allPlayers, error: playersError } = await window.supabase
+                .from('players')
+                .select('*')
+                .eq('club_id', window.currentUser.id);
+        
+              if (playersError) {
+                console.error("Error al obtener jugadores:", playersError);
+                if (playersTodayList) {
+                  playersTodayList.innerHTML = '<p>Error al cargar jugadores</p>';
                 }
-              });
+              } else {
+                // Contar victorias por jugador
+                const playerWins = {};
+                
+                matchesData.forEach(match => {
+                  // Determinar qué equipo ganó
+                  const winningTeam = match.winner === 'teamA' ? 'A' : 'B';
+                  
+                  // Obtener jugadores del equipo ganador
+                  const winningPlayers = winningTeam === 'A' ? 
+                    [match.team_a_player1, match.team_a_player2] : 
+                    [match.team_b_player1, match.team_b_player2];
+                    
+                  // Incrementar contador de victorias para cada jugador
+                  winningPlayers.forEach(playerId => {
+                    if (playerId) {
+                      playerWins[playerId] = (playerWins[playerId] || 0) + 1;
+                    }
+                  });
+                });
+        
+                // Encontrar al jugador con más victorias
+                let topPlayerId = null;
+                let maxWins = 0;
+                
+                for (const [playerId, wins] of Object.entries(playerWins)) {
+                  if (wins > maxWins) {
+                    maxWins = wins;
+                    topPlayerId = playerId;
+                  }
+                }
+        
+                // Mostrar información del jugador del día
+                if (topPlayerId && allPlayers) {
+                  const topPlayer = allPlayers.find(p => p.id === topPlayerId);
+                  if (topPlayer) {
+                    playersTodayList.innerHTML = `
+                      <div style="background: #E8F5E9; padding: 12px; border-radius: 12px; font-size: 14px;">
+                        <strong>🏆 Jugador del día:</strong> ${topPlayer.first_name} ${topPlayer.last_name}<br>
+                        <small>Victorias hoy: ${maxWins}</small>
+                      </div>
+                    `;
+                  } else {
+                    playersTodayList.innerHTML = '<p>No se encontró información del jugador</p>';
+                  }
+                } else {
+                  playersTodayList.innerHTML = '<p>No hay jugadores con victorias hoy</p>';
+                }
+              }
+            } else {
+              playersTodayList.innerHTML = '<p>No hay partidos hoy</p>';
             }
         
-            // ✅ Mostrar canchas del club
+            // Mostrar canchas del club
             const courtCount = window.safeNumber(clubData.court_count, 0);
             if (courtCount <= 0) {
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
@@ -1300,7 +1280,7 @@
             if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error crítico';
             if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}</div>`;
           }
-        };
+        };		
 
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
