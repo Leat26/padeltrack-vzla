@@ -1244,7 +1244,11 @@
         
             // Guardar datos del club
             window.currentClub = clubData;
-            if (clubNameDisplay) clubNameDisplay.textContent = clubData.name || "Club";
+
+            // Actualizar nombre del club solo si es necesario
+            if (clubNameDisplay && clubNameDisplay.textContent !== clubData.name) {
+              clubNameDisplay.textContent = clubData.name || "Club";
+            }
         
             // Obtener partidos del día
             const today = new Date();
