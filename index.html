@@ -2215,6 +2215,12 @@
           const email = document.getElementById('login-email')?.value;
           const password = document.getElementById('login-password')?.value;
           
+          // Validar que se hayan ingresado ambos campos
+          if (!email || !password) {
+            window.showNotification('Por favor, ingresa tu correo electrónico y contraseña');
+            return;
+          }
+          
           const { data, error } = await window.supabase.auth.signInWithPassword({
             email: email,
             password: password
@@ -2222,9 +2228,25 @@
           
           if (error) {
             if (error.message === 'Invalid login credentials') {
+              // Verificar si el usuario existe antes de mostrar el mensaje
+              const { data: userData, error: userError } = await window.supabase
+                .from('clubs')
+                .select('email')
+                .eq('email', email)
+                .maybeSingle();
+              
+              if (userError) {
+                console.error("Error al verificar usuario:", userError);
+                window.showNotification('Error al verificar credenciales. Intenta nuevamente.');
+              } else if (userData) {
+                // El usuario existe pero la contraseña es incorrecta
+                window.showNotification('Contraseña incorrecta. Por favor, intenta nuevamente.');
+              } else {
+                // El usuario no existe
                 window.showNotification('Aún no perteneces a la comunidad PadelTrack, ¡Regístrate!');
+              }
             } else {
-                window.showNotification(`Error: ${error.message}`);
+              window.showNotification(`Error: ${error.message}`);
             }			
             return;
           }
