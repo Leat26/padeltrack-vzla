@@ -1200,22 +1200,19 @@
           // Mostrar estado de carga inicial
           const clubNameDisplay = document.getElementById('club-name-display');
           const canchasStatus = document.getElementById('canchas-status');
-          const courtsContainer = document.getElementById('courts-container');
           const totalMatches = document.getElementById('total-matches');
           const activePlayers = document.getElementById('active-players');
           const totalHours = document.getElementById('total-hours');
           const playersTodayList = document.getElementById('players-today-list');
-
+        
           // No sobrescribir el nombre del club si ya está establecido
           if (clubNameDisplay && clubNameDisplay.textContent === 'Cargando...') {
             clubNameDisplay.textContent = window.currentClub?.name || 'Cargando...';
           }
-        
-          if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
-          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
-          if (courtsContainer) courtsContainer.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p>';
           
-          // Limpiar métricas
+          if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
+          
+          // Limpiar métricas (pero no el nombre del club)
           if (totalMatches) totalMatches.textContent = '0';
           if (activePlayers) activePlayers.textContent = '0';
           if (totalHours) totalHours.textContent = '0';
@@ -1231,20 +1228,18 @@
         
             if (clubError) {
               console.error("Error al obtener datos del club:", clubError);
-              if (clubNameDisplay) clubNameDisplay.textContent = "Club";
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
               return;
             }
         
             if (!clubData) {
-              if (clubNameDisplay) clubNameDisplay.textContent = "Club";
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error al cargar datos';
               return;
             }
         
             // Guardar datos del club
             window.currentClub = clubData;
-
+            
             // Actualizar nombre del club solo si es necesario
             if (clubNameDisplay && clubNameDisplay.textContent !== clubData.name) {
               clubNameDisplay.textContent = clubData.name || "Club";
@@ -1296,7 +1291,7 @@
             if (matchesData && matchesData.length > 0) {
               // Obtener todos los IDs de partidos de hoy
               const matchIds = matchesData.map(match => match.id);
-            
+        
               if (matchIds.length > 0) {
                 // Obtener las relaciones de jugadores en partidos de hoy
                 const { data: matchPlayersData, error: matchPlayersError } = await window.supabase
@@ -1308,14 +1303,14 @@
                     matches!inner(winner)
                   `)
                   .in('match_id', matchIds);
-            
+        
                 if (matchPlayersError) {
                   console.error("Error al obtener jugadores de partidos:", matchPlayersError);
                   playersTodayList.innerHTML = '<p>Error al cargar jugadores</p>';
                 } else {
                   // Contar victorias por jugador
                   const playerWins = {};
-            
+        
                   matchPlayersData.forEach(mp => {
                     const match = mp.matches;
                     if (match && match.winner) {
@@ -1326,7 +1321,7 @@
                       }
                     }
                   });
-            
+        
                   // Encontrar al jugador con más victorias
                   let topPlayerId = null;
                   let maxWins = 0;
@@ -1336,7 +1331,7 @@
                       topPlayerId = playerId;
                     }
                   }
-            
+        
                   // Obtener información del jugador
                   if (topPlayerId) {
                     const { data: topPlayer, error: topPlayerError } = await window.supabase
@@ -1344,7 +1339,7 @@
                       .select('first_name, last_name')
                       .eq('id', topPlayerId)
                       .single();
-            
+        
                     if (topPlayerError) {
                       console.error("Error al obtener jugador:", topPlayerError);
                       playersTodayList.innerHTML = '<p>Error al cargar jugador</p>';
@@ -1365,9 +1360,9 @@
               }
             } else {
               playersTodayList.innerHTML = '<p>No hay partidos hoy</p>';
-            }            
+            }
         
-            // ✅ Gráfico de uso de canchas
+            // ✅ Gráfico de uso de canchas (PARTE FALTANTE)
             const ctx = document.getElementById('courtsChart');
             if (ctx && matchesData) {
               const courtCounts = {};
@@ -1403,44 +1398,23 @@
                 }
               });
             }
-		
+        
             // Mostrar canchas del club
             const courtCount = window.safeNumber(clubData.court_count, 0);
             if (courtCount <= 0) {
               if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> No existen canchas cargadas';
-              if (courtsContainer) courtsContainer.innerHTML = `
-                <div class="alert" style="margin: 20px auto; width: 90%;">
-                  <i class="fas fa-exclamation-circle"></i> <strong>Importante:</strong> No existen canchas cargadas para este club.
-                </div>
-                <button class="btn btn-blue" onclick="window.goToScreen('club-settings')">
-                  <i class="fas fa-cog"></i> Configurar canchas
-                </button>
-              `;
             } else {
               if (canchasStatus) canchasStatus.textContent = `${courtCount} canchas disponibles`;
-              if (courtsContainer) {
-                courtsContainer.innerHTML = '';
-                for (let i = 1; i <= courtCount; i++) {
-                  const courtBtn = document.createElement('button');
-                  courtBtn.className = 'btn';
-                  courtBtn.innerHTML = `<i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}`;
-                  courtBtn.onclick = function() {
-                    window.selectedCourt = `Cancha ${i}`;
-                    window.goToScreen('scoring-type');
-                  };
-                  courtsContainer.appendChild(courtBtn);
-                }
-              }
             }
-                  
+            
+            // Cargar las canchas en la pantalla de inicio
+            window.loadHomeCourts();
+        
           } catch (error) {
             console.error("Error crítico al actualizar pantalla de inicio:", error);
-            if (clubNameDisplay) clubNameDisplay.textContent = "Club";
             if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error crítico';
-            if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}</div>`;
           }
-          window.loadHomeCourts();
-		};        
+        };
 
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
@@ -1513,7 +1487,7 @@
                 courtsGrid.appendChild(courtCard);
               }
             });
-        };
+        };        
 		
         // Función para cargar la pantalla de selección de canchas
         window.loadCourtsSelection = function() {
