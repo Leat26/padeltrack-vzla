@@ -3134,6 +3134,45 @@
             }
         };
 
+        // Función para cargar la selección de canchas
+        window.loadCourtsSelection = function() {
+          const courtsList = document.getElementById('courts-list');
+          if (!courtsList || !window.currentClub) return;
+          
+          const courtCount = window.safeNumber(window.currentClub.court_count, 0);
+          courtsList.innerHTML = '';
+          
+          if (courtCount <= 0) {
+            courtsList.innerHTML = '<p>No hay canchas configuradas</p>';
+            return;
+          }
+          
+          // Crear opciones para cada cancha
+          for (let i = 1; i <= courtCount; i++) {
+            const courtName = `Cancha ${i}`;
+            const courtOption = document.createElement('div');
+            courtOption.className = 'court-option';
+            courtOption.dataset.court = courtName;
+            courtOption.innerHTML = `
+              <h3>${courtName}</h3>
+              <div class="court-details">Disponible</div>
+            `;
+            
+            courtOption.addEventListener('click', function() {
+              // Quitar selección anterior
+              document.querySelectorAll('.court-option').forEach(opt => {
+                opt.classList.remove('selected');
+              });
+              // Seleccionar esta cancha
+              this.classList.add('selected');
+              // Habilitar botón de confirmación
+              document.getElementById('confirm-court-btn').disabled = false;
+            });
+            
+            courtsList.appendChild(courtOption);
+          }
+        };
+
 		// Función para cargar dashboard
 		window.loadDashboard = async function() {
 		  if (!window.currentUser) {
