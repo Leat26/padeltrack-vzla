@@ -1205,6 +1205,11 @@
           const activePlayers = document.getElementById('active-players');
           const totalHours = document.getElementById('total-hours');
           const playersTodayList = document.getElementById('players-today-list');
+
+          // No sobrescribir el nombre del club si ya está establecido
+          if (clubNameDisplay && clubNameDisplay.textContent === 'Cargando...') {
+            clubNameDisplay.textContent = window.currentClub?.name || 'Cargando...';
+          }
         
           if (clubNameDisplay) clubNameDisplay.textContent = 'Cargando...';
           if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando información del club...';
