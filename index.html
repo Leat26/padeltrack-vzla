@@ -887,6 +887,107 @@
       font-size: 13px;
       color: #666;
     }
+
+    /* Nuevos estilos para la pantalla de inicio */
+    .courts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .court-card {
+      background: #E8F5E9;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .court-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+      border-color: #016B3A;
+    }
+    
+    .court-icon {
+      font-size: 40px;
+      color: #016B3A;
+      margin-bottom: 10px;
+    }
+    
+    .court-status {
+      font-size: 14px;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    
+    .status-available {
+      background: #4CAF50;
+      color: white;
+    }
+    
+    .status-busy {
+      background: #FF9800;
+      color: white;
+    }
+    
+    .status-offline {
+      background: #F44336;
+      color: white;
+    }
+    
+    .play-button {
+      margin-top: 25px;
+      background: linear-gradient(135deg, #016B3A 0%, #028a48 100%);
+      padding: 16px 32px;
+      font-size: 18px;
+      border-radius: 50px;
+      box-shadow: 0 6px 12px rgba(1, 107, 58, 0.3);
+    }
+    
+    .play-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(1, 107, 58, 0.4);
+    }
+    
+    .play-button i {
+      margin-right: 8px;
+    }
+    
+    /* Estilos para la nueva pantalla de selección de canchas */
+    .court-option {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      margin: 10px 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .court-option:hover {
+      background: #E8F5E9;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .court-option.selected {
+      border-color: #016B3A;
+      background: #E8F5E9;
+      box-shadow: 0 0 0 3px rgba(1, 107, 58, 0.2);
+    }
+    
+    .court-details {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }	
   </style>
   <!-- Carga CORRECTA del SDK de Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1029,8 +1130,11 @@
               if (registerConfirm) registerConfirm.value = '';
           }
 
-          
-          // Si es la pantalla de inicio, actualizar con los datos del club
+          // Si es la pantalla de selección de canchas, cargarlasPantalla 
+          if (id === 'courts-selection') {
+            window.loadCourtsSelection();
+          }          
+          // Si es la Pantalla , actualizar con los datos del club
           if (id === 'home' && window.currentUser && window.currentClub) {
             window.updateHomeScreen();
           }
@@ -1319,14 +1423,15 @@
                 }
               }
             }
-        
+                  
           } catch (error) {
             console.error("Error crítico al actualizar pantalla de inicio:", error);
             if (clubNameDisplay) clubNameDisplay.textContent = "Club";
             if (canchasStatus) canchasStatus.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error crítico';
             if (courtsContainer) courtsContainer.innerHTML = `<div class="alert" style="margin: 20px auto; width: 90%;"><i class="fas fa-exclamation-circle"></i> <strong>Error crítico:</strong> ${error.message}</div>`;
           }
-        };        
+          window.loadHomeCourts();
+		};        
 
         // Actualizar nombres de equipos en el marcador
         window.updateTeamNamesDisplay = function() {
@@ -1341,7 +1446,115 @@
           if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
           if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
         };
-        
+
+        // Función para cargar las canchas en la pantalla de inicio
+        window.loadHomeCourts = function() {
+          const courtsGrid = document.getElementById('courts-grid');
+          if (!courtsGrid || !window.currentClub) return;
+          
+          const courtCount = window.safeNumber(window.currentClub.court_count, 0);
+          courtsGrid.innerHTML = '';
+          
+          if (courtCount <= 0) {
+            courtsGrid.innerHTML = '<p>No hay canchas configuradas</p>';
+            return;
+          }
+          
+          // Obtener datos de uso de canchas para mostrar estado
+          window.supabase
+            .from('court_usage')
+            .select('*')
+            .eq('club_id', window.currentUser.id)
+            .then(({ data, error }) => {
+              const courtUsage = {};
+              if (data) {
+                data.forEach(court => {
+                  courtUsage[court.court] = court.match_count || 0;
+                });
+              }
+              
+              // Crear tarjetas de canchas
+              for (let i = 1; i <= courtCount; i++) {
+                const courtName = `Cancha ${i}`;
+                const matchCount = courtUsage[courtName] || 0;
+                
+                const courtCard = document.createElement('div');
+                courtCard.className = 'court-card';
+                
+                let statusClass = 'status-available';
+                let statusText = 'Disponible';
+                
+                if (matchCount > 3) {
+                  statusClass = 'status-busy';
+                  statusText = 'Ocupada';
+                } else if (matchCount > 5) {
+                  statusClass = 'status-offline';
+                  statusText = 'Mantenimiento';
+                }
+                
+                courtCard.innerHTML = `
+                  <div class="court-icon">
+                    <i class="fas fa-table-tennis-paddle-ball"></i>
+                  </div>
+                  <h3>${courtName}</h3>
+                  <span class="court-status ${statusClass}">${statusText}</span>
+                  <div class="court-details">${matchCount} partidos hoy</div>
+                `;
+                
+                courtsGrid.appendChild(courtCard);
+              }
+            });
+        };
+		
+        // Función para cargar la pantalla de selección de canchas
+        window.loadCourtsSelection = function() {
+          const courtsList = document.getElementById('courts-list');
+          if (!courtsList || !window.currentClub) return;
+          
+          const courtCount = window.safeNumber(window.currentClub.court_count, 0);
+          courtsList.innerHTML = '';
+          
+          if (courtCount <= 0) {
+            courtsList.innerHTML = '<p>No hay canchas configuradas</p>';
+            return;
+          }
+          
+          // Crear opciones de canchas
+          for (let i = 1; i <= courtCount; i++) {
+            const courtOption = document.createElement('div');
+            courtOption.className = 'court-option';
+            courtOption.dataset.court = `Cancha ${i}`;
+            courtOption.innerHTML = `
+              <h3><i class="fas fa-table-tennis-paddle-ball"></i> Cancha ${i}</h3>
+              <p>Selecciona para iniciar un partido</p>
+            `;
+            
+            courtOption.addEventListener('click', function() {
+              // Deseleccionar todas las opciones
+              document.querySelectorAll('.court-option').forEach(opt => {
+                opt.classList.remove('selected');
+              });
+              
+              // Seleccionar esta opción
+              this.classList.add('selected');
+              
+              // Habilitar botón de confirmación
+              document.getElementById('confirm-court-btn').disabled = false;
+            });
+            
+            courtsList.appendChild(courtOption);
+          }
+        };
+
+        // Función para confirmar la selección de cancha
+        window.confirmCourtSelection = function() {
+          const selectedCourt = document.querySelector('.court-option.selected');
+          if (!selectedCourt) return;
+          
+          window.selectedCourt = selectedCourt.dataset.court;
+          window.goToScreen('scoring-type');
+        };
+    
         // Seleccionar sistema de puntuación
         window.selectScoring = function(type) {
           window.scoringType = type;
@@ -3569,6 +3782,7 @@
         <a href="#" class="link" onclick="window.goToScreen('login')">¿Ya tienes un club registrado? Inicia sesión</a>
       </p>
     </div>
+	
     <!-- Pantalla 3: Inicio -->
     <div class="screen" id="home">
       <h2>Bienvenido, <span id="club-name-display">Cargando...</span></h2>
@@ -3598,19 +3812,46 @@
         </div>
       </div>
       
-      <h2>Uso de canchas</h2>
-      <canvas id="courtsChart" height="100"></canvas>
+      <!-- Canchas disponibles -->
+      <h2>Canchas Disponibles</h2>
+      <div class="courts-grid" id="courts-grid">
+        <!-- Las canchas se cargarán dinámicamente -->
+      </div>
       
-      <h2>Jugadores del día</h2>
-      <div id="players-today-list" style="margin: 10px 0;"></div>
+      <!-- Botón para iniciar partido -->
+      <button class="btn play-button" onclick="window.goToScreen('courts-selection')">
+        <i class="fas fa-play-circle"></i> Iniciar Partido
+      </button>
       
-      <h2>Selecciona tu cancha</h2>
-      <div class="teams" id="courts-container"><p><i class="fas fa-spinner fa-spin"></i> Cargando canchas...</p></div>
+      <!-- Gráfico de uso de canchas -->
+      <h2>Uso de Canchas</h2>
+      <div class="chart-container">
+        <canvas id="courtsChart" height="100"></canvas>
+      </div>
+      
       <p><a href="#" class="link" onclick="window.goToScreen('ranking')"><i class="fas fa-trophy"></i> Ver ranking semanal</a></p>
       <button class="btn btn-red" style="margin-top: 20px; max-width: 320px;" onclick="window.logoutUser()">
         <i class="fas fa-sign-out-alt"></i> Cerrar sesión
       </button>
       <div class="footer">© 2025 PadelTrack. Todos los puntos cuentan.</div>
+    </div>
+
+    <!-- Nueva Pantalla: Selección de Canchas -->
+    <div class="screen" id="courts-selection">
+      <header>
+        <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h2>Selecciona una Cancha</h2>
+      </header>
+      
+      <div id="courts-list">
+        <!-- Las opciones de canchas se cargarán aquí -->
+      </div>
+      
+      <button class="btn" id="confirm-court-btn" onclick="window.confirmCourtSelection()" disabled>
+        <i class="fas fa-check"></i> Confirmar Cancha
+      </button>
     </div>
     
     <!-- Pantalla 4: Tipo de Puntuación -->
