@@ -1037,6 +1037,46 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
+
+        // Verificar si estamos en modo QR
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const courtId = urlParams.get('court');
+        
+        if (mode === 'qr' && courtId) {
+          console.log("Modo QR activado para cancha:", courtId);
+          
+          // Ocultar todos los elementos excepto el formulario de registro
+          document.querySelectorAll('.screen').forEach(screen => {
+            screen.style.display = 'none';
+          });
+          
+          // Mostrar solo el formulario de registro
+          const registerScreen = document.getElementById('register');
+          if (registerScreen) {
+            registerScreen.style.display = 'block';
+            registerScreen.classList.add('active');
+            
+            // Actualizar el texto para indicar que es registro desde QR
+            const title = registerScreen.querySelector('h2');
+            if (title) {
+              title.textContent = `Registro para Cancha ${courtId}`;
+            }
+          }
+          
+          // Guardar la función original de startGame
+          const originalStartGame = window.startGame;
+          
+          // Modificar la función startGame para usar la cancha del QR
+          window.startGame = async function() {
+            // Establecer la cancha desde el QR
+            window.selectedCourt = `Cancha ${courtId}`;
+            console.log("Cancha establecida desde QR:", window.selectedCourt);
+            
+            // Llamar a la función original
+            return originalStartGame.apply(this, arguments);
+          };
+        }
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
