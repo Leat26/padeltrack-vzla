@@ -266,7 +266,8 @@
       },
       global: {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       }
     });
@@ -339,30 +340,18 @@
       try {
         console.log("Buscando partido activo para cancha:", courtId);
         
+        // Usar la columna 'court' en lugar de 'court_id'
         const { data, error } = await supabase
           .from('matches')
           .select('*')
-          .or(`court_id.eq.${courtId},court.eq.Cancha ${courtId}`)
+          .eq('court', `Cancha ${courtId}`)  // Cambiado de court_id a court
           .eq('status', 'active')
           .single();
           
         if (error) {
           console.error("Error al cargar partido:", error);
-          // Intentar con formato alternativo de cancha
-          const { data: altData, error: altError } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('court', `Cancha ${courtId}`)
-            .eq('status', 'active')
-            .single();
-            
-          if (altError) {
-            console.error("Error alternativo:", altError);
-            document.getElementById('match-state').textContent = 'Sin partido activo';
-            return null;
-          }
-          
-          return altData;
+          document.getElementById('match-state').textContent = 'Sin partido activo';
+          return null;
         }
         
         return data;
@@ -432,7 +421,7 @@
               event: '*',
               schema: 'public',
               table: 'matches',
-              filter: `court_id=eq.${courtId}`
+              filter: `court=eq.Cancha ${courtId}`  // Cambiado de court_id a court
             },
             (payload) => {
               console.log('Cambio recibido:', payload);
@@ -442,8 +431,6 @@
           .subscribe((status, err) => {
             if (err) {
               console.error("Error de suscripción:", err);
-              // Intentar formato alternativo de filtro
-              setupAlternativeSubscription();
             } else {
               console.log("Estado de suscripción:", status);
             }
@@ -455,7 +442,6 @@
         return null;
       }
     }
-    
 	
     // Función alternativa de suscripción
     function setupAlternativeSubscription() {
@@ -565,6 +551,40 @@
       }
     });
 
+    function generateQRCode() {
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
+      const qrElement = document.getElementById('qrcode');
+      
+      if (qrElement) {
+        // Limpiar el contenedor QR primero
+        qrElement.innerHTML = '';
+        
+        // Crear un elemento canvas para el QR
+        const canvas = document.createElement('canvas');
+        qrElement.appendChild(canvas);
+        
+        // Generar el QR en el canvas
+        QRCode.toCanvas(canvas, registrationUrl, {
+          width: 180,
+          margin: 1,
+          color: {
+            dark: '#2c3e50',
+            light: '#ffffff'
+          }
+        }, function(error) {
+          if (error) {
+            console.error('Error generating QR code:', error);
+            // Fallback: crear un enlace si el QR falla
+            qrElement.innerHTML = `
+              <a href="${registrationUrl}" style="color: white; text-decoration: underline;">
+                Escanear para registrar partido
+              </a>
+            `;
+          }
+        });
+      }
+    }
+
     // Inicializar la aplicación
     async function initApp() {
       try {
@@ -572,6 +592,9 @@
         currentMatch = await loadActiveMatch();
         if (currentMatch) {
           updateMatchDisplay(currentMatch);
+        } else {
+          document.getElementById('match-state').textContent = 'Sin partido activo';
+          document.querySelector('.qr-section').style.display = 'block';
         }
         
         // Configurar suscripción en tiempo real
