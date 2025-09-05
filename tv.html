@@ -261,13 +261,15 @@
     
     // Inicializar Supabase con configuración de Realtime
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
-      realtime: {
-        params: {
-          eventsPerSecond: 10
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json'
         }
       }
     });
-    window.supabase = supabase;
     
     // Obtener ID de cancha de la URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -334,15 +336,39 @@
       
     // Cargar partido activo al iniciar
     async function loadActiveMatch() {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('court_id', courtId)
-        .eq('status', 'active')
-        .single();
+      try {
+        console.log("Buscando partido activo para cancha:", courtId);
         
-      if (data) {
-        updateMatchDisplay(data);
+        const { data, error } = await supabase
+          .from('matches')
+          .select('*')
+          .or(`court_id.eq.${courtId},court.eq.Cancha ${courtId}`)
+          .eq('status', 'active')
+          .single();
+          
+        if (error) {
+          console.error("Error al cargar partido:", error);
+          // Intentar con formato alternativo de cancha
+          const { data: altData, error: altError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('court', `Cancha ${courtId}`)
+            .eq('status', 'active')
+            .single();
+            
+          if (altError) {
+            console.error("Error alternativo:", altError);
+            document.getElementById('match-state').textContent = 'Sin partido activo';
+            return null;
+          }
+          
+          return altData;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error inesperado:", error);
+        return null;
       }
     }
     
@@ -393,7 +419,71 @@
         document.getElementById('match-duration').textContent = '00:00';
       }
     }
+
+
+    // Función para suscribirse a cambios con manejo de errores
+    function setupRealtimeSubscription() {
+      try {
+        const subscription = supabase
+          .channel('matches-channel')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'matches',
+              filter: `court_id=eq.${courtId}`
+            },
+            (payload) => {
+              console.log('Cambio recibido:', payload);
+              updateMatchDisplay(payload.new);
+            }
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.error("Error de suscripción:", err);
+              // Intentar formato alternativo de filtro
+              setupAlternativeSubscription();
+            } else {
+              console.log("Estado de suscripción:", status);
+            }
+          });
+          
+        return subscription;
+      } catch (error) {
+        console.error("Error al configurar suscripción:", error);
+        return null;
+      }
+    }
     
+	
+    // Función alternativa de suscripción
+    function setupAlternativeSubscription() {
+      try {
+        const subscription = supabase
+          .channel('matches-alt-channel')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'matches'
+            },
+            (payload) => {
+              // Filtrar manualmente por cancha
+              if (payload.new.court_id == courtId || payload.new.court === `Cancha ${courtId}`) {
+                updateMatchDisplay(payload.new);
+              }
+            }
+          )
+          .subscribe();
+          
+        return subscription;
+      } catch (error) {
+        console.error("Error en suscripción alternativa:", error);
+        return null;
+      }
+    }	
     function startMatchTimer(startTime) {
       stopMatchTimer();
       
@@ -416,9 +506,9 @@
       }
     }
     
-    // Función para agregar puntos (simulación de botones físicos)
+    // Función para agregar puntos con manejo de errores
     async function addPoint(team) {
-      if (!currentMatch || currentMatch.status !== 'active') {
+      if (!currentMatch) {
         alert('No hay un partido activo. Por favor, escanee el QR para registrar un partido primero.');
         return;
       }
@@ -441,12 +531,64 @@
           alert('Error al registrar punto. Intente nuevamente.');
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error inesperado:', error);
         alert('Error inesperado. Intente nuevamente.');
       }
     }
+
+
+    // Prueba de conexión a Supabase
+    async function testConnection() {
+      try {
+        const { data, error } = await supabase
+          .from('matches')
+          .select('count')
+          .limit(1);
+          
+        if (error) {
+          console.error("Error de conexión:", error);
+          return false;
+        }
+        
+        console.log("Conexión exitosa");
+        return true;
+      } catch (error) {
+        console.error("Error inesperado en prueba de conexión:", error);
+        return false;
+      }
+    }
     
-    // Cargar partido activo al iniciar
+    // Ejecutar prueba de conexión
+    testConnection().then(success => {
+      if (!success) {
+        console.error("No se pudo conectar a Supabase. Verifica tus credenciales.");
+      }
+    });
+
+    // Inicializar la aplicación
+    async function initApp() {
+      try {
+        // Cargar partido activo
+        currentMatch = await loadActiveMatch();
+        if (currentMatch) {
+          updateMatchDisplay(currentMatch);
+        }
+        
+        // Configurar suscripción en tiempo real
+        setupRealtimeSubscription();
+        
+        // Generar código QR
+        generateQRCode();
+        
+      } catch (error) {
+        console.error("Error al inicializar la aplicación:", error);
+      }
+    }
+    
+    // Iniciar la aplicación cuando el DOM esté cargado
+    document.addEventListener('DOMContentLoaded', initApp);    
+    
+	// Cargar partido activo al iniciar
     loadActiveMatch();
   </script>
 </body>
