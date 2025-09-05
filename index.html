@@ -1042,6 +1042,7 @@
         // Verificar si hay parámetros de URL para modo TV
         const urlParams = new URLSearchParams(window.location.search);
         const courtId = urlParams.get('court');
+		const mode = urlParams.get('mode');
         
         if (courtId) {
           console.log("Modo TV detectado para cancha:", courtId);
@@ -1063,11 +1064,6 @@
             return; // Salir temprano para evitar la navegación normal
           }
         }		
-
-        // Verificar si estamos en modo QR
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode');
-        const courtId = urlParams.get('court');
         
         if (mode === 'qr' && courtId) {
           console.log("Modo QR activado para cancha:", courtId);
