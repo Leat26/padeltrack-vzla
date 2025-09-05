@@ -1037,6 +1037,32 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
+		
+
+        // Verificar si hay parámetros de URL para modo TV
+        const urlParams = new URLSearchParams(window.location.search);
+        const courtId = urlParams.get('court');
+        
+        if (courtId) {
+          console.log("Modo TV detectado para cancha:", courtId);
+          // Establecer la cancha seleccionada
+          window.selectedCourt = `Cancha ${courtId}`;
+          
+          // Guardar el ID de cancha para uso en TV
+          window.tvCourtId = courtId;
+          
+          // Si el usuario no está autenticado, ir directamente al modo TV
+          const isAuthenticated = await window.verifyAuth();
+          if (!isAuthenticated) {
+            // Crear una pantalla TV temporal si no existe
+            if (!document.getElementById('tv-mode')) {
+              createTvModeScreen();
+            }
+            window.goToScreen('tv-mode');
+            initializeTvMode(courtId);
+            return; // Salir temprano para evitar la navegación normal
+          }
+        }		
 
         // Verificar si estamos en modo QR
         const urlParams = new URLSearchParams(window.location.search);
@@ -1077,6 +1103,8 @@
             return originalStartGame.apply(this, arguments);
           };
         }
+		
+		
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
@@ -1120,8 +1148,16 @@
 		
         // Navegación entre pantallas - Versión mejorada con seguridad
         window.goToScreen = async function(id) {
-          // Pantallas públicas que no requieren autenticación
-          const publicScreens = ['login', 'register-screen', 'welcome'];
+          
+		  // Extraer el ID de pantalla de la URL si existe
+		  const urlParams = new URLSearchParams(window.location.search);
+		  const urlScreen = urlParams.get('screen');
+		  
+		  // Si la URL especifica una pantalla, usarla en lugar del parámetro
+		  const targetScreen = urlScreen || id;
+		  
+		  // Pantallas públicas que no requieren autenticación
+          const publicScreens = ['login', 'register-screen', 'welcome','tv-mode'];
           
           // Si no es una pantalla pública, verificar autenticación
           if (!publicScreens.includes(id)) {
@@ -1139,6 +1175,11 @@
             s.classList.remove('active');
             s.style.display = 'none';
           });
+
+          document.querySelectorAll('.screen').forEach(s => {
+            s.classList.remove('active');
+            s.style.display = 'none';
+          });		  
           
           // Mostrar la pantalla solicitada
           const screen = document.getElementById(id);
@@ -1233,6 +1274,127 @@
             screen.scrollTop = 0;
           }
         };
+
+
+        // Función para crear la pantalla de modo TV
+        function createTvModeScreen() {
+          const tvModeHTML = `
+          <div class="screen" id="tv-mode">
+            <header>
+              <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+                <i class="fas fa-arrow-left"></i>
+              </button>
+            </header>
+            <h2>Modo TV - Cancha #<span id="tv-court-number">1</span></h2>
+            
+            <div class="scoreboard">
+              <div class="team team-a">
+                <h3 id="tv-team-a-name">Equipo A</h3>
+                <div class="players" id="tv-team-a-players">-</div>
+                <div class="score" id="tv-score-a">0</div>
+              </div>
+              
+              <div class="vs">VS</div>
+              
+              <div class="team team-b">
+                <h3 id="tv-team-b-name">Equipo B</h3>
+                <div class="players" id="tv-team-b-players">-</div>
+                <div class="score" id="tv-score-b">0</div>
+              </div>
+            </div>
+            
+            <div class="game-info">
+              <div class="info-box">
+                <span>Duración</span>
+                <span id="tv-match-duration">00:00</span>
+              </div>
+              <div class="info-box">
+                <span>Puntos totales</span>
+                <span id="tv-total-points">0</span>
+              </div>
+            </div>
+            
+            <div class="qr-section">
+              <h3>Escanee para registrar su partido</h3>
+              <div id="tv-qrcode"></div>
+              <p>Use su smartphone para escanear el código</p>
+            </div>
+          </div>`;
+          
+          // Agregar la pantalla al DOM
+          document.querySelector('.container').insertAdjacentHTML('beforeend', tvModeHTML);
+        }
+        
+        // Función para inicializar el modo TV
+        function initializeTvMode(courtId) {
+          // Configurar la cancha
+          document.getElementById('tv-court-number').textContent = courtId;
+          
+          // Generar código QR
+          const registrationUrl = `${window.location.origin}${window.location.pathname}?mode=qr&court=${courtId}`;
+          QRCode.toCanvas(document.getElementById('tv-qrcode'), registrationUrl, {
+            width: 180,
+            margin: 1,
+            color: {
+              dark: '#2c3e50',
+              light: '#ffffff'
+            }
+          }, function(error) {
+            if (error) console.error(error);
+          });
+          
+          // Suscribirse a cambios en la base de datos para esta cancha
+          setupCourtRealtimeSubscription(courtId);
+        }
+        
+        // Función para suscribirse a cambios en una cancha específica
+        function setupCourtRealtimeSubscription(courtId) {
+          const subscription = window.supabase
+            .from('matches')
+            .on('UPDATE', payload => {
+              if (payload.new.court_id == courtId || payload.new.court == `Cancha ${courtId}`) {
+                updateTvMatchDisplay(payload.new);
+              }
+            })
+            .on('INSERT', payload => {
+              if (payload.new.court_id == courtId || payload.new.court == `Cancha ${courtId}`) {
+                updateTvMatchDisplay(payload.new);
+              }
+            })
+            .subscribe();
+        }
+        
+        // Función para actualizar la visualización en modo TV
+        function updateTvMatchDisplay(matchData) {
+          // Actualizar la interfaz con los datos del partido
+          document.getElementById('tv-team-a-name').textContent = matchData.team_a_name || 'Equipo A';
+          document.getElementById('tv-team-b-name').textContent = matchData.team_b_name || 'Equipo B';
+          document.getElementById('tv-team-a-players').textContent = 
+            matchData.team_a_players ? matchData.team_a_players.join(' / ') : '-';
+          document.getElementById('tv-team-b-players').textContent = 
+            matchData.team_b_players ? matchData.team_b_players.join(' / ') : '-';
+          document.getElementById('tv-score-a').textContent = matchData.team_a_score || 0;
+          document.getElementById('tv-score-b').textContent = matchData.team_b_score || 0;
+          document.getElementById('tv-total-points').textContent = 
+            (matchData.team_a_score || 0) + (matchData.team_b_score || 0);
+          
+          // Actualizar duración si el partido está activo
+          if (matchData.status === 'active' && matchData.start_time) {
+            updateTvMatchDuration(matchData.start_time);
+          }
+        }
+        
+        // Función para actualizar la duración del partido en modo TV
+        function updateTvMatchDuration(startTime) {
+          const start = new Date(startTime);
+          const now = new Date();
+          const diff = now - start;
+          const minutes = Math.floor(diff / 60000);
+          const seconds = Math.floor((diff % 60000) / 1000);
+          
+          document.getElementById('tv-match-duration').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
         
         // Actualizar la pantalla de inicio con los datos del club
         window.updateHomeScreen = async function() {
@@ -3635,6 +3797,16 @@
               window.goToScreen('login');
             }
           }
+		  
+          // Si hay parámetro court y ahora está autenticado, ir al modo TV
+          if (courtId && session) {
+            if (!document.getElementById('tv-mode')) {
+              createTvModeScreen();
+            }
+            window.goToScreen('tv-mode');
+            initializeTvMode(courtId);
+          }
+	  
         });
         
         // Verificar estado actual de autenticación
@@ -4301,6 +4473,50 @@
         </div>
         <p>Estamos emocionados de tenerte con nosotros. ¡Comienza a registrar tus partidos y disfruta del mejor seguimiento de pádel!</p>
         <button class="btn btn-green" onclick="window.goToScreen('login')">Iniciar Sesión</button>
+      </div>
+    </div>
+
+    <!-- Pantalla TV Mode -->
+    <div class="screen" id="tv-mode">
+      <header>
+        <button class="back-btn btn-header" onclick="window.goToScreen('home')">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </header>
+      <h2>Modo TV - Cancha #<span id="tv-court-number">1</span></h2>
+      
+      <div class="scoreboard">
+        <!-- Contenido similar al de tu pantalla de juego -->
+        <div class="team team-a">
+          <h3 id="tv-team-a-name">Equipo A</h3>
+          <div class="players" id="tv-team-a-players">-</div>
+          <div class="score" id="tv-score-a">0</div>
+        </div>
+        
+        <div class="vs">VS</div>
+        
+        <div class="team team-b">
+          <h3 id="tv-team-b-name">Equipo B</h3>
+          <div class="players" id="tv-team-b-players">-</div>
+          <div class="score" id="tv-score-b">0</div>
+        </div>
+      </div>
+      
+      <div class="game-info">
+        <div class="info-box">
+          <span>Duración</span>
+          <span id="tv-match-duration">00:00</span>
+        </div>
+        <div class="info-box">
+          <span>Puntos totales</span>
+          <span id="tv-total-points">0</span>
+        </div>
+      </div>
+      
+      <div class="qr-section">
+        <h3>Escanee para registrar su partido</h3>
+        <div id="tv-qrcode"></div>
+        <p>Use su smartphone para escanear el código</p>
       </div>
     </div>
 
