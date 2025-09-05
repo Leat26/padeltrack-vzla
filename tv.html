@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>
+    /* Tus estilos existentes */
     :root {
       --primary: #2c3e50;
       --secondary: #e74c3c;
@@ -254,10 +255,19 @@
   </div>
 
   <script>
-    // Configuración de Supabase (usar tus credenciales reales)
-    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    // Configuración de Supabase (¡REEMPLAZA CON TUS VALORES REALES!)
+    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
+    
+    // Inicializar Supabase con configuración de Realtime
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    });
+    window.supabase = supabase;
     
     // Obtener ID de cancha de la URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -265,36 +275,61 @@
     
     document.getElementById('court-number').textContent = courtId;
     
-    // Generar QR único para esta cancha
-    const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
-    QRCode.toCanvas(document.getElementById('qrcode'), registrationUrl, {
-      width: 200,
-      margin: 1,
-      color: {
-        dark: '#2c3e50',
-        light: '#ffffff'
-      }
-    }, function(error) {
-      if (error) console.error(error);
-    });
-    
     // Variables de estado del partido
     let currentMatch = null;
     let matchDurationInterval = null;
     
-    // Suscribirse a cambios en la base de datos para esta cancha
+    // Generar QR único para esta cancha (versión corregida)
+    const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
+    
+    setTimeout(() => {
+      const qrElement = document.getElementById('qrcode');
+      if (qrElement) {
+        // Limpiar el contenedor QR primero
+        qrElement.innerHTML = '';
+        
+        // Crear un elemento canvas para el QR
+        const canvas = document.createElement('canvas');
+        qrElement.appendChild(canvas);
+        
+        // Generar el QR en el canvas
+        QRCode.toCanvas(canvas, registrationUrl, {
+          width: 180,
+          margin: 1,
+          color: {
+            dark: '#2c3e50',
+            light: '#ffffff'
+          }
+        }, function(error) {
+          if (error) {
+            console.error('Error generating QR code:', error);
+            // Fallback: crear un enlace si el QR falla
+            qrElement.innerHTML = `
+              <a href="${registrationUrl}" style="color: white; text-decoration: underline;">
+                Escanear para registrar partido
+              </a>
+            `;
+          }
+        });
+      }
+    }, 100);
+    
+    // Suscribirse a cambios en la base de datos para esta cancha (versión corregida)
     const matchSubscription = supabase
-      .from('matches')
-      .on('UPDATE', payload => {
-        if (payload.new.court_id == courtId) {
-          updateMatchDisplay(payload.new);
+      .channel('custom-all-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches'
+        },
+        (payload) => {
+          if (payload.new.court_id == courtId || payload.new.court == `Cancha ${courtId}`) {
+            updateMatchDisplay(payload.new);
+          }
         }
-      })
-      .on('INSERT', payload => {
-        if (payload.new.court_id == courtId) {
-          updateMatchDisplay(payload.new);
-        }
-      })
+      )
       .subscribe();
       
     // Cargar partido activo al iniciar
