@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PadelTrack - Pantalla TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --secondary: #e74c3c;
+      --accent: #3498db;
+      --light: #ecf0f1;
+      --dark: #2c3e50;
+      --success: #2ecc71;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #2c3e50 0%, #1a2530 100%);
+      color: white;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    
+    .container {
+      max-width: 100%;
+      height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .court-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .match-status {
+      padding: 8px 16px;
+      background-color: #e67e22;
+      border-radius: 20px;
+      font-weight: bold;
+    }
+    
+    .match-status.active {
+      background-color: var(--success);
+    }
+    
+    .scoreboard {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 20px 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 25px;
+      border-radius: 12px;
+      flex: 1;
+    }
+    
+    .team {
+      text-align: center;
+      flex: 1;
+    }
+    
+    .team-a .score {
+      color: #3498db;
+      font-size: 5rem;
+      font-weight: bold;
+    }
+    
+    .team-b .score {
+      color: #e74c3c;
+      font-size: 5rem;
+      font-weight: bold;
+    }
+    
+    .players {
+      font-size: 1.5rem;
+      margin: 10px 0;
+      min-height: 1.5em;
+    }
+    
+    .vs {
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 0 30px;
+      opacity: 0.7;
+    }
+    
+    .game-info {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+    }
+    
+    .info-box {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 15px 25px;
+      border-radius: 8px;
+      text-align: center;
+      flex: 1;
+      margin: 0 10px;
+    }
+    
+    .info-box span:first-child {
+      display: block;
+      font-size: 1rem;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+    
+    .info-box span:last-child {
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    
+    .qr-section {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    #qrcode {
+      margin: 15px auto;
+      display: inline-block;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .button-simulator {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 20px;
+    }
+    
+    .sim-button {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+    }
+    
+    .sim-button:active {
+      transform: scale(0.95);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    .team-a-btn {
+      background-color: #3498db;
+    }
+    
+    .team-b-btn {
+      background-color: #e74c3c;
+    }
+    
+    /* Responsive adjustments for TV */
+    @media (max-width: 1200px) {
+      .team-a .score, .team-b .score {
+        font-size: 4rem;
+      }
+      
+      .players {
+        font-size: 1.2rem;
+      }
+      
+      .vs {
+        font-size: 2.5rem;
+      }
+    }
+    
+    @media (max-width: 900px) {
+      .scoreboard {
+        flex-direction: column;
+        gap: 30px;
+      }
+      
+      .vs {
+        margin: 20px 0;
+        transform: rotate(0deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="court-header">
+      <h1>Cancha #<span id="court-number">1</span></h1>
+      <div class="match-status" id="match-state">Esperando jugadores...</div>
+    </div>
+    
+    <div class="scoreboard">
+      <div class="team team-a">
+        <h2 id="team-a-name">Equipo A</h2>
+        <div class="players" id="team-a-players">-</div>
+        <div class="score" id="score-a">0</div>
+      </div>
+      
+      <div class="vs">VS</div>
+      
+      <div class="team team-b">
+        <h2 id="team-b-name">Equipo B</h2>
+        <div class="players" id="team-b-players">-</div>
+        <div class="score" id="score-b">0</div>
+      </div>
+    </div>
+    
+    <div class="game-info">
+      <div class="info-box">
+        <span>Duración</span>
+        <span id="match-duration">00:00</span>
+      </div>
+      <div class="info-box">
+        <span>Puntos totales</span>
+        <span id="total-points">0</span>
+      </div>
+      <div class="info-box">
+        <span>Sistema</span>
+        <span id="scoring-type">Tradicional</span>
+      </div>
+    </div>
+    
+    <div class="qr-section">
+      <h3>Escanee para registrar su partido</h3>
+      <div id="qrcode"></div>
+      <p>Use su smartphone para escanear el código y registrar los jugadores</p>
+    </div>
+    
+    <div class="button-simulator">
+      <div class="sim-button team-a-btn" onclick="addPoint('A')">EQUIPO A</div>
+      <div class="sim-button team-b-btn" onclick="addPoint('B')">EQUIPO B</div>
+    </div>
+  </div>
+
+  <script>
+    // Configuración de Supabase (usar tus credenciales reales)
+    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    
+    // Obtener ID de cancha de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const courtId = urlParams.get('court') || 1;
+    
+    document.getElementById('court-number').textContent = courtId;
+    
+    // Generar QR único para esta cancha
+    const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
+    QRCode.toCanvas(document.getElementById('qrcode'), registrationUrl, {
+      width: 200,
+      margin: 1,
+      color: {
+        dark: '#2c3e50',
+        light: '#ffffff'
+      }
+    }, function(error) {
+      if (error) console.error(error);
+    });
+    
+    // Variables de estado del partido
+    let currentMatch = null;
+    let matchDurationInterval = null;
+    
+    // Suscribirse a cambios en la base de datos para esta cancha
+    const matchSubscription = supabase
+      .from('matches')
+      .on('UPDATE', payload => {
+        if (payload.new.court_id == courtId) {
+          updateMatchDisplay(payload.new);
+        }
+      })
+      .on('INSERT', payload => {
+        if (payload.new.court_id == courtId) {
+          updateMatchDisplay(payload.new);
+        }
+      })
+      .subscribe();
+      
+    // Cargar partido activo al iniciar
+    async function loadActiveMatch() {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('court_id', courtId)
+        .eq('status', 'active')
+        .single();
+        
+      if (data) {
+        updateMatchDisplay(data);
+      }
+    }
+    
+    function updateMatchDisplay(matchData) {
+      currentMatch = matchData;
+      
+      // Actualizar estado
+      const stateElement = document.getElementById('match-state');
+      if (matchData.status === 'active') {
+        stateElement.textContent = 'Partido en curso';
+        stateElement.className = 'match-status active';
+        
+        // Ocultar QR cuando el partido está activo
+        document.querySelector('.qr-section').style.display = 'none';
+      } else {
+        stateElement.textContent = 'Esperando jugadores...';
+        stateElement.className = 'match-status';
+        
+        // Mostrar QR cuando no hay partido
+        document.querySelector('.qr-section').style.display = 'block';
+      }
+      
+      // Actualizar información de equipos
+      document.getElementById('team-a-players').textContent = 
+        matchData.team_a_players ? matchData.team_a_players.join(' / ') : '-';
+      document.getElementById('team-b-players').textContent = 
+        matchData.team_b_players ? matchData.team_b_players.join(' / ') : '-';
+        
+      // Actualizar nombres de equipos
+      document.getElementById('team-a-name').textContent = matchData.team_a_name || 'Equipo A';
+      document.getElementById('team-b-name').textContent = matchData.team_b_name || 'Equipo B';
+        
+      // Actualizar marcador
+      document.getElementById('score-a').textContent = matchData.team_a_score || 0;
+      document.getElementById('score-b').textContent = matchData.team_b_score || 0;
+      document.getElementById('total-points').textContent = 
+        (matchData.team_a_score || 0) + (matchData.team_b_score || 0);
+        
+      // Actualizar tipo de sistema de puntuación
+      document.getElementById('scoring-type').textContent = 
+        matchData.scoring_type === 'american' ? 'Americano' : 'Tradicional';
+        
+      // Calcular y mostrar duración si el partido está activo
+      if (matchData.status === 'active' && matchData.start_time) {
+        startMatchTimer(matchData.start_time);
+      } else {
+        stopMatchTimer();
+        document.getElementById('match-duration').textContent = '00:00';
+      }
+    }
+    
+    function startMatchTimer(startTime) {
+      stopMatchTimer();
+      
+      matchDurationInterval = setInterval(() => {
+        const start = new Date(startTime);
+        const now = new Date();
+        const diff = now - start;
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        
+        document.getElementById('match-duration').textContent = 
+          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+    
+    function stopMatchTimer() {
+      if (matchDurationInterval) {
+        clearInterval(matchDurationInterval);
+        matchDurationInterval = null;
+      }
+    }
+    
+    // Función para agregar puntos (simulación de botones físicos)
+    async function addPoint(team) {
+      if (!currentMatch || currentMatch.status !== 'active') {
+        alert('No hay un partido activo. Por favor, escanee el QR para registrar un partido primero.');
+        return;
+      }
+      
+      try {
+        const updateData = {};
+        if (team === 'A') {
+          updateData.team_a_score = (currentMatch.team_a_score || 0) + 1;
+        } else {
+          updateData.team_b_score = (currentMatch.team_b_score || 0) + 1;
+        }
+        
+        const { error } = await supabase
+          .from('matches')
+          .update(updateData)
+          .eq('id', currentMatch.id);
+          
+        if (error) {
+          console.error('Error al actualizar puntuación:', error);
+          alert('Error al registrar punto. Intente nuevamente.');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error inesperado. Intente nuevamente.');
+      }
+    }
+    
+    // Cargar partido activo al iniciar
+    loadActiveMatch();
+  </script>
+</body>
+</html>
