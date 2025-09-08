@@ -1008,6 +1008,16 @@
         
         console.log("Supabase client creado exitosamente");
         
+        // Definir verifyAuth INMEDIATAMENTE después
+        window.verifyAuth = async function() {
+            const { data, error } = await window.supabase.auth.getSession();
+            if (error) {
+                console.error("Error al verificar sesión:", error);
+                return false;
+            }
+            return !!data.session;
+        };		
+		
         // Variables globales
         window.lastMatchId = null;
 		window.currentUser = null;
@@ -1038,69 +1048,97 @@
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
 		
-
-        // Verificar si hay parámetros de URL para modo TV
+        // Verificar si hay parámetros de URL para modo QR
         const urlParams = new URLSearchParams(window.location.search);
         const courtId = urlParams.get('court');
-		const mode = urlParams.get('mode');
+        const clubIdFromUrl = urlParams.get('club');
+        const mode = urlParams.get('mode');
         
-        if (courtId) {
-          console.log("Modo TV detectado para cancha:", courtId);
-          // Establecer la cancha seleccionada
-          window.selectedCourt = `Cancha ${courtId}`;
-          
-          // Guardar el ID de cancha para uso en TV
-          window.tvCourtId = courtId;
-          
-          // Si el usuario no está autenticado, ir directamente al modo TV
-          const isAuthenticated = await window.verifyAuth();
-          if (!isAuthenticated) {
-            // Crear una pantalla TV temporal si no existe
-            if (!document.getElementById('tv-mode')) {
-              createTvModeScreen();
+        if (mode === 'qr' && courtId) {
+            console.log("Modo QR detectado para cancha:", courtId);
+            
+            // Si hay clubId en la URL, usarlo en lugar de depender de la sesión
+            if (clubIdFromUrl) {
+                // Validar formato UUID
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+                if (uuidRegex.test(clubIdFromUrl)) {
+                    // Guardar el clubId para usar en startGame
+                    window.currentClubId = clubIdFromUrl;
+                    
+                    // Establecer la cancha seleccionada
+                    window.selectedCourt = `Cancha ${courtId}`;
+                    
+                    // Mostrar pantalla de registro
+                    window.goToScreen('register');
+                    
+                    // Actualizar título
+                    const registerTitle = document.querySelector('#register h2');
+                    if (registerTitle) {
+                        registerTitle.textContent = `Registro para Cancha ${courtId}`;
+                    }
+                    
+                    // Modificar temporalmente window.startGame para usar el clubId de la URL
+                    const originalStartGame = window.startGame;
+                    window.startGame = async function() {
+                        // Forzar club_id desde la URL
+                        window.gameData.club_id = clubIdFromUrl;
+                        return await originalStartGame.call(this);
+                    };
+                } else {
+                    console.error("ID de club inválido en la URL:", clubIdFromUrl);
+                    window.showNotification("QR inválido. Contacte al administrador.");
+                    window.goToScreen('home');
+                }
+            } else {
+                // Flujo original si no hay clubId en la URL
+                const isAuthenticated = await window.verifyAuth();
+                if (!isAuthenticated) {
+                    window.goToScreen('tv-mode');
+                    initializeTvMode(courtId);
+                    return;
+                }
+                
+                // Establecer la cancha seleccionada
+                window.selectedCourt = `Cancha ${courtId}`;
+                
+                // Mostrar pantalla de registro
+                window.goToScreen('register');
+                
+                // Actualizar título
+                const registerTitle = document.querySelector('#register h2');
+                if (registerTitle) {
+                    registerTitle.textContent = `Registro para Cancha ${courtId}`;
+                }
             }
-            window.goToScreen('tv-mode');
-            initializeTvMode(courtId);
-            return; // Salir temprano para evitar la navegación normal
-          }
         }		
         
         if (mode === 'qr' && courtId) {
-          console.log("Modo QR activado para cancha:", courtId);
-          
-          // Ocultar todos los elementos excepto el formulario de registro
-          document.querySelectorAll('.screen').forEach(screen => {
-            screen.style.display = 'none';
-          });
-          
-          // Mostrar solo el formulario de registro
-          const registerScreen = document.getElementById('register');
-          if (registerScreen) {
-            registerScreen.style.display = 'block';
-            registerScreen.classList.add('active');
+            console.log("Modo QR detectado para cancha:", courtId);
             
-            // Actualizar el texto para indicar que es registro desde QR
-            const title = registerScreen.querySelector('h2');
-            if (title) {
-              title.textContent = `Registro para Cancha ${courtId}`;
+            // NO verificar autenticación del jugador
+            // El jugador solo debe registrar sus datos
+            
+            // Guardar la cancha en una variable global
+            window.currentCourtId = courtId;
+            
+            // Mostrar pantalla de registro
+            window.goToScreen('register');
+            
+            // Actualizar el título para mostrar la cancha
+            const registerTitle = document.querySelector('#register h2');
+            if (registerTitle) {
+                registerTitle.textContent = `Registro para Cancha ${courtId}`;
             }
-          }
-          
-          // Guardar la función original de startGame
-          const originalStartGame = window.startGame;
-          
-          // Modificar la función startGame para usar la cancha del QR
-          window.startGame = async function() {
-            // Establecer la cancha desde el QR
-            window.selectedCourt = `Cancha ${courtId}`;
-            console.log("Cancha establecida desde QR:", window.selectedCourt);
             
-            // Llamar a la función original
-            return originalStartGame.apply(this, arguments);
-          };
+            // Modificar temporalmente window.startGame para usar la cancha correcta
+            const originalStartGame = window.startGame;
+            window.startGame = async function() {
+                window.gameData.court = `Cancha ${courtId}`;
+                return await originalStartGame.call(this);
+            };
+            
+            return;
         }
-		
-		
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
@@ -1321,26 +1359,24 @@
           document.querySelector('.container').insertAdjacentHTML('beforeend', tvModeHTML);
         }
         
-        // Función para inicializar el modo TV
+        // Función para inicializar modo TV
         function initializeTvMode(courtId) {
-          // Configurar la cancha
-          document.getElementById('tv-court-number').textContent = courtId;
-          
-          // Generar código QR
-          const registrationUrl = `${window.location.origin}${window.location.pathname}?mode=qr&court=${courtId}`;
-          QRCode.toCanvas(document.getElementById('tv-qrcode'), registrationUrl, {
-            width: 180,
-            margin: 1,
-            color: {
-              dark: '#2c3e50',
-              light: '#ffffff'
-            }
-          }, function(error) {
-            if (error) console.error(error);
-          });
-          
-          // Suscribirse a cambios en la base de datos para esta cancha
-          setupCourtRealtimeSubscription(courtId);
+            document.getElementById('tv-court-number').textContent = courtId;
+            
+            // Incluir club_id en la URL del QR
+            const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.currentUser.id}&court=${courtId}`;
+            
+            QRCode.toCanvas(document.getElementById('tv-qrcode'), registrationUrl, {
+                width: 180,
+                margin: 1,
+                color: {
+                    dark: '#2c3e50',
+                    light: '#ffffff'
+                }
+            });
+            
+            // Suscribirse a cambios en la base de datos para esta cancha
+            setupCourtRealtimeSubscription(courtId);
         }
         
         // Función para suscribirse a cambios en una cancha específica
@@ -2769,7 +2805,7 @@
 		};
         
 		// Función para registrar jugadores
-		window.startGame = async function() {	  
+		window.startGame = async function() {
 		  // Validar que todos los jugadores tengan datos completos
 		  const missingData = [];
 		  Object.keys(window.playersData).forEach(key => {
@@ -2819,70 +2855,213 @@
 		  }
 		  
 		  if (!window.currentUser) {
-			window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
-			window.goToScreen('login');
-			return;
+		    window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
+		    window.goToScreen('login');
+		    return;
 		  }
 		  
 		  // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
 		  for (const key in window.playersData) {
-			const player = window.playersData[key];
-			if (player.exists) continue; // Ya existe en este club
-			
-			// Obtener los valores del DOM
-			const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-			
-			const firstName = firstNameInput?.value?.trim() || '';
-			const lastName = lastNameInput?.value?.trim() || '';
-			
-			// Validar que los nombres no estén vacíos
-			if (!firstName || !lastName) {
-			  window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
-			  return;
-			}
-			
-			// Intentar insertar el jugador
-			const { error: insertError } = await window.supabase
-			  .from('players')
-			  .insert([
-				{
-				  club_id: window.currentUser.id,
-				  cedula: player.cedula,
-				  first_name: firstName,
-				  last_name: lastName,
-				  matches_played: 0,
-				  matches_won: 0,
-				  created_at: new Date().toISOString(),
-				  last_match_date: new Date().toISOString()
-				}
-			  ]);
-			
-			if (insertError) {
-			  if (insertError.code === '23505') {
-				console.error("Error de unicidad inesperado:", insertError);
-			  } else {
-				console.error("Error al registrar jugador:", insertError);
-				window.showNotification(`Error al registrar ${firstName} ${lastName}`);
-				return;
-			  }
-			}
-			
-			// Actualizar playersData con los nombres reales
-			window.playersData[key] = {
-			  ...window.playersData[key],
-			  firstName: firstName,
-			  lastName: lastName
-			};
+		    const player = window.playersData[key];
+		    if (player.exists) continue; // Ya existe en este club
+		    
+		    // Obtener los valores del DOM
+		    const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+		    const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+		    
+		    const firstName = firstNameInput?.value?.trim() || '';
+		    const lastName = lastNameInput?.value?.trim() || '';
+		    
+		    // Validar que los nombres no estén vacíos
+		    if (!firstName || !lastName) {
+		      window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
+		      return;
+		    }
+		    
+		    // Intentar insertar el jugador
+		    const { error: insertError } = await window.supabase
+		      .from('players')
+		      .insert([
+		        {
+		          club_id: window.currentUser.id,
+		          cedula: player.cedula,
+		          first_name: firstName,
+		          last_name: lastName,
+		          matches_played: 0,
+		          matches_won: 0,
+		          created_at: new Date().toISOString(),
+		          last_match_date: new Date().toISOString()
+		        }
+		      ]);
+		    
+		    if (insertError) {
+		      if (insertError.code === '23505') {
+		        console.error("Error de unicidad inesperado:", insertError);
+		      } else {
+		        console.error("Error al registrar jugador:", insertError);
+		        window.showNotification(`Error al registrar ${firstName} ${lastName}`);
+		        return;
+		      }
+		    }
+		    
+		    // Actualizar playersData con los nombres reales
+		    window.playersData[key] = {
+		      ...window.playersData[key],
+		      firstName: firstName,
+		      lastName: lastName
+		    };
 		  }
 		  
-		  // Éxito - resetear marcador y redirigir
-		  window.resetGame(); // Asegura que todo esté limpio antes de empezar
-		  window.goToScreen('game');
-		  
-		  // ✅ Iniciar temporizador
-		  window.startTimer(); 	  
+		  // ✅ CREAR EL PARTIDO EN LA BASE DE DATOS (AHORA SÍ ES CRÍTICO PARA LOS TVs)
+		  try {
+		    // Determinar el club_id a usar (priorizar gameData.club_id si existe)
+		    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
+		    
+		    // Crear el partido en la tabla matches con estado 'active'
+		    const { data: matchData, error: matchError } = await window.supabase
+		      .from('matches')
+		      .insert([
+		        {
+		          club_id: clubIdToUse,
+		          court: window.gameData.court,
+		          scoring_type: window.scoringType,
+		          status: 'active',
+		          start_time: new Date().toISOString(),
+		          team_a_score: 0,
+		          team_b_score: 0,
+		          games_a: 0,
+		          games_b: 0,
+		          sets_a: 0,
+		          sets_b: 0,
+		          tiebreak: false,
+		          team_a_name: window.teamNames.teamA,
+		          team_b_name: window.teamNames.teamB,
+		          duration: "00:00"
+		        }
+		      ])
+		      .select('id')
+		      .single();
+		    
+		    if (matchError) {
+		      console.error("Error al crear partido:", matchError);
+		      
+		      // Mensaje específico para errores de RLS
+		      if (matchError.code === '42501') {
+		        window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
+		      } else {
+		        window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
+		      }
+		      return;
+		    }
+		    
+		    // Guardar el ID del partido para uso posterior
+		    window.lastMatchId = matchData.id;
+		    
+		    // ✅ VINCULAR JUGADORES AL PARTIDO (ahora SÍ en el inicio)
+		    try {
+		      const insertPlayerInMatch = async (playerKey, team) => {
+		        const player = window.playersData[playerKey];
+		        
+		        // Buscar el ID del jugador por su cédula y club_id
+		        const { data: playerData, error: playerError } = await window.supabase
+		          .from('players')
+		          .select('id')
+		          .eq('cedula', player.cedula)
+		          .eq('club_id', clubIdToUse)
+		          .single();
+		        
+		        if (playerError) {
+		          console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
+		          return;
+		        }
+		        
+		        // Insertar en match_players
+		        const { error: matchPlayerError } = await window.supabase
+		          .from('match_players')
+		          .insert([
+		            {
+		              match_id: matchData.id,
+		              player_id: playerData.id,
+		              team: team
+		            }
+		          ]);
+		        
+		        if (matchPlayerError) {
+		          console.error(`Error al vincular jugador ${player.cedula} al partido:`, matchPlayerError);
+		        }
+		      };
+		      
+		      // Insertar jugadores del equipo A
+		      await insertPlayerInMatch('A1', 'teamA');
+		      await insertPlayerInMatch('A2', 'teamA');
+		      
+		      // Insertar jugadores del equipo B
+		      await insertPlayerInMatch('B1', 'teamB');
+		      await insertPlayerInMatch('B2', 'teamB');
+		      
+		    } catch (error) {
+		      console.error("Error al vincular jugadores al partido:", error);
+		      // Continuar igual porque el partido ya se creó
+		    }
+		    
+		    // ✅ Actualizar la función addPoint para que use el partido actual
+		    window.updateAddPointFunction();
+		    
+		    // Éxito - resetear marcador y redirigir
+		    window.resetGame(); // Asegura que todo esté limpio antes de empezar
+		    window.goToScreen('game');
+		    
+		    // ✅ Iniciar temporizador
+		    window.startTimer();
+		    
+		  } catch (error) {
+		    console.error("Error crítico al crear partido:", error);
+		    window.showNotification('Error crítico al crear partido. Inténtalo de nuevo.');
+		  }
 		};
+		
+		// ✅ Nueva función: Actualizar addPoint para usar el partido actual
+		window.updateAddPointFunction = function() {
+		  // Guardar las funciones originales
+		  const originalAddPoint = window.addPoint;
+		  
+		  // Reemplazar con una versión que actualiza el partido
+		  window.addPoint = async function(team) {
+		    // Primero, ejecutar la lógica original
+		    originalAddPoint.call(this, team);
+		    
+		    // Si no hay partido activo, no hacer nada
+		    if (!window.lastMatchId) return;
+		    
+		    try {
+		      // Preparar datos de actualización
+		      const updateData = {};
+		      if (team === 'A') {
+		        updateData.team_a_score = window.scoreA;
+		        if (window.scoringType === 'traditional') {
+		          updateData.games_a = window.gamesA;
+		        }
+		      } else {
+		        updateData.team_b_score = window.scoreB;
+		        if (window.scoringType === 'traditional') {
+		          updateData.games_b = window.gamesB;
+		        }
+		      }
+		      
+		      // Actualizar en Supabase
+		      const { error } = await window.supabase
+		        .from('matches')
+		        .update(updateData)
+		        .eq('id', window.lastMatchId);
+		      
+		      if (error) {
+		        console.error('Error al actualizar puntuación en Supabase:', error);
+		      }
+		    } catch (error) {
+		      console.error('Error al actualizar puntuación:', error);
+		    }
+		  };
+		};				
         
         // Función para finalizar partido
         window.finalizeGame = async function() {
@@ -2933,220 +3112,165 @@
           const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
           const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
           
-          // Guardar en Supabase - partido
-          const { data: matchData, error } = await window.supabase
-            .from('matches')
-            .insert([
-              {
-                club_id: window.currentUser.id,
-                court: window.selectedCourt,
-                scoring_type: window.scoringType,
-                team_a_name: teamAName,
-                team_b_name: teamBName,
-                winner: winner === 'A' ? 'teamA' : 'teamB',
-                games_a: gamesAVal,
-                games_b: gamesBVal,
-                points_a: pointsAVal,
-                points_b: pointsBVal,
-                tiebreak: window.inTiebreak,
-                duration: window.gameDuration
-              }
-            ])
-            .select('id') // Solicitar el ID del partido recién creado
-            .single(); // Obtener un solo resultado
-        
-          if (error) {
-            console.error("Error al guardar partido: ", {
-              code: error.code,
-              message: error.message,
-              details: error.details,
-              hint: error.hint,
-              data: {
-                club_id: window.currentUser.id,
-                court: window.selectedCourt,
-                scoring_type: window.scoringType,
-                team_a_name: teamAName,
-                team_b_name: teamBName,
-                winner: winner === 'A' ? 'teamA' : 'teamB'
-              }
-            });
-        
-            // Mensaje más específico para errores de RLS
-            if (error.code === '42501') {
-              window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
-            } else {
-              window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
-            }
-          } else {
-            // Guardar el ID del partido para uso posterior
-            window.lastMatchId = matchData.id;
+          // ✅ ACTUALIZAR el partido existente en Supabase (NO crear uno nuevo)
+          try {
+            const { error } = await window.supabase
+              .from('matches')
+              .update([
+                {
+                  status: 'completed',
+                  end_time: new Date().toISOString(),
+                  winner: winner === 'A' ? 'teamA' : 'teamB',
+                  games_a: gamesAVal,
+                  games_b: gamesBVal,
+                  points_a: pointsAVal,
+                  pointsBVal,
+                  tiebreak: window.inTiebreak,
+                  duration: window.gameDuration
+                }
+              ])
+              .eq('id', window.lastMatchId);
             
-            // Insertar jugadores en la tabla match_players
-            try {
-              // Función auxiliar para insertar jugador en match_players
-              const insertPlayerInMatch = async (playerKey, team) => {
-                const player = window.playersData[playerKey];
-                if (player.cedula) {
-                  // Buscar el ID del jugador por su cédula y club_id
-                  const { data: playerData, error: playerError } = await window.supabase
-                    .from('players')
-                    .select('id')
-                    .eq('cedula', player.cedula)
-                    .eq('club_id', window.currentUser.id)
-                    .single();
-              
-                  if (playerError) {
-                    console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
-                    return;
-                  }
-              
-                  // Insertar en match_players (SIN la columna position)
-                  const { error: matchPlayerError } = await window.supabase
-                    .from('match_players')
-                    .insert([
-                      {
-                        match_id: matchData.id,
-                        player_id: playerData.id,
-                        team: team
-                        // Eliminado: position: parseInt(playerKey[1])
-                      }
-                    ]);
-              
-                  if (matchPlayerError) {
-                    console.error(`Error al insertar jugador en match_players:`, matchPlayerError);
+            if (error) {
+              console.error("Error al actualizar partido: ", {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                data: {
+                  id: window.lastMatchId,
+                  winner: winner === 'A' ? 'teamA' : 'teamB',
+                  games_a: gamesAVal,
+                  games_b: gamesBVal
+                }
+              });
+            
+              // Mensaje más específico para errores de RLS
+              if (error.code === '42501') {
+                window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
+              } else {
+                window.showNotification('Error al actualizar partido. Inténtalo de nuevo.');
+              }
+            } else {
+              // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
+              try {
+                // Intentar llamar a la función RPC
+                const { error: courtError } = await window.supabase
+                  .rpc('increment_court_usage', {
+                    p_club_id: window.currentUser.id,
+                    p_court: window.selectedCourt
+                  });
+                
+                if (courtError) {
+                  console.error("Error DETALLADO al actualizar uso de canchas:", {
+                    code: courtError.code,
+                    message: courtError.message,
+                    details: courtError.details,
+                    hint: courtError.hint
+                  });
+                  
+                  // Verificar si la tabla court_usage existe
+                  const { error: tableCheck } = await window.supabase
+                    .from('court_usage')
+                    .select('count(*)', { count: 'exact' })
+                    .limit(1);
+                  
+                  if (tableCheck) {
+                    window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
                   } else {
-                    console.log(`Jugador ${player.cedula} insertado en match_players correctamente`);
+                    window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
                   }
-                }
-              };
-        
-              // Insertar jugadores del equipo A
-              await insertPlayerInMatch('A1', 'A');
-              await insertPlayerInMatch('A2', 'A');
-        
-              // Insertar jugadores del equipo B
-              await insertPlayerInMatch('B1', 'B');
-              await insertPlayerInMatch('B2', 'B');
-        
-            } catch (error) {
-              console.error("Error al insertar jugadores en match_players:", error);
-            }
-        
-            // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
-            try {
-              // Intentar llamar a la función RPC
-              const { error: courtError } = await window.supabase
-                .rpc('increment_court_usage', {
-                  p_club_id: window.currentUser.id,
-                  p_court: window.selectedCourt
-                });
-              
-              if (courtError) {
-                console.error("Error DETALLADO al actualizar uso de canchas:", {
-                  code: courtError.code,
-                  message: courtError.message,
-                  details: courtError.details,
-                  hint: courtError.hint
-                });
-                
-                // Verificar si la tabla court_usage existe
-                const { error: tableCheck } = await window.supabase
-                  .from('court_usage')
-                  .select('count(*)', { count: 'exact' })
-                  .limit(1);
-                
-                if (tableCheck) {
-                  window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
                 } else {
-                  window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
+                  console.log("Uso de canchas actualizado correctamente");
+                }
+              } catch (error) {
+                console.error("Error CRÍTICO al actualizar uso de canchas:", error);
+                window.showNotification('Error crítico al actualizar uso de canchas.');
+              }
+              
+              // Actualizar estadísticas de jugadores
+              await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
+            }
+            
+            // --- 1. Actualizar duración real ---
+            const durationEl = document.getElementById('final-duration');
+            if (durationEl) {
+              const minutes = Math.floor(window.seconds / 60);
+              const secs = window.seconds % 60;
+              durationEl.textContent = `${minutes} min ${secs.toString().padStart(2, '0')} seg`;
+            }
+            
+            // --- 2. Calcular dominio del partido para "promedio de saques" ---
+            let total, teamAVal;
+            if (window.scoringType === 'traditional') {
+              // Modo tradicional: usar juegos ganados
+              total = window.gamesA + window.gamesB;
+              teamAVal = window.gamesA;
+            } else {
+              // Modo americano: usar puntos ganados
+              total = window.scoreA + window.scoreB;
+              teamAVal = window.scoreA;
+            }
+            
+            // Calcular porcentaje de dominio
+            const percentage = total > 0 ? Math.round((teamAVal / total) * 100) : 50;
+            
+            // Actualizar % de saques
+            const servePercentageEl = document.getElementById('serve-percentage');
+            if (servePercentageEl) {
+              servePercentageEl.textContent = `${percentage}%`;
+              
+              // Opcional: mejorar el mensaje según quién dominó
+              const serveP = servePercentageEl.parentElement;
+              if (percentage > 50) {
+                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor de <strong>${window.teamNames.teamA}</strong>`;
+              } else if (percentage < 50) {
+                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor de <strong>${window.teamNames.teamB}</strong>`;
+              } else {
+                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
+              }
+            }
+        
+            // --- ✅ Mostrar resultado de todos los sets ---
+            const setScoresEl = document.getElementById('set-scores');
+            if (setScoresEl) {
+              let scoreHtml = '';
+            
+              if (window.scoringType === 'traditional') {
+                if (window.setHistory && window.setHistory.length > 0) {
+                  const setLines = window.setHistory.map((set, i) => {
+                    let setLine = `<strong>Set ${i + 1}:</strong> ${set.gamesA}-${set.gamesB}`;
+                    if (set.tiebreak) {
+                      setLine += ` (Tiebreak: ${set.tiebreakA}-${set.tiebreakB})`;
+                    }
+                    return setLine;
+                  });
+                  scoreHtml = setLines.join('<br>');
+                } else {
+                  scoreHtml = 'No se completó ningún set';
                 }
               } else {
-                console.log("Uso de canchas actualizado correctamente");
+                // Modo americano
+                if (window.inTiebreak) {
+                  scoreHtml = `
+                    <strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
+                    <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
+                  `;
+                } else {
+                  scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
+                }
               }
-            } catch (error) {
-              console.error("Error CRÍTICO al actualizar uso de canchas:", error);
-              window.showNotification('Error crítico al actualizar uso de canchas.');
+            
+              setScoresEl.innerHTML = scoreHtml;
             }
             
-            // Actualizar estadísticas de jugadores
-            await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
+            // Mostrar pantalla de finalización
+            window.goToScreen('end');
+          } catch (error) {
+            console.error("Error crítico al finalizar partido:", error);
+            window.showNotification('Error crítico al finalizar partido. Inténtalo de nuevo.');
           }
-        
-          // --- 1. Actualizar duración real ---
-          const durationEl = document.getElementById('final-duration');
-          if (durationEl) {
-            const minutes = Math.floor(window.seconds / 60);
-            const secs = window.seconds % 60;
-            durationEl.textContent = `${minutes} min ${secs.toString().padStart(2, '0')} seg`;
-          }
-          
-          // --- 2. Calcular dominio del partido para "promedio de saques" ---
-          let total, teamAVal;
-          if (window.scoringType === 'traditional') {
-            // Modo tradicional: usar juegos ganados
-            total = window.gamesA + window.gamesB;
-            teamAVal = window.gamesA;
-          } else {
-            // Modo americano: usar puntos ganados
-            total = window.scoreA + window.scoreB;
-            teamAVal = window.scoreA;
-          }
-          
-          // Calcular porcentaje de dominio
-          const percentage = total > 0 ? Math.round((teamAVal / total) * 100) : 50;
-          
-          // Actualizar % de saques
-          const servePercentageEl = document.getElementById('serve-percentage');
-          if (servePercentageEl) {
-            servePercentageEl.textContent = `${percentage}%`;
-            
-            // Opcional: mejorar el mensaje según quién dominó
-            const serveP = servePercentageEl.parentElement;
-            if (percentage > 50) {
-              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor de <strong>${window.teamNames.teamA}</strong>`;
-            } else if (percentage < 50) {
-              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor de <strong>${window.teamNames.teamB}</strong>`;
-            } else {
-              serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
-            }
-          }
-        
-          // --- ✅ Mostrar resultado de todos los sets ---
-          const setScoresEl = document.getElementById('set-scores');
-          if (setScoresEl) {
-            let scoreHtml = '';
-          
-            if (window.scoringType === 'traditional') {
-              if (window.setHistory && window.setHistory.length > 0) {
-                const setLines = window.setHistory.map((set, i) => {
-                  let setLine = `<strong>Set ${i + 1}:</strong> ${set.gamesA}-${set.gamesB}`;
-                  if (set.tiebreak) {
-                    setLine += ` (Tiebreak: ${set.tiebreakA}-${set.tiebreakB})`;
-                  }
-                  return setLine;
-                });
-                scoreHtml = setLines.join('<br>');
-              } else {
-                scoreHtml = 'No se completó ningún set';
-              }
-            } else {
-              // Modo americano
-              if (window.inTiebreak) {
-                scoreHtml = `
-                  <strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
-                  <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
-                `;
-              } else {
-                scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
-              }
-            }
-          
-            setScoresEl.innerHTML = scoreHtml;
-          }
-        
-          // Mostrar pantalla de finalización
-          window.goToScreen('end');
-        };
+        };        
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
