@@ -1055,8 +1055,8 @@
         const mode = urlParams.get('mode');
         
         if (mode === 'qr' && courtId) {
-            console.log("Modo QR detectado para cancha:", courtId);
-            
+            console.log("Modo QR detectado para cancha:", courtId, "club:", clubIdFromUrl);
+			
             // Si hay clubId en la URL, usarlo en lugar de depender de la sesión
             if (clubIdFromUrl) {
                 // Validar formato UUID
@@ -1101,14 +1101,16 @@
                 // Establecer la cancha seleccionada
                 window.selectedCourt = `Cancha ${courtId}`;
                 
-                // Mostrar pantalla de registro
-                window.goToScreen('register');
-                
-                // Actualizar título
-                const registerTitle = document.querySelector('#register h2');
-                if (registerTitle) {
-                    registerTitle.textContent = `Registro para Cancha ${courtId}`;
-                }
+                // Mostrar pantalla de registro después de breve delay
+                setTimeout(() => {
+                    window.goToScreen('register');
+                    
+                    // Actualizar título
+                    const registerTitle = document.querySelector('#register h2');
+                    if (registerTitle) {
+                        registerTitle.textContent = `Registro para Cancha ${courtId}`;
+                    }
+                }, 500);
             }
         }		
         
@@ -3490,7 +3492,7 @@
             qrButton.onclick = function(e) {
               e.stopPropagation();
               const courtNumber = i;
-              const qrUrl = `${window.location.origin}/tv.html?club=${window.currentUser.id}&court=${courtNumber}`;
+              const registrationUrl = `${window.location.origin}${window.location.pathname}?mode=qr&club=${window.currentUser.id}&court=${courtNumber}`;
               
               // Crear modal con QR
               const modal = document.createElement('div');
