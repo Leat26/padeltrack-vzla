@@ -658,6 +658,10 @@
 
       // Limpiar contenido previo
       qrElement.innerHTML = '';      
+
+      // Crear un elemento canvas para el QR
+      const canvas = document.createElement('canvas');
+      qrElement.appendChild(canvas);
 	  
       // CORREGIDO: Verificar explícitamente que QRCode esté definido
       if (typeof QRCode === 'undefined') {
@@ -671,7 +675,7 @@
       
       // Generar QR
       try {
-        QRCode.toCanvas(qrElement, registrationUrl, {
+        QRCode.toCanvas(canvas, registrationUrl, {
           width: 180,
           margin: 1,
           color: {
