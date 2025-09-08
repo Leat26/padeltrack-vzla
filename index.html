@@ -6,6 +6,7 @@
   <title>PadelTrack - Sistema Profesional</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Oswald:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />  
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -3512,7 +3513,7 @@
                   <h3>QR para Cancha ${courtNumber}</h3>
                   <div id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></div>
                   <p style="margin-bottom: 15px; font-size: 0.85rem; color: #555;">
-                    URL: <br><small style="word-break: break-all;">${qrUrl}</small>
+                    URL: <br><small style="word-break: break-all;">${registrationUrl}</small>
                   </p>
                   <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
                     <button class="btn" id="download-qr">
@@ -3537,9 +3538,8 @@
                 if (qrElement) {
                   qrElement.innerHTML = '';
                   
-                  // CORREGIDO: Verificar que QRCode esté definido
                   if (typeof QRCode !== 'undefined') {
-                    QRCode.toCanvas(qrElement, qrUrl, {
+                    QRCode.toCanvas(qrElement, registrationUrl, {
                       width: 200,
                       margin: 2,
                       color: { 
@@ -3560,13 +3560,15 @@
               
               // Funcionalidad de descarga - CORREGIDO: Usar evento delegado
               document.getElementById('download-qr').addEventListener('click', function() {
-                const canvas = document.querySelector('#qrcode canvas');
+                const canvas = document.querySelector('#modal-qrcode canvas');
                 if (canvas) {
                   const pngUrl = canvas.toDataURL("image/png");
                   const downloadLink = document.createElement('a');
                   downloadLink.href = pngUrl;
-                  downloadLink.download = `QR_Cancha_${courtId}.png`;
+                  downloadLink.download = `QR_Cancha_${courtNumber}.png`;
+                  document.body.appendChild(downloadLink);
                   downloadLink.click();
+                  document.body.removeChild(downloadLink);
                 }
               });
               
@@ -3576,6 +3578,7 @@
                   alert('URL copiada al portapapeles!');
                 }).catch(err => {
                   console.error('Error al copiar:', err);
+                  alert('Error al copiar la URL. Por favor, copia manualmente.');
                 });
               });
             };
