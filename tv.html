@@ -556,6 +556,7 @@
       window.matchTimerInterval = setInterval(updateTimer, 1000);
     }
     
+    // Configurar suscripción en tiempo real
     function setupRealtimeSubscription() {
       try {
         const subscription = supabase
@@ -592,7 +593,7 @@
         console.error("Error al configurar suscripción:", error);
         return null;
       }
-    }
+    }    
     
     async function addPoint(team) {
       try {
