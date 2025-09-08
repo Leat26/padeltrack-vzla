@@ -3479,6 +3479,100 @@
               <p>Selecciona para iniciar un partido</p>
             `;
             
+            // Botón para generar QR
+            const qrButton = document.createElement('button');
+            qrButton.className = 'btn btn-small';
+            qrButton.innerHTML = '<i class="fas fa-qrcode"></i> Generar QR para TV';
+            qrButton.style.marginTop = '10px';
+            qrButton.style.width = '100%';
+            
+            // Añadir funcionalidad al botón QR
+            qrButton.onclick = function(e) {
+              e.stopPropagation();
+              const courtNumber = i;
+              const qrUrl = `${window.location.origin}/tv.html?club=${window.currentUser.id}&court=${courtNumber}`;
+              
+              // Crear modal con QR
+              const modal = document.createElement('div');
+              modal.style.position = 'fixed';
+              modal.style.top = '0';
+              modal.style.left = '0';
+              modal.style.width = '100%';
+              modal.style.height = '100%';
+              modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+              modal.style.display = 'flex';
+              modal.style.justifyContent = 'center';
+              modal.style.alignItems = 'center';
+              modal.style.zIndex = '1000';
+              
+              modal.innerHTML = `
+                <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px;">
+                  <h3>QR para Cancha ${courtNumber}</h3>
+                  <div id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></div>
+                  <p style="margin-bottom: 15px; font-size: 0.85rem; color: #555;">
+                    URL: <br><small style="word-break: break-all;">${qrUrl}</small>
+                  </p>
+                  <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button class="btn" id="download-qr">
+                      <i class="fas fa-download"></i> Descargar QR
+                    </button>
+                    <button class="btn btn-blue" id="copy-url">
+                      <i class="fas fa-copy"></i> Copiar URL
+                    </button>
+                  </div>
+                  <button class="btn btn-red" style="margin-top: 15px; width: 100%;" 
+                          onclick="this.closest('div[style*="fixed"]').remove();">
+                    <i class="fas fa-times"></i> Cerrar
+                  </button>
+                </div>
+              `;
+              
+              document.body.appendChild(modal);
+              
+              // Generar QR en el modal
+              QRCode.toCanvas(document.getElementById('modal-qrcode'), qrUrl, {
+                width: 200,
+                margin: 2,
+                color: { 
+                  dark: '#2c3e50', 
+                  light: '#ffffff' 
+                }
+              }, function(error) {
+                if (error) {
+                  console.error("Error al generar QR:", error);
+                  document.getElementById('modal-qrcode').innerHTML = 
+                    '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+                }
+              });
+              
+              // Funcionalidad de descarga
+              document.getElementById('download-qr').onclick = function() {
+                const canvas = document.querySelector('#modal-qrcode canvas');
+                if (!canvas) return;
+                
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement('a');
+                downloadLink.href = pngUrl;
+                downloadLink.download = `QR_Cancha_${courtNumber}.png`;
+                downloadLink.click();
+              };
+              
+              // Funcionalidad de copiar URL
+              document.getElementById('copy-url').onclick = function() {
+                navigator.clipboard.writeText(qrUrl).then(() => {
+                  const originalText = this.innerHTML;
+                  this.innerHTML = '<i class="fas fa-check"></i> Copiado!';
+                  setTimeout(() => {
+                    this.innerHTML = originalText;
+                  }, 2000);
+                }).catch(err => {
+                  console.error('Error al copiar:', err);
+                });
+              };
+            };
+            
+            courtOption.appendChild(qrButton);
+            
             courtOption.addEventListener('click', function() {
               // Deseleccionar todas las opciones
               document.querySelectorAll('.court-option').forEach(opt => {
@@ -4612,7 +4706,7 @@
           <div class="players" id="tv-team-a-players">-</div>
           <div class="score" id="tv-score-a">0</div>
         </div>
-        
+        // En la función loadCourtsSelection
         <div class="vs">VS</div>
         
         <div class="team team-b">
