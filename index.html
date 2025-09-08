@@ -3521,7 +3521,7 @@
                     </button>
                   </div>
                   <button class="btn btn-red" style="margin-top: 15px; width: 100%;" 
-                          onclick="this.closest('div[style*="fixed"]').remove();">
+                          onclick="document.body.removeChild(this.closest('div[style*=\\"fixed\\"]'));">
                     <i class="fas fa-times"></i> Cerrar
                   </button>
                 </div>
@@ -3529,36 +3529,47 @@
               
               document.body.appendChild(modal);
               
-              // Generar QR en el modal
-              QRCode.toCanvas(document.getElementById('modal-qrcode'), qrUrl, {
-                width: 200,
-                margin: 2,
-                color: { 
-                  dark: '#2c3e50', 
-                  light: '#ffffff' 
+              // CORREGIDO: Esperar a que se cree el elemento
+              setTimeout(() => {
+                const qrElement = document.getElementById('modal-qrcode');
+                if (qrElement) {
+                  qrElement.innerHTML = '';
+                  
+                  // CORREGIDO: Verificar que QRCode esté definido
+                  if (typeof QRCode !== 'undefined') {
+                    QRCode.toCanvas(qrElement, qrUrl, {
+                      width: 200,
+                      margin: 2,
+                      color: { 
+                        dark: '#2c3e50', 
+                        light: '#ffffff' 
+                      }
+                    }, function(error) {
+                      if (error) {
+                        console.error("Error al generar QR:", error);
+                        qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+                      }
+                    });
+                  } else {
+                    qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Biblioteca QR no cargada</div>';
+                  }
                 }
-              }, function(error) {
-                if (error) {
-                  console.error("Error al generar QR:", error);
-                  document.getElementById('modal-qrcode').innerHTML = 
-                    '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+              }, 50);
+              
+              // Funcionalidad de descarga - CORREGIDO: Usar evento delegado
+              document.getElementById('download-qr').addEventListener('click', function() {
+                const canvas = document.querySelector('#modal-qrcode canvas');
+                if (canvas) {
+                  const pngUrl = canvas.toDataURL("image/png");
+                  const downloadLink = document.createElement('a');
+                  downloadLink.href = pngUrl;
+                  downloadLink.download = `QR_Cancha_${courtNumber}.png`;
+                  downloadLink.click();
                 }
               });
               
-              // Funcionalidad de descarga
-              document.getElementById('download-qr').onclick = function() {
-                const canvas = document.querySelector('#modal-qrcode canvas');
-                if (!canvas) return;
-                
-                const pngUrl = canvas.toDataURL("image/png");
-                const downloadLink = document.createElement('a');
-                downloadLink.href = pngUrl;
-                downloadLink.download = `QR_Cancha_${courtNumber}.png`;
-                downloadLink.click();
-              };
-              
-              // Funcionalidad de copiar URL
-              document.getElementById('copy-url').onclick = function() {
+              // Funcionalidad de copiar URL - CORREGIDO: Usar evento delegado
+              document.getElementById('copy-url').addEventListener('click', function() {
                 navigator.clipboard.writeText(qrUrl).then(() => {
                   const originalText = this.innerHTML;
                   this.innerHTML = '<i class="fas fa-check"></i> Copiado!';
@@ -3568,7 +3579,7 @@
                 }).catch(err => {
                   console.error('Error al copiar:', err);
                 });
-              };
+              });
             };
             
             courtOption.appendChild(qrButton);
@@ -3588,7 +3599,7 @@
             
             courtsList.appendChild(courtOption);
           }
-        };
+        };        
 
 		// Función para cargar dashboard
 		window.loadDashboard = async function() {
