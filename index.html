@@ -3538,25 +3538,26 @@
                 if (qrElement) {
                   qrElement.innerHTML = '';
                   
-                  if (typeof QRCode !== 'undefined') {
-                    QRCode.toCanvas(qrElement, registrationUrl, {
-                      width: 200,
-                      margin: 2,
-                      color: { 
-                        dark: '#2c3e50', 
-                        light: '#ffffff' 
-                      }
-                    }, function(error) {
-                      if (error) {
-                        console.error("Error al generar QR:", error);
-                        qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
-                      }
-                    });
-                  } else {
-                    qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Biblioteca QR no cargada</div>';
-                  }
+                  // Crear un elemento canvas para el QR
+                  const canvas = document.createElement('canvas');
+                  qrElement.appendChild(canvas);
+                  
+                  // Generar el QR en el canvas
+                  QRCode.toCanvas(canvas, registrationUrl, {
+                    width: 200,
+                    margin: 2,
+                    color: { 
+                      dark: '#2c3e50', 
+                      light: '#ffffff' 
+                    }
+                  }, function(error) {
+                    if (error) {
+                      console.error("Error al generar QR:", error);
+                      qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+                    }
+                  });
                 }
-              }, 50);
+              }, 100);
               
               // Funcionalidad de descarga - CORREGIDO: Usar evento delegado
               document.getElementById('download-qr').addEventListener('click', function() {
@@ -3573,15 +3574,15 @@
               });
               
               // Funcionalidad de copiar URL - CORREGIDO: Usar evento delegado
-              document.getElementById('copy-url').addEventListener('click', function() {
-                navigator.clipboard.writeText(registrationUrl).then(() => {
-                  alert('URL copiada al portapapeles!');
-                }).catch(err => {
-                  console.error('Error al copiar:', err);
-                  alert('Error al copiar la URL. Por favor, copia manualmente.');
+                document.getElementById('copy-url').addEventListener('click', function() {
+                  navigator.clipboard.writeText(registrationUrl).then(() => {
+                    alert('URL copiada al portapapeles!');
+                  }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    alert('Error al copiar la URL. Por favor, copia manualmente.');
+                  });
                 });
-              });
-            };
+              };
             
             courtOption.appendChild(qrButton);
             
