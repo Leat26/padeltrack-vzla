@@ -349,7 +349,7 @@
   </div>
 
   <script>
-    // Configuración de Supabase
+    // Configuración de Supabase (¡REEMPLAZA CON TUS CREDENCIALES REALES!)
     const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
       
@@ -378,8 +378,7 @@
     
     // Función para generar código QR
     function generateQRCode() {
-      // URL para registro - asegurarse de que apunta a la página correcta
-      const registrationUrl = `${window.location.origin}/register.html?court=${courtId}`;
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
       const qrElement = document.getElementById('qrcode');
       
       if (qrElement) {
@@ -389,7 +388,7 @@
         
         // Reducir el tamaño del QR para asegurar que se vea completo
         QRCode.toCanvas(canvas, registrationUrl, {
-          width: 140,
+          width: 140,  // Reducido de 180 a 140
           margin: 1,
           color: {
             dark: '#2c3e50',
@@ -586,11 +585,9 @@
       }
     }
     
-    // Función de inicialización específica para TV
-    async function initTVApp() {
+    // Función de inicialización
+    async function initApp() {
       try {
-        console.log("Inicializando aplicación TV para cancha:", courtId);
-        
         // Cargar partido activo
         currentMatch = await loadActiveMatch();
         updateMatchDisplay(currentMatch);
@@ -602,12 +599,12 @@
         generateQRCode();
         
       } catch (error) {
-        console.error("Error al inicializar la aplicación TV:", error);
+        console.error("Error al inicializar la aplicación:", error);
       }
     }
     
     // Iniciar la aplicación cuando el DOM esté cargado
-    document.addEventListener('DOMContentLoaded', initTVApp);
+    document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
