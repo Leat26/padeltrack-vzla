@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <style>
-    /* Tus estilos existentes */
+    /* Tus estilos CSS existentes */
     :root {
       --primary: #2c3e50;
       --secondary: #e74c3c;
@@ -255,11 +255,11 @@
   </div>
 
   <script>
-    // Configuración de Supabase (¡REEMPLAZA CON TUS VALORES REALES!)
-    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
+    // Configuración de Supabase (¡REEMPLAZA CON TUS CREDENCIALES REALES!)
+    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // 
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
-    
-    // Inicializar Supabase con configuración de Realtime
+      
+    // Inicializar Supabase
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
       db: {
         schema: 'public'
@@ -282,20 +282,16 @@
     let currentMatch = null;
     let matchDurationInterval = null;
     
-    // Generar QR único para esta cancha (versión corregida)
-    const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
-    
-    setTimeout(() => {
+    // Función para generar código QR
+    function generateQRCode() {
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
       const qrElement = document.getElementById('qrcode');
+      
       if (qrElement) {
-        // Limpiar el contenedor QR primero
         qrElement.innerHTML = '';
-        
-        // Crear un elemento canvas para el QR
         const canvas = document.createElement('canvas');
         qrElement.appendChild(canvas);
         
-        // Generar el QR en el canvas
         QRCode.toCanvas(canvas, registrationUrl, {
           width: 180,
           margin: 1,
@@ -306,7 +302,6 @@
         }, function(error) {
           if (error) {
             console.error('Error generating QR code:', error);
-            // Fallback: crear un enlace si el QR falla
             qrElement.innerHTML = `
               <a href="${registrationUrl}" style="color: white; text-decoration: underline;">
                 Escanear para registrar partido
@@ -315,43 +310,37 @@
           }
         });
       }
-    }, 100);
+    }
     
-    // Suscribirse a cambios en la base de datos para esta cancha (versión corregida)
-    const matchSubscription = supabase
-      .channel('custom-all-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches'
-        },
-        (payload) => {
-          if (payload.new.court_id == courtId || payload.new.court == `Cancha ${courtId}`) {
-            updateMatchDisplay(payload.new);
-          }
-        }
-      )
-      .subscribe();
-      
-    // Cargar partido activo al iniciar
+    // Función para cargar partido activo
     async function loadActiveMatch() {
       try {
         console.log("Buscando partido activo para cancha:", courtId);
         
-        // Usar la columna 'court' en lugar de 'court_id'
-        const { data, error } = await supabase
+        // Primero intentar con el formato "Cancha X"
+        let { data, error } = await supabase
           .from('matches')
           .select('*')
-          .eq('court', `Cancha ${courtId}`)  // Cambiado de court_id a court
+          .eq('court', `Cancha ${courtId}`)
           .eq('status', 'active')
-          .single();
+          .maybeSingle();  // Usar maybeSingle en lugar de single
           
         if (error) {
           console.error("Error al cargar partido:", error);
-          document.getElementById('match-state').textContent = 'Sin partido activo';
-          return null;
+          // Intentar con formato alternativo (solo el número)
+          const { data: altData, error: altError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('court', courtId)
+            .eq('status', 'active')
+            .maybeSingle();
+            
+          if (altError) {
+            console.error("Error alternativo:", altError);
+            return null;
+          }
+          
+          return altData;
         }
         
         return data;
@@ -361,7 +350,14 @@
       }
     }
     
+    // Función para actualizar la visualización
     function updateMatchDisplay(matchData) {
+      if (!matchData) {
+        document.getElementById('match-state').textContent = 'Esperando jugadores...';
+        document.querySelector('.qr-section').style.display = 'block';
+        return;
+      }
+      
       currentMatch = matchData;
       
       // Actualizar estado
@@ -369,14 +365,10 @@
       if (matchData.status === 'active') {
         stateElement.textContent = 'Partido en curso';
         stateElement.className = 'match-status active';
-        
-        // Ocultar QR cuando el partido está activo
         document.querySelector('.qr-section').style.display = 'none';
       } else {
         stateElement.textContent = 'Esperando jugadores...';
         stateElement.className = 'match-status';
-        
-        // Mostrar QR cuando no hay partido
         document.querySelector('.qr-section').style.display = 'block';
       }
       
@@ -408,68 +400,8 @@
         document.getElementById('match-duration').textContent = '00:00';
       }
     }
-
-
-    // Función para suscribirse a cambios con manejo de errores
-    function setupRealtimeSubscription() {
-      try {
-        const subscription = supabase
-          .channel('matches-channel')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'matches',
-              filter: `court=eq.Cancha ${courtId}`  // Cambiado de court_id a court
-            },
-            (payload) => {
-              console.log('Cambio recibido:', payload);
-              updateMatchDisplay(payload.new);
-            }
-          )
-          .subscribe((status, err) => {
-            if (err) {
-              console.error("Error de suscripción:", err);
-            } else {
-              console.log("Estado de suscripción:", status);
-            }
-          });
-          
-        return subscription;
-      } catch (error) {
-        console.error("Error al configurar suscripción:", error);
-        return null;
-      }
-    }
-	
-    // Función alternativa de suscripción
-    function setupAlternativeSubscription() {
-      try {
-        const subscription = supabase
-          .channel('matches-alt-channel')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'matches'
-            },
-            (payload) => {
-              // Filtrar manualmente por cancha
-              if (payload.new.court_id == courtId || payload.new.court === `Cancha ${courtId}`) {
-                updateMatchDisplay(payload.new);
-              }
-            }
-          )
-          .subscribe();
-          
-        return subscription;
-      } catch (error) {
-        console.error("Error en suscripción alternativa:", error);
-        return null;
-      }
-    }	
+    
+    // Función para iniciar el temporizador
     function startMatchTimer(startTime) {
       stopMatchTimer();
       
@@ -485,6 +417,7 @@
       }, 1000);
     }
     
+    // Función para detener el temporizador
     function stopMatchTimer() {
       if (matchDurationInterval) {
         clearInterval(matchDurationInterval);
@@ -492,9 +425,9 @@
       }
     }
     
-    // Función para agregar puntos con manejo de errores
+    // Función para agregar puntos
     async function addPoint(team) {
-      if (!currentMatch) {
+      if (!currentMatch || currentMatch.status !== 'active') {
         alert('No hay un partido activo. Por favor, escanee el QR para registrar un partido primero.');
         return;
       }
@@ -517,85 +450,52 @@
           alert('Error al registrar punto. Intente nuevamente.');
         }
       } catch (error) {
-        console.error('Error inesperado:', error);
+        console.error('Error:', error);
         alert('Error inesperado. Intente nuevamente.');
       }
     }
-
-
-    // Prueba de conexión a Supabase
-    async function testConnection() {
+    
+    // Función para configurar la suscripción en tiempo real
+    function setupRealtimeSubscription() {
       try {
-        const { data, error } = await supabase
-          .from('matches')
-          .select('count')
-          .limit(1);
+        const subscription = supabase
+          .channel('matches-channel')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'matches'
+            },
+            (payload) => {
+              // Filtrar manualmente por cancha
+              const courtValue = payload.new.court;
+              if (courtValue === `Cancha ${courtId}` || courtValue == courtId) {
+                updateMatchDisplay(payload.new);
+              }
+            }
+          )
+          .subscribe((status, err) => {
+            if (err) {
+              console.error("Error de suscripción:", err);
+            } else {
+              console.log("Estado de suscripción:", status);
+            }
+          });
           
-        if (error) {
-          console.error("Error de conexión:", error);
-          return false;
-        }
-        
-        console.log("Conexión exitosa");
-        return true;
+        return subscription;
       } catch (error) {
-        console.error("Error inesperado en prueba de conexión:", error);
-        return false;
+        console.error("Error al configurar suscripción:", error);
+        return null;
       }
     }
     
-    // Ejecutar prueba de conexión
-    testConnection().then(success => {
-      if (!success) {
-        console.error("No se pudo conectar a Supabase. Verifica tus credenciales.");
-      }
-    });
-
-    function generateQRCode() {
-      const registrationUrl = `${window.location.origin}/index.html?mode=qr&court=${courtId}`;
-      const qrElement = document.getElementById('qrcode');
-      
-      if (qrElement) {
-        // Limpiar el contenedor QR primero
-        qrElement.innerHTML = '';
-        
-        // Crear un elemento canvas para el QR
-        const canvas = document.createElement('canvas');
-        qrElement.appendChild(canvas);
-        
-        // Generar el QR en el canvas
-        QRCode.toCanvas(canvas, registrationUrl, {
-          width: 180,
-          margin: 1,
-          color: {
-            dark: '#2c3e50',
-            light: '#ffffff'
-          }
-        }, function(error) {
-          if (error) {
-            console.error('Error generating QR code:', error);
-            // Fallback: crear un enlace si el QR falla
-            qrElement.innerHTML = `
-              <a href="${registrationUrl}" style="color: white; text-decoration: underline;">
-                Escanear para registrar partido
-              </a>
-            `;
-          }
-        });
-      }
-    }
-
-    // Inicializar la aplicación
+    // Función de inicialización
     async function initApp() {
       try {
         // Cargar partido activo
         currentMatch = await loadActiveMatch();
-        if (currentMatch) {
-          updateMatchDisplay(currentMatch);
-        } else {
-          document.getElementById('match-state').textContent = 'Sin partido activo';
-          document.querySelector('.qr-section').style.display = 'block';
-        }
+        updateMatchDisplay(currentMatch);
         
         // Configurar suscripción en tiempo real
         setupRealtimeSubscription();
@@ -609,10 +509,7 @@
     }
     
     // Iniciar la aplicación cuando el DOM esté cargado
-    document.addEventListener('DOMContentLoaded', initApp);    
-    
-	// Cargar partido activo al iniciar
-    loadActiveMatch();
+    document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
