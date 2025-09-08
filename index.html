@@ -3559,24 +3559,20 @@
               
               // Funcionalidad de descarga - CORREGIDO: Usar evento delegado
               document.getElementById('download-qr').addEventListener('click', function() {
-                const canvas = document.querySelector('#modal-qrcode canvas');
+                const canvas = document.querySelector('#qrcode canvas');
                 if (canvas) {
                   const pngUrl = canvas.toDataURL("image/png");
                   const downloadLink = document.createElement('a');
                   downloadLink.href = pngUrl;
-                  downloadLink.download = `QR_Cancha_${courtNumber}.png`;
+                  downloadLink.download = `QR_Cancha_${courtId}.png`;
                   downloadLink.click();
                 }
               });
               
               // Funcionalidad de copiar URL - CORREGIDO: Usar evento delegado
               document.getElementById('copy-url').addEventListener('click', function() {
-                navigator.clipboard.writeText(qrUrl).then(() => {
-                  const originalText = this.innerHTML;
-                  this.innerHTML = '<i class="fas fa-check"></i> Copiado!';
-                  setTimeout(() => {
-                    this.innerHTML = originalText;
-                  }, 2000);
+                navigator.clipboard.writeText(registrationUrl).then(() => {
+                  alert('URL copiada al portapapeles!');
                 }).catch(err => {
                   console.error('Error al copiar:', err);
                 });
