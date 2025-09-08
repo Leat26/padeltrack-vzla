@@ -994,7 +994,136 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    // Inicialización CORRECTA de Supabase
+	// Navegación entre pantallas - Versión mejorada con seguridad
+	window.goToScreen = async function(id) {
+	  
+	  // Extraer el ID de pantalla de la URL si existe
+	  const urlParams = new URLSearchParams(window.location.search);
+	  const urlScreen = urlParams.get('screen');
+	  
+	  // Si la URL especifica una pantalla, usarla en lugar del parámetro
+	  const targetScreen = urlScreen || id;
+	  
+	  // Pantallas públicas que no requieren autenticación
+	  const publicScreens = ['login', 'register-screen', 'welcome','tv-mode'];
+	  
+	  // Si no es una pantalla pública, verificar autenticación
+	  if (!publicScreens.includes(id)) {
+	    const isAuthenticated = await window.verifyAuth();
+	    
+	    if (!isAuthenticated) {
+	      window.showNotification('Por favor, inicia sesión primero');
+	      window.goToScreen('login');
+	      return;									
+	    }
+	  }
+	  
+	  // Ocultar todas las pantallas
+	  document.querySelectorAll('.screen').forEach(s => {
+	    s.classList.remove('active');
+	    s.style.display = 'none';
+	  });
+	
+	  document.querySelectorAll('.screen').forEach(s => {
+	    s.classList.remove('active');
+	    s.style.display = 'none';
+	  });		  
+	  
+	  // Mostrar la pantalla solicitada
+	  const screen = document.getElementById(id);
+	  if (screen) {
+	    screen.style.display = 'block';
+	    setTimeout(() => {
+	      screen.classList.add('active');
+	    }, 50);
+	  }
+	
+	  // Limpiar formulario de registro si se está entrando a 'register-screen'
+	  if (id === 'register-screen') {
+	      const clubName = document.getElementById('club-name');
+	      const clubRif = document.getElementById('club-rif');
+	      const courtCount = document.getElementById('court-count');
+	      const registerEmail = document.getElementById('register-email');
+	      const phonePrefix = document.getElementById('phone-prefix');
+	      const phoneSuffix = document.getElementById('phone-suffix');
+	      const registerPassword = document.getElementById('register-password');
+	      const registerConfirm = document.getElementById('register-confirm');
+	  
+	      if (clubName) clubName.value = '';
+	      if (clubRif) clubRif.value = '';
+	      if (courtCount) courtCount.value = '';
+	      if (registerEmail) registerEmail.value = '';
+	      if (phonePrefix) phonePrefix.value = '';
+	      if (phoneSuffix) phoneSuffix.value = '';
+	      if (registerPassword) registerPassword.value = '';
+	      if (registerConfirm) registerConfirm.value = '';
+	  }
+	
+	  // Si es la pantalla de selección de canchas, cargarlasPantalla 
+	  if (id === 'courts-selection') {
+	    window.loadCourtsSelection();
+	  }          
+	
+	  // Si es la Pantalla de inicio, actualizar con los datos del club
+	  if (id === 'home' && window.currentUser && window.currentClub) {
+	    window.updateHomeScreen();
+	  }
+	  
+	  // Reiniciar marcador al salir
+	  if (id !== 'game' && window.interval) {
+	    clearInterval(window.interval);
+	    window.interval = null;
+	  }
+	  
+	  // Si es el dashboard, cargar datos
+	  if (id === 'dashboard' && window.currentUser && window.currentClub) {
+	    window.loadDashboard();
+	  }
+	  
+	  // Actualizar nombres de equipos en el marcador
+	  if (id === 'game') {
+	    window.updateTeamNamesDisplay();
+	  }
+	  
+	  // Si es registro, resetear validaciones
+	  if (id === 'register') {
+	    window.resetPlayerValidation();
+	    // Resetear nombres de equipos
+	    const teamAInput = document.getElementById('teamA-name');
+	    const teamBInput = document.getElementById('teamB-name');
+	    if (teamAInput) teamAInput.value = '';
+	    if (teamBInput) teamBInput.value = '';
+	  }
+	  
+	  // Si es ranking, cargar ranking
+	  if (id === 'ranking') {
+	    // Mostrar estado de carga inicial
+	    const rankingList = document.getElementById('ranking-list');
+	    if (rankingList) {
+	      rankingList.innerHTML = '<p>Cargando ranking...</p>';
+	    }
+		window.loadRanking();
+	  }
+	  
+	  // Si es la pantalla de bienvenida, actualizar con el nombre del club
+	  if (id === 'welcome' && window.currentClub) {
+	    const clubNameWelcome = document.getElementById('club-name-welcome');
+	    if (clubNameWelcome) {
+	      clubNameWelcome.textContent = window.currentClub.name;
+	      console.log("Nombre del club actualizado en pantalla de bienvenida");
+	    } else {
+	      console.error("No se encontró el elemento club-name-welcome");
+	    }
+	  }
+	
+	  
+	  // Asegurar que el scroll esté en la parte superior
+	  if (screen) {
+	    screen.scrollTop = 0;
+	  }
+	};    
+	
+	// Inicialización CORRECTA de Supabase
     document.addEventListener('DOMContentLoaded', async function() {
       console.log("Inicializando aplicación con Supabase...");
       
@@ -1183,136 +1312,6 @@
           return !!data.session;
         };
 		
-        // Navegación entre pantallas - Versión mejorada con seguridad
-        window.goToScreen = async function(id) {
-          
-		  // Extraer el ID de pantalla de la URL si existe
-		  const urlParams = new URLSearchParams(window.location.search);
-		  const urlScreen = urlParams.get('screen');
-		  
-		  // Si la URL especifica una pantalla, usarla en lugar del parámetro
-		  const targetScreen = urlScreen || id;
-		  
-		  // Pantallas públicas que no requieren autenticación
-          const publicScreens = ['login', 'register-screen', 'welcome','tv-mode'];
-          
-          // Si no es una pantalla pública, verificar autenticación
-          if (!publicScreens.includes(id)) {
-            const isAuthenticated = await window.verifyAuth();
-            
-            if (!isAuthenticated) {
-              window.showNotification('Por favor, inicia sesión primero');
-              window.goToScreen('login');
-              return;									
-            }
-          }
-          
-          // Ocultar todas las pantallas
-          document.querySelectorAll('.screen').forEach(s => {
-            s.classList.remove('active');
-            s.style.display = 'none';
-          });
-
-          document.querySelectorAll('.screen').forEach(s => {
-            s.classList.remove('active');
-            s.style.display = 'none';
-          });		  
-          
-          // Mostrar la pantalla solicitada
-          const screen = document.getElementById(id);
-          if (screen) {
-            screen.style.display = 'block';
-            setTimeout(() => {
-              screen.classList.add('active');
-            }, 50);
-          }
-
-          // Limpiar formulario de registro si se está entrando a 'register-screen'
-		  if (id === 'register-screen') {
-              const clubName = document.getElementById('club-name');
-              const clubRif = document.getElementById('club-rif');
-              const courtCount = document.getElementById('court-count');
-              const registerEmail = document.getElementById('register-email');
-              const phonePrefix = document.getElementById('phone-prefix');
-              const phoneSuffix = document.getElementById('phone-suffix');
-              const registerPassword = document.getElementById('register-password');
-              const registerConfirm = document.getElementById('register-confirm');
-          
-              if (clubName) clubName.value = '';
-              if (clubRif) clubRif.value = '';
-              if (courtCount) courtCount.value = '';
-              if (registerEmail) registerEmail.value = '';
-              if (phonePrefix) phonePrefix.value = '';
-              if (phoneSuffix) phoneSuffix.value = '';
-              if (registerPassword) registerPassword.value = '';
-              if (registerConfirm) registerConfirm.value = '';
-          }
-
-          // Si es la pantalla de selección de canchas, cargarlasPantalla 
-          if (id === 'courts-selection') {
-            window.loadCourtsSelection();
-          }          
-
-          // Si es la Pantalla de inicio, actualizar con los datos del club
-          if (id === 'home' && window.currentUser && window.currentClub) {
-            window.updateHomeScreen();
-          }
-          
-          // Reiniciar marcador al salir
-          if (id !== 'game' && window.interval) {
-            clearInterval(window.interval);
-            window.interval = null;
-          }
-          
-          // Si es el dashboard, cargar datos
-          if (id === 'dashboard' && window.currentUser && window.currentClub) {
-            window.loadDashboard();
-          }
-          
-          // Actualizar nombres de equipos en el marcador
-          if (id === 'game') {
-            window.updateTeamNamesDisplay();
-          }
-          
-          // Si es registro, resetear validaciones
-          if (id === 'register') {
-            window.resetPlayerValidation();
-            // Resetear nombres de equipos
-            const teamAInput = document.getElementById('teamA-name');
-            const teamBInput = document.getElementById('teamB-name');
-            if (teamAInput) teamAInput.value = '';
-            if (teamBInput) teamBInput.value = '';
-          }
-          
-          // Si es ranking, cargar ranking
-          if (id === 'ranking') {
-            // Mostrar estado de carga inicial
-            const rankingList = document.getElementById('ranking-list');
-            if (rankingList) {
-              rankingList.innerHTML = '<p>Cargando ranking...</p>';
-            }
-			window.loadRanking();
-          }
-          
-          // Si es la pantalla de bienvenida, actualizar con el nombre del club
-          if (id === 'welcome' && window.currentClub) {
-            const clubNameWelcome = document.getElementById('club-name-welcome');
-            if (clubNameWelcome) {
-              clubNameWelcome.textContent = window.currentClub.name;
-              console.log("Nombre del club actualizado en pantalla de bienvenida");
-            } else {
-              console.error("No se encontró el elemento club-name-welcome");
-            }
-          }
-
-          
-          // Asegurar que el scroll esté en la parte superior
-          if (screen) {
-            screen.scrollTop = 0;
-          }
-        };
-
-
         // Función para crear la pantalla de modo TV
         function createTvModeScreen() {
           const tvModeHTML = `
