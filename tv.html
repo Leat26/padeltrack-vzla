@@ -577,9 +577,11 @@
       window.matchTimerInterval = setInterval(updateTimer, 1000);
     }
     
-    // Configurar suscripción en tiempo real
+    // En setupRealtimeSubscription, mejorar el filtro
     function setupRealtimeSubscription() {
       try {
+        const courtName = `Cancha ${courtId}`;
+        
         const subscription = supabase
           .channel('tv-channel')
           .on(
@@ -588,22 +590,19 @@
               event: '*',
               schema: 'public',
               table: 'matches',
-              filter: `court=eq.Cancha ${courtId}`
+              filter: `court=eq.${encodeURIComponent(courtName)}`
             },
             async (payload) => {
-              // Actualizar solo si es un partido activo
-              if (payload.new.status === 'active' || 
-                  (payload.old && payload.old.status === 'active')) {
-                const match = await loadActiveMatch();
-                updateDisplay(match);
-                
-                // Reiniciar temporizador si es un nuevo partido
-                if (payload.eventType === 'INSERT' && match) {
-                  if (window.matchTimerInterval) {
-                    clearInterval(window.matchTimerInterval);
-                  }
-                  startMatchTimer(match.start_time);
+              // Actualizar cuando hay cambios en partidos de esta cancha
+              const match = await loadActiveMatch();
+              updateDisplay(match);
+              
+              // Reiniciar temporizador si es un nuevo partido
+              if (payload.eventType === 'INSERT' && match) {
+                if (window.matchTimerInterval) {
+                  clearInterval(window.matchTimerInterval);
                 }
+                startMatchTimer(match.start_time);
               }
             }
           )
@@ -614,7 +613,7 @@
         console.error("Error al configurar suscripción:", error);
         return null;
       }
-    }    
+    }        
     
     async function addPoint(team) {
       try {
@@ -656,7 +655,10 @@
       
       const qrElement = document.getElementById('qrcode');
       if (!qrElement) return;
-      
+
+      // Limpiar contenido previo
+      qrElement.innerHTML = '';      
+	  
       // CORREGIDO: Verificar explícitamente que QRCode esté definido
       if (typeof QRCode === 'undefined') {
         console.error("Biblioteca QRCode no está cargada");
@@ -686,7 +688,7 @@
         console.error("Error en QRCode.toCanvas:", error);
         qrElement.innerHTML = '<div class="qr-error">Error al generar QR</div>';
       }
-    }  
+    }       
     
     // Función para mostrar errores
     function showErrorScreen(message) {
