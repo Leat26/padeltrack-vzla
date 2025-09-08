@@ -359,60 +359,78 @@
       </div>
     </div>
   <script>
-    // === INICIALIZACIÓN ===
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // Obtener parámetros de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const clubId = urlParams.get('club');
-        const courtId = urlParams.get('court');
-        
-        if (!clubId || !courtId) {
-          document.body.innerHTML = `
-            <h1>Error</h1>
-            <p>Parámetros faltantes. Debe incluir club y court en la URL.</p>
-            <button onclick="location.reload()">Recargar Página</button>
-          `;
-          return;
-        }
-        
-        // Validar formato UUID para clubId
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(clubId)) {
-          showErrorScreen("QR inválido. Identificador de club no válido.");
-          return;
-        }
-        
-        // Configurar variables globales
-        window.clubId = clubId;
-        window.courtId = courtId;
-        
-        // Actualizar interfaz
-        document.getElementById('tv-court-number').textContent = courtId;
-        document.getElementById('active-court-number').textContent = courtId;
-        
-        // Inicializar Supabase (solo lectura)
-        const supabaseUrl = 'https://tu-proyecto.supabase.co';
-        const supabaseAnonKey = 'tu-anon-key';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+    
+	// === INICIALIZACIÓN ===
+	document.addEventListener('DOMContentLoaded', async () => {
+	  try {
+	    // Obtener parámetros de la URL
+	    const urlParams = new URLSearchParams(window.location.search);
+	    const clubId = urlParams.get('club');
+	    const courtId = urlParams.get('court');
+	    
+	    if (!clubId || !courtId) {
+	      document.body.innerHTML = `
+	        <div class="error-screen">
+	          <h1>Error</h1>
+	          <p>Parámetros faltantes. Debe incluir club y court en la URL.</p>
+	          <button onclick="location.reload()">Recargar Página</button>
+	        </div>
+	      `;
+	      return;
+	    }
+	    
+	    // Validar formato UUID para clubId
+	    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+	    if (!uuidRegex.test(clubId)) {
+	      document.body.innerHTML = `
+	        <div class="error-screen">
+	          <h1>Error</h1>
+	          <p>QR inválido. Identificador de club no válido.</p>
+	          <button onclick="location.reload()">Recargar Página</button>
+	        </div>
+	      `;
+	      return;
+	    }
+	    
+	    // Configurar variables globales
+	    window.clubId = clubId;
+	    window.courtId = courtId;
+	    
+	    // Actualizar interfaz
+	    const tvCourtNumber = document.getElementById('court-number');
+	    if (tvCourtNumber) {
+	      tvCourtNumber.textContent = courtId;
+	    }
+	    
+	    // Inicializar Supabase (solo lectura)
+        const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
+      		
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         window.supabase = supabase;
-        
-        // Generar QR
-        generateQRCode();
-        
-        // Cargar estado inicial
-        await initApp();
-        
-      } catch (error) {
-        console.error("Error crítico al inicializar:", error);
-        showErrorScreen("Error crítico. Recargue la página.");
-      }
-    });
+
+	    // Cargar estado inicial
+	    await initApp();
+	    
+	    // Generar QR DESPUÉS de que todo esté listo
+	    setTimeout(generateQRCode, 100);
+	    
+	  } catch (error) {
+	    console.error("Error crítico al inicializar:", error);
+	    document.body.innerHTML = `
+	      <div class="error-screen">
+	        <h1>Error</h1>
+	        <p>Error crítico al inicializar la aplicación.</p>
+	        <button onclick="location.reload()">Recargar Página</button>
+	      </div>
+	    `;
+	  }
+	});        
     
     // === FUNCIONES PRINCIPALES ===
     async function initApp() {
       try {
-        // Verificar estado del partido
+        // Cargar partido activo
         const match = await loadActiveMatch();
         updateDisplay(match);
         
@@ -631,30 +649,46 @@
       }
     }
     
+    // Función para generar QR - CORREGIDA
     function generateQRCode() {
-      // CORREGIDO: Usar tv.html en lugar de index.html
-      const registrationUrl = `${window.location.origin}/tv.html?mode=qr&club=${window.clubId}&court=${courtId}`;
+      // CORREGIDO: El QR debe apuntar a index.html?mode=qr, no a tv.html
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${window.courtId}`;
       
       const qrElement = document.getElementById('qrcode');
-      if (qrElement) {
-        qrElement.innerHTML = '';
-        const canvas = document.createElement('canvas');
-        qrElement.appendChild(canvas);
-        
-        // Reducir el tamaño del QR para asegurar que se vea completo
-        QRCode.toCanvas(canvas, registrationUrl, {
-          width: 140,
+      if (!qrElement) return;
+      
+      // CORREGIDO: Verificar explícitamente que QRCode esté definido
+      if (typeof QRCode === 'undefined') {
+        console.error("Biblioteca QRCode no está cargada");
+        qrElement.innerHTML = '<div class="qr-error">Biblioteca QR no cargada</div>';
+        return;
+      }
+      
+      // Limpiar contenido previo
+      qrElement.innerHTML = '';
+      
+      // Generar QR
+      try {
+        QRCode.toCanvas(qrElement, registrationUrl, {
+          width: 180,
           margin: 1,
-          color: { dark: '#2c3e50', light: '#ffffff' }
+          color: {
+            dark: '#2c3e50',
+            light: '#ffffff'
+          }
         }, function(error) {
           if (error) {
-            console.error('Error generating QR code:', error);
-            qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+            console.error("Error al generar QR:", error);
+            qrElement.innerHTML = '<div class="qr-error">Error al generar QR</div>';
           }
         });
+      } catch (error) {
+        console.error("Error en QRCode.toCanvas:", error);
+        qrElement.innerHTML = '<div class="qr-error">Error al generar QR</div>';
       }
-    }    
+    }  
     
+    // Función para mostrar errores
     function showErrorScreen(message) {
       document.body.innerHTML = `
         <div class="error-screen">
