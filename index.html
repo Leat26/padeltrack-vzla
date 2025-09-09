@@ -3465,7 +3465,7 @@
             return;
           }
           
-          const tvUrl = `${window.location.origin}${window.location.pathname}?mode=qr&club=${window.currentUser.id}&court=${courtId}`;
+          const tvUrl = `${window.location.origin}/tv.html?club=${window.currentUser.id}&court=${courtId}`;
           
           // Crear modal con la URL y QR
           const modal = document.createElement('div');
@@ -3478,7 +3478,7 @@
           modal.style.display = 'flex';
           modal.style.justifyContent = 'center';
           modal.style.alignItems = 'center';
-          modal.style.zIndex = '9999';
+          modal.style.zIndex = '1000';
         
           modal.innerHTML = `
             <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px; z-index: 10000; position: relative;">
