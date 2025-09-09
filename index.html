@@ -1544,27 +1544,31 @@
 	    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
 	    
 	    // Crear el partido en la tabla matches con estado 'active'
+	    const matchToInsert = {
+	      club_id: clubIdToUse,
+	      court: window.gameData.court,
+	      scoring_type: window.scoringType,
+	      status: 'active',
+	      start_time: new Date().toISOString(),
+	      team_a_score: 0,
+	      team_b_score: 0,
+	      games_a: 0,
+	      games_b: 0,
+	      tiebreak: false,
+	      team_a_name: window.teamNames.teamA,
+	      team_b_name: window.teamNames.teamB,
+	      duration: "00:00"
+	    };
+	    
+	    // Solo incluir sets_a y sets_b si el scoring_type es 'sets' (y las columnas existen)
+	    if (window.scoringType === 'sets') {
+	      matchToInsert.sets_a = 0;
+	      matchToInsert.sets_b = 0;
+	    }
+	    
 	    const { data: matchData, error: matchError } = await window.supabase
 	      .from('matches')
-	      .insert([
-	        {
-	          club_id: clubIdToUse,
-	          court: window.gameData.court,
-	          scoring_type: window.scoringType,
-	          status: 'active',
-	          start_time: new Date().toISOString(),
-	          team_a_score: 0,
-	          team_b_score: 0,
-	          games_a: 0,
-	          games_b: 0,
-	          sets_a: 0,
-	          sets_b: 0,
-	          tiebreak: false,
-	          team_a_name: window.teamNames.teamA,
-	          team_b_name: window.teamNames.teamB,
-	          duration: "00:00"
-	        }
-	      ])
+	      .insert([matchToInsert])
 	      .select('id')
 	      .single();
 	    
