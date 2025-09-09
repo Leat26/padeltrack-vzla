@@ -1172,12 +1172,27 @@
 	  }
 	
 	  try {
+	    // ✅ Determinar club_id a usar
+	    const clubIdToUse = window.currentClubId || (window.currentUser?.id);
+	    if (!clubIdToUse) {
+	      console.warn("No se encontró club_id para validar jugador");
+	      if (statusElement) {
+	        statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+	        statusElement.className = 'cedula-validation invalid';
+	      }
+	      if (playerStatusElement) {
+	        playerStatusElement.textContent = 'Club no definido';
+	      }
+	      window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
+	      return;
+	    }
+	
 	    // Buscar jugador en Supabase (solo en el club actual)
 	    const { data, error } = await window.supabase
 	      .from('players')
 	      .select('*')
 	      .eq('cedula', cedula)
-	      .eq('club_id', window.currentUser.id)
+	      .eq('club_id', clubIdToUse)
 	      .single();
 	
 	    if (error) {
@@ -1197,10 +1212,8 @@
 	        if (firstNameInput && lastNameInput) {
 	          firstNameInput.disabled = false;
 	          lastNameInput.disabled = false;
-	          firstNameInput.focus(); // Poner foco en el primer campo
-	        } else {
-	          console.warn(`No se encontraron campos de nombre y apellido para ${team}${player}`);
-	        }		        
+	          firstNameInput.focus();
+	        }
 	
 	        // Guardar datos
 	        window.playersData[id] = {
@@ -1263,7 +1276,7 @@
 	    }
 	    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 	  }
-	};
+	};	
 
 	// Validar formato del RIF venezolano
 	window.validateRifFormat = function(rif) {
