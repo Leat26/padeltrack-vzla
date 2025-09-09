@@ -995,7 +995,19 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
 	
-	// Definir verifyAuth INMEDIATAMENTE después
+	// Mostrar notificación
+	window.showNotification = function(message) {
+	  const notification = document.getElementById('notification');
+	  if (!notification) return;
+	  
+	  notification.innerHTML = message;
+	  notification.classList.add('show');
+	  
+	  setTimeout(() => {
+	    notification.classList.remove('show');
+	  }, 3000);
+	};	
+	
 	window.verifyAuth = async function() {
 	    const { data, error } = await window.supabase.auth.getSession();
 	    if (error) {
@@ -1233,19 +1245,6 @@
           if (value === undefined || value === null) return defaultValue;
           const num = typeof value === 'string' ? parseInt(value) : value;
           return isNaN(num) || num < 0 ? defaultValue : num;
-        };
-        
-        // Mostrar notificación
-        window.showNotification = function(message) {
-          const notification = document.getElementById('notification');
-          if (!notification) return;
-          
-          notification.innerHTML = message;
-          notification.classList.add('show');
-          
-          setTimeout(() => {
-            notification.classList.remove('show');
-          }, 3000);
         };
 		
         // FUNCIÓN: Obtener nivel del jugador 
