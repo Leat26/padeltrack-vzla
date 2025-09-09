@@ -3551,11 +3551,6 @@
               window.showNotification('Error al descargar QR');
             }
           });
-		  
-          const closeModalButton = document.getElementById('close-modal');
-          closeModalButton.addEventListener('click', function() {
-            modal.remove();
-          });
         
           document.getElementById('copy-url').addEventListener('click', function() {
             navigator.clipboard.writeText(tvUrl).then(() => {
