@@ -1264,6 +1264,12 @@
 	    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 	  }
 	};
+
+	// Validar formato del RIF venezolano
+	window.validateRifFormat = function(rif) {
+	  const rifRegex = /^[JjGg]-\d{8}-\d$/;
+	  return rifRegex.test(rif);
+	};
 	
 	window.verifyAuth = async function() {
 	    const { data, error } = await window.supabase.auth.getSession();
@@ -1395,13 +1401,622 @@
 	      console.error("No se encontró el elemento club-name-welcome");
 	    }
 	  }
-	
 	  
 	  // Asegurar que el scroll esté en la parte superior
 	  if (screen) {
 	    screen.scrollTop = 0;
 	  }
 	};    
+
+// Función para registrar jugadores
+	window.startGame = async function() {
+	  // Validar que todos los jugadores tengan datos completos
+	  const missingData = [];
+	  Object.keys(window.playersData).forEach(key => {
+	    const data = window.playersData[key];
+	    if (!data.cedula) {
+	      missingData.push(`Jugador ${key}`);
+	    } else if (!data.exists) {
+	      const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+	      const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+	      const firstName = firstNameInput?.value?.trim() || '';
+	      const lastName = lastNameInput?.value?.trim() || '';
+	      if (!firstName || !lastName) {
+	        missingData.push(`Jugador ${key}`);
+	      }
+	    }
+	  });
+	
+	  if (missingData.length > 0) {
+	    window.showNotification('Por favor, completa todos los datos de los siguientes jugadores: ' + missingData.join(', '));
+	    return;
+	  }
+	
+	  // ✅ Validar que no haya cédulas duplicadas entre los jugadores
+	  const cedulas = [];
+	  const duplicates = [];
+	
+	  Object.keys(window.playersData).forEach(key => {
+	    const data = window.playersData[key];
+	    if (data.cedula) {
+	      if (cedulas.includes(data.cedula)) {
+	        duplicates.push(data.cedula);
+	      } else {
+	        cedulas.push(data.cedula);
+	      }
+	    }
+	  });
+	
+	  if (duplicates.length > 0) {
+	    const cedulaDuplicada = duplicates[0];
+	    const jugadores = Object.keys(window.playersData)
+	      .filter(key => window.playersData[key].cedula === cedulaDuplicada)
+	      .map(key => `Jugador ${key}`)
+	      .join(' y ');
+	
+	    window.showNotification(`La cédula ${cedulaDuplicada} está repetida. No se permite que un jugador participe dos veces en el mismo partido.`);
+	    return;
+	  }
+	  
+	  if (!window.currentUser) {
+	    window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
+	    window.goToScreen('login');
+	    return;
+	  }
+	  
+	  // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
+	  for (const key in window.playersData) {
+	    const player = window.playersData[key];
+	    if (player.exists) continue; // Ya existe en este club
+	    
+	    // Obtener los valores del DOM
+	    const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+	    const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
+	    
+	    const firstName = firstNameInput?.value?.trim() || '';
+	    const lastName = lastNameInput?.value?.trim() || '';
+	    
+	    // Validar que los nombres no estén vacíos
+	    if (!firstName || !lastName) {
+	      window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
+	      return;
+	    }
+	    
+	    // Intentar insertar el jugador
+	    const { error: insertError } = await window.supabase
+	      .from('players')
+	      .insert([
+	        {
+	          club_id: window.currentUser.id,
+	          cedula: player.cedula,
+	          first_name: firstName,
+	          last_name: lastName,
+	          matches_played: 0,
+	          matches_won: 0,
+	          created_at: new Date().toISOString(),
+	          last_match_date: new Date().toISOString()
+	        }
+	      ]);
+	    
+	    if (insertError) {
+	      if (insertError.code === '23505') {
+	        console.error("Error de unicidad inesperado:", insertError);
+	      } else {
+	        console.error("Error al registrar jugador:", insertError);
+	        window.showNotification(`Error al registrar ${firstName} ${lastName}`);
+	        return;
+	      }
+	    }
+	    
+	    // Actualizar playersData con los nombres reales
+	    window.playersData[key] = {
+	      ...window.playersData[key],
+	      firstName: firstName,
+	      lastName: lastName
+	    };
+	  }
+	  
+	  // ✅ CREAR EL PARTIDO EN LA BASE DE DATOS (AHORA SÍ ES CRÍTICO PARA LOS TVs)
+	  try {
+	    // Determinar el club_id a usar (priorizar gameData.club_id si existe)
+	    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
+	    
+	    // Crear el partido en la tabla matches con estado 'active'
+	    const { data: matchData, error: matchError } = await window.supabase
+	      .from('matches')
+	      .insert([
+	        {
+	          club_id: clubIdToUse,
+	          court: window.gameData.court,
+	          scoring_type: window.scoringType,
+	          status: 'active',
+	          start_time: new Date().toISOString(),
+	          team_a_score: 0,
+	          team_b_score: 0,
+	          games_a: 0,
+	          games_b: 0,
+	          sets_a: 0,
+	          sets_b: 0,
+	          tiebreak: false,
+	          team_a_name: window.teamNames.teamA,
+	          team_b_name: window.teamNames.teamB,
+	          duration: "00:00"
+	        }
+	      ])
+	      .select('id')
+	      .single();
+	    
+	    if (matchError) {
+	      console.error("Error al crear partido:", matchError);
+	      
+	      // Mensaje específico para errores de RLS
+	      if (matchError.code === '42501') {
+	        window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
+	      } else {
+	        window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
+	      }
+	      return;
+	    }
+	    
+	    // Guardar el ID del partido para uso posterior
+	    window.lastMatchId = matchData.id;
+	    
+	    // ✅ VINCULAR JUGADORES AL PARTIDO (ahora SÍ en el inicio)
+	    try {
+	      const insertPlayerInMatch = async (playerKey, team) => {
+	        const player = window.playersData[playerKey];
+	        
+	        // Buscar el ID del jugador por su cédula y club_id
+	        const { data: playerData, error: playerError } = await window.supabase
+	          .from('players')
+	          .select('id')
+	          .eq('cedula', player.cedula)
+	          .eq('club_id', clubIdToUse)
+	          .single();
+	        
+	        if (playerError) {
+	          console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
+	          return;
+	        }
+	        
+	        // Insertar en match_players
+	        const { error: matchPlayerError } = await window.supabase
+	          .from('match_players')
+	          .insert([
+	            {
+	              match_id: matchData.id,
+	              player_id: playerData.id,
+	              team: team
+	            }
+	          ]);
+	        
+	        if (matchPlayerError) {
+	          console.error(`Error al vincular jugador ${player.cedula} al partido:`, matchPlayerError);
+	        }
+	      };
+	      
+	      // Insertar jugadores del equipo A
+	      await insertPlayerInMatch('A1', 'teamA');
+	      await insertPlayerInMatch('A2', 'teamA');
+	      
+	      // Insertar jugadores del equipo B
+	      await insertPlayerInMatch('B1', 'teamB');
+	      await insertPlayerInMatch('B2', 'teamB');
+	      
+	    } catch (error) {
+	      console.error("Error al vincular jugadores al partido:", error);
+	      // Continuar igual porque el partido ya se creó
+	    }
+	    
+	    // ✅ Actualizar la función addPoint para que use el partido actual
+	    window.updateAddPointFunction();
+	    
+	    // Éxito - resetear marcador y redirigir
+	    window.resetGame(); // Asegura que todo esté limpio antes de empezar
+	    window.goToScreen('game');
+	    
+	    // ✅ Iniciar temporizador
+	    window.startTimer();
+	    
+	  } catch (error) {
+	    console.error("Error crítico al crear partido:", error);
+	    window.showNotification('Error crítico al crear partido. Inténtalo de nuevo.');
+	  }
+	};
+
+	// Actualizar marcador visual
+	window.updateScoreboard = function() {
+	  // Actualizar juegos ganados
+	  const gamesAElement = document.getElementById('gamesA');
+	  const gamesBElement = document.getElementById('gamesB');
+	  if (gamesAElement) gamesAElement.textContent = window.gamesA;
+	  if (gamesBElement) gamesBElement.textContent = window.gamesB;
+	
+	  // Actualizar sets
+	  const setsAElement = document.getElementById('setsA');
+	  const setsBElement = document.getElementById('setsB');
+	  if (setsAElement) setsAElement.textContent = window.setsA;
+	  if (setsBElement) setsBElement.textContent = window.setsB;
+	  
+	  // Actualizar puntos actuales
+	  if (window.inTiebreak) {
+	    const scoreAElement = document.getElementById('scoreA');
+	    const scoreBElement = document.getElementById('scoreB');
+	    
+	    if (scoreAElement) scoreAElement.textContent = window.tiebreakPointsA;
+	    if (scoreBElement) scoreBElement.textContent = window.tiebreakPointsB;
+	    
+	    if (scoreAElement) scoreAElement.style.color = '#016B3A';
+	    if (scoreBElement) scoreBElement.style.color = '#016B3A';
+	    
+	    // Mostrar notificación de tiebreak
+	    const tiebreakNotification = document.getElementById('tiebreak-notification');
+	    if (tiebreakNotification) tiebreakNotification.style.display = 'block';
+	  } else {
+	    const scoreAElement = document.getElementById('scoreA');
+	    const scoreBElement = document.getElementById('scoreB');
+	    
+	    if (scoreAElement) scoreAElement.textContent = window.getDisplayScore(window.scoreA);
+	    if (scoreBElement) scoreBElement.textContent = window.getDisplayScore(window.scoreB);
+	    
+	    if (scoreAElement) scoreAElement.style.color = '#D32F2F';
+	    if (scoreBElement) scoreBElement.style.color = '#1976D2';
+	    
+	    const tiebreakNotification = document.getElementById('tiebreak-notification');
+	    if (tiebreakNotification) tiebreakNotification.style.display = 'none';
+	  }
+	  
+	  // Resaltar ganador temporal
+	  if (window.scoringType === 'american') {
+	    // En modo americano, resaltar cuando hay ventaja
+	    const scoreAElement = document.getElementById('scoreA');
+	    const scoreBElement = document.getElementById('scoreB');
+	    
+	    if (window.scoreA > window.scoreB) {
+	      if (scoreAElement) scoreAElement.classList.add('winner');
+	      if (scoreBElement) scoreBElement.classList.add('loser');
+	    } else if (window.scoreB > window.scoreA) {
+	      if (scoreAElement) scoreAElement.classList.add('loser');
+	      if (scoreBElement) scoreBElement.classList.add('winner');
+	    } else {
+	      if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
+	      if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
+	    }
+	  } else if (window.scoringType === 'traditional') {
+	    // Resaltar juegos ganados
+	    const gamesAElement = document.getElementById('gamesA');
+	    const gamesBElement = document.getElementById('gamesB');
+	    
+	    if (window.gamesA > window.gamesB) {
+	      if (gamesAElement) gamesAElement.style.color = '#4CAF50';
+	      if (gamesBElement) gamesBElement.style.color = '#D32F2F';
+	    } else if (window.gamesB > window.gamesA) {
+	      if (gamesAElement) gamesAElement.style.color = '#D32F2F';
+	      if (gamesBElement) gamesBElement.style.color = '#4CAF50';
+	    } else {
+	      if (gamesAElement) gamesAElement.style.color = '#666';
+	      if (gamesBElement) gamesBElement.style.color = '#666';
+	    }
+	  }
+	};
+	
+	// Función para finalizar partido
+	window.finalizeGame = async function() {
+	if (!window.currentUser) {
+		window.showNotification('Por favor, inicia sesión primero');
+		window.goToScreen('login');
+		return;
+	}
+	
+	// ✅ Marcar el partido como terminado
+	window.gameEnded = true;  
+	
+	// Determinar ganador
+	let winner = '';
+	if (window.scoringType === 'traditional') {
+		if (window.inTiebreak) {
+		winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
+		} else {
+		winner = window.gamesA > window.gamesB ? 'A' : 'B';
+		}
+	} else {
+		if (window.inTiebreak) {
+		winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
+		} else {
+		winner = window.scoreA > window.scoreB ? 'A' : 'B';
+		}
+	}
+	
+	// Actualizar pantalla de finalización
+	const resultTitle = document.getElementById('result-title');
+	if (resultTitle) {
+		resultTitle.innerHTML = 
+		`<i class="fas fa-trophy"></i> ¡${winner === 'A' ? window.teamNames.teamA : window.teamNames.teamB} se lleva la victoria!`;
+	}
+	
+	// Calcular puntajes según sistema
+	let gamesAVal = 0, gamesBVal = 0, pointsAVal = 0, pointsBVal = 0;
+	if (window.scoringType === 'traditional') {
+		gamesAVal = window.gamesA;
+		gamesBVal = window.gamesB;
+		pointsAVal = window.inTiebreak ? window.tiebreakPointsA : 0;
+		pointsBVal = window.inTiebreak ? window.tiebreakPointsB : 0;
+	} else {
+		pointsAVal = window.inTiebreak ? window.tiebreakPointsA : window.scoreA;
+		pointsBVal = window.inTiebreak ? window.tiebreakPointsB : window.scoreB;
+	}
+	
+	const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
+	const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
+	
+	// ✅ ACTUALIZAR el partido existente en Supabase (NO crear uno nuevo)
+	try {
+		const { error } = await window.supabase
+		.from('matches')
+		.update([
+			{
+			status: 'completed',
+			end_time: new Date().toISOString(),
+			winner: winner === 'A' ? 'teamA' : 'teamB',
+			games_a: gamesAVal,
+			games_b: gamesBVal,
+			points_a: pointsAVal,
+			pointsBVal,
+			tiebreak: window.inTiebreak,
+			duration: window.gameDuration
+			}
+		])
+		.eq('id', window.lastMatchId);
+		
+		if (error) {
+		console.error("Error al actualizar partido: ", {
+			code: error.code,
+			message: error.message,
+			details: error.details,
+			hint: error.hint,
+			data: {
+			id: window.lastMatchId,
+			winner: winner === 'A' ? 'teamA' : 'teamB',
+			games_a: gamesAVal,
+			games_b: gamesBVal
+			}
+		});
+		
+		// Mensaje más específico para errores de RLS
+		if (error.code === '42501') {
+			window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
+		} else {
+			window.showNotification('Error al actualizar partido. Inténtalo de nuevo.');
+		}
+		} else {
+		// ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
+		try {
+			// Intentar llamar a la función RPC
+			const { error: courtError } = await window.supabase
+			.rpc('increment_court_usage', {
+				p_club_id: window.currentUser.id,
+				p_court: window.selectedCourt
+			});
+			
+			if (courtError) {
+			console.error("Error DETALLADO al actualizar uso de canchas:", {
+				code: courtError.code,
+				message: courtError.message,
+				details: courtError.details,
+				hint: courtError.hint
+			});
+			
+			// Verificar si la tabla court_usage existe
+			const { error: tableCheck } = await window.supabase
+				.from('court_usage')
+				.select('count(*)', { count: 'exact' })
+				.limit(1);
+			
+			if (tableCheck) {
+				window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
+			} else {
+				window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
+			}
+			} else {
+			console.log("Uso de canchas actualizado correctamente");
+			}
+		} catch (error) {
+			console.error("Error CRÍTICO al actualizar uso de canchas:", error);
+			window.showNotification('Error crítico al actualizar uso de canchas.');
+		}
+		
+		// Actualizar estadísticas de jugadores
+		await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
+		}
+		
+		// --- 1. Actualizar duración real ---
+		const durationEl = document.getElementById('final-duration');
+		if (durationEl) {
+		const minutes = Math.floor(window.seconds / 60);
+		const secs = window.seconds % 60;
+		durationEl.textContent = `${minutes} min ${secs.toString().padStart(2, '0')} seg`;
+		}
+		
+		// --- 2. Calcular dominio del partido para "promedio de saques" ---
+		let total, teamAVal;
+		if (window.scoringType === 'traditional') {
+		// Modo tradicional: usar juegos ganados
+		total = window.gamesA + window.gamesB;
+		teamAVal = window.gamesA;
+		} else {
+		// Modo americano: usar puntos ganados
+		total = window.scoreA + window.scoreB;
+		teamAVal = window.scoreA;
+		}
+		
+		// Calcular porcentaje de dominio
+		const percentage = total > 0 ? Math.round((teamAVal / total) * 100) : 50;
+		
+		// Actualizar % de saques
+		const servePercentageEl = document.getElementById('serve-percentage');
+		if (servePercentageEl) {
+		servePercentageEl.textContent = `${percentage}%`;
+		
+		// Opcional: mejorar el mensaje según quién dominó
+		const serveP = servePercentageEl.parentElement;
+		if (percentage > 50) {
+			serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor de <strong>${window.teamNames.teamA}</strong>`;
+		} else if (percentage < 50) {
+			serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor de <strong>${window.teamNames.teamB}</strong>`;
+		} else {
+			serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
+		}
+		}
+	
+		// --- ✅ Mostrar resultado de todos los sets ---
+		const setScoresEl = document.getElementById('set-scores');
+		if (setScoresEl) {
+		let scoreHtml = '';
+		
+		if (window.scoringType === 'traditional') {
+			if (window.setHistory && window.setHistory.length > 0) {
+			const setLines = window.setHistory.map((set, i) => {
+				let setLine = `<strong>Set ${i + 1}:</strong> ${set.gamesA}-${set.gamesB}`;
+				if (set.tiebreak) {
+				setLine += ` (Tiebreak: ${set.tiebreakA}-${set.tiebreakB})`;
+				}
+				return setLine;
+			});
+			scoreHtml = setLines.join('<br>');
+			} else {
+			scoreHtml = 'No se completó ningún set';
+			}
+		} else {
+			// Modo americano
+			if (window.inTiebreak) {
+			scoreHtml = `
+				<strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
+				<strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
+			`;
+			} else {
+			scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
+			}
+		}
+		
+		setScoresEl.innerHTML = scoreHtml;
+		}
+		
+		// Mostrar pantalla de finalización
+		window.goToScreen('end');
+	} catch (error) {
+		console.error("Error crítico al finalizar partido:", error);
+		window.showNotification('Error crítico al finalizar partido. Inténtalo de nuevo.');
+	}
+	};	
+
+	// Función para cargar ranking
+	window.loadRanking = async function() {
+	    if (!window.currentUser) {
+	        const rankingList = document.getElementById('ranking-list');
+	        if (rankingList) {
+	            rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error:</strong> Por favor, inicia sesión primero</div>`;
+	        }
+	        return;
+	    }
+	
+	    // Mostrar estado de carga
+	    const rankingList = document.getElementById('ranking-list');
+	    if (rankingList) {
+	        rankingList.innerHTML = `<p>Cargando ranking...</p>`;
+	    }
+	
+	    // Calcular fecha de hace 7 días
+	    const today = new Date();
+	    today.setHours(0, 0, 0, 0);
+	    const lastWeek = new Date(today);
+	    lastWeek.setDate(today.getDate() - 7);
+		
+	    // Mostrar fecha de corte del ranking
+	    const cutoffDate = lastWeek.toLocaleDateString('es-ES', { 
+	        day: '2-digit', 
+	        month: '2-digit', 
+	        year: 'numeric' 
+	    });
+	    const cutoffElement = document.getElementById('ranking-cutoff');
+	    if (cutoffElement) {
+	        cutoffElement.textContent = `Activos desde el ${cutoffDate}`;
+	    }			
+	
+	    try {
+			const { data, error } = await window.supabase
+			  .from('players')
+			  .select(`
+			    *,
+			    match_players!inner(
+			      matches!inner(created_at)
+			    )
+			  `)
+			  .eq('club_id', window.currentUser.id)
+			  .gte('match_players.matches.created_at', lastWeek.toISOString())
+			  .gt('matches_played', 0)
+			  .order('matches_won', { ascending: false });
+	
+	        if (error) {
+	            console.error("Error al cargar ranking:", error);
+	            if (rankingList) {
+	                rankingList.innerHTML = `<div class="alert" style="margin: 15px 0;"><i class="fas fa-exclamation-circle"></i><strong>Error al cargar ranking: ${error.message}</strong></div>`;
+	            }
+	            return;
+	        }
+	
+	        if (!data || data.length === 0) {
+	            if (rankingList) {
+	                rankingList.innerHTML = `<p style="text-align: center; padding: 15px; color: #666;">
+												<i class="fas fa-trophy" style="font-size: 24px; opacity: 0.5; display: block; margin-bottom: 10px;"></i>
+												<strong>¡Anímate a jugar!</strong><br>
+												No hay partidos esta semana.<br>
+												Sé el primero en marcar un partido.
+											</p>`;
+	            }
+	            return;
+	        }
+	
+	        // Generar HTML del ranking
+	        let html = '';
+	        let rank = 1;
+	        data.forEach(player => {
+	          const matchesPlayed = player.matches_played || 0;
+	          const matchesWon = window.safeNumber(player.matches_won, 0);
+	          const matchesLost = matchesPlayed - matchesWon;
+	          const winPercentage = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
+	          const level = window.getPlayerLevel(winPercentage);
+	          const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
+	        
+	          html += `
+	          <div class="ranking-item">
+	            <div class="ranking-name">
+	              <span class="ranking-rank">${rank}.</span>
+	              <span>👤</span>
+	              <strong>${initials}</strong>
+	              <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
+	            </div>
+	            <div class="ranking-level">
+	              <i class="fas fa-${level.icon}" style="color: ${level.color};"></i> ${level.name} (${winPercentage}%)
+	            </div>
+	            <div class="ranking-stats">
+	              <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
+	              <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
+	              <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
+	            </div>
+	          </div>`;
+	          rank++;
+	        });
+			
+	        if (rankingList) {
+	            rankingList.innerHTML = html;
+	        }
+	    } catch (error) {
+	        console.error("Error crítico al cargar ranking:", error);
+	        if (rankingList) {
+	            rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error crítico:</strong> ${error.message}</div>`;
+	        }
+	    }
+	};
 	
 	// Inicialización CORRECTA de Supabase
     document.addEventListener('DOMContentLoaded', async function() {
@@ -2039,82 +2654,6 @@
             return traditionalPoints[points] || '40';
           }
           return points; // Modo americano o tiebreak
-        };
-        
-        // Actualizar marcador visual
-        window.updateScoreboard = function() {
-          // Actualizar juegos ganados
-          const gamesAElement = document.getElementById('gamesA');
-          const gamesBElement = document.getElementById('gamesB');
-          if (gamesAElement) gamesAElement.textContent = window.gamesA;
-          if (gamesBElement) gamesBElement.textContent = window.gamesB;
-
-          // Actualizar sets
-          const setsAElement = document.getElementById('setsA');
-          const setsBElement = document.getElementById('setsB');
-          if (setsAElement) setsAElement.textContent = window.setsA;
-          if (setsBElement) setsBElement.textContent = window.setsB;
-          
-          // Actualizar puntos actuales
-          if (window.inTiebreak) {
-            const scoreAElement = document.getElementById('scoreA');
-            const scoreBElement = document.getElementById('scoreB');
-            
-            if (scoreAElement) scoreAElement.textContent = window.tiebreakPointsA;
-            if (scoreBElement) scoreBElement.textContent = window.tiebreakPointsB;
-            
-            if (scoreAElement) scoreAElement.style.color = '#016B3A';
-            if (scoreBElement) scoreBElement.style.color = '#016B3A';
-            
-            // Mostrar notificación de tiebreak
-            const tiebreakNotification = document.getElementById('tiebreak-notification');
-            if (tiebreakNotification) tiebreakNotification.style.display = 'block';
-          } else {
-            const scoreAElement = document.getElementById('scoreA');
-            const scoreBElement = document.getElementById('scoreB');
-            
-            if (scoreAElement) scoreAElement.textContent = window.getDisplayScore(window.scoreA);
-            if (scoreBElement) scoreBElement.textContent = window.getDisplayScore(window.scoreB);
-            
-            if (scoreAElement) scoreAElement.style.color = '#D32F2F';
-            if (scoreBElement) scoreBElement.style.color = '#1976D2';
-            
-            const tiebreakNotification = document.getElementById('tiebreak-notification');
-            if (tiebreakNotification) tiebreakNotification.style.display = 'none';
-          }
-          
-          // Resaltar ganador temporal
-          if (window.scoringType === 'american') {
-            // En modo americano, resaltar cuando hay ventaja
-            const scoreAElement = document.getElementById('scoreA');
-            const scoreBElement = document.getElementById('scoreB');
-            
-            if (window.scoreA > window.scoreB) {
-              if (scoreAElement) scoreAElement.classList.add('winner');
-              if (scoreBElement) scoreBElement.classList.add('loser');
-            } else if (window.scoreB > window.scoreA) {
-              if (scoreAElement) scoreAElement.classList.add('loser');
-              if (scoreBElement) scoreBElement.classList.add('winner');
-            } else {
-              if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
-              if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
-            }
-          } else if (window.scoringType === 'traditional') {
-            // Resaltar juegos ganados
-            const gamesAElement = document.getElementById('gamesA');
-            const gamesBElement = document.getElementById('gamesB');
-            
-            if (window.gamesA > window.gamesB) {
-              if (gamesAElement) gamesAElement.style.color = '#4CAF50';
-              if (gamesBElement) gamesBElement.style.color = '#D32F2F';
-            } else if (window.gamesB > window.gamesA) {
-              if (gamesAElement) gamesAElement.style.color = '#D32F2F';
-              if (gamesBElement) gamesBElement.style.color = '#4CAF50';
-            } else {
-              if (gamesAElement) gamesAElement.style.color = '#666';
-              if (gamesBElement) gamesBElement.style.color = '#666';
-            }
-          }
         };
         
         // Manejar puntos en modo tradicional
@@ -2771,222 +3310,6 @@
 		    window.gameDuration = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
 		  }, 1000);
 		};
-        
-		// Función para registrar jugadores
-		window.startGame = async function() {
-		  // Validar que todos los jugadores tengan datos completos
-		  const missingData = [];
-		  Object.keys(window.playersData).forEach(key => {
-		    const data = window.playersData[key];
-		    if (!data.cedula) {
-		      missingData.push(`Jugador ${key}`);
-		    } else if (!data.exists) {
-		      const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-		      const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-		      const firstName = firstNameInput?.value?.trim() || '';
-		      const lastName = lastNameInput?.value?.trim() || '';
-		      if (!firstName || !lastName) {
-		        missingData.push(`Jugador ${key}`);
-		      }
-		    }
-		  });
-		
-		  if (missingData.length > 0) {
-		    window.showNotification('Por favor, completa todos los datos de los siguientes jugadores: ' + missingData.join(', '));
-		    return;
-		  }
-		
-		  // ✅ Validar que no haya cédulas duplicadas entre los jugadores
-		  const cedulas = [];
-		  const duplicates = [];
-		
-		  Object.keys(window.playersData).forEach(key => {
-		    const data = window.playersData[key];
-		    if (data.cedula) {
-		      if (cedulas.includes(data.cedula)) {
-		        duplicates.push(data.cedula);
-		      } else {
-		        cedulas.push(data.cedula);
-		      }
-		    }
-		  });
-		
-		  if (duplicates.length > 0) {
-		    const cedulaDuplicada = duplicates[0];
-		    const jugadores = Object.keys(window.playersData)
-		      .filter(key => window.playersData[key].cedula === cedulaDuplicada)
-		      .map(key => `Jugador ${key}`)
-		      .join(' y ');
-		
-		    window.showNotification(`La cédula ${cedulaDuplicada} está repetida. No se permite que un jugador participe dos veces en el mismo partido.`);
-		    return;
-		  }
-		  
-		  if (!window.currentUser) {
-		    window.showNotification('Error: No has iniciado sesión. Por favor, inicia sesión primero.');
-		    window.goToScreen('login');
-		    return;
-		  }
-		  
-		  // Registrar jugadores en la base de datos (SOLO PARA ESTE CLUB)
-		  for (const key in window.playersData) {
-		    const player = window.playersData[key];
-		    if (player.exists) continue; // Ya existe en este club
-		    
-		    // Obtener los valores del DOM
-		    const firstNameInput = document.querySelector(`.first-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-		    const lastNameInput = document.querySelector(`.last-name[data-team="${key[0]}"][data-player="${key[1]}"]`);
-		    
-		    const firstName = firstNameInput?.value?.trim() || '';
-		    const lastName = lastNameInput?.value?.trim() || '';
-		    
-		    // Validar que los nombres no estén vacíos
-		    if (!firstName || !lastName) {
-		      window.showNotification(`Por favor, completa los nombres para el jugador ${key}`);
-		      return;
-		    }
-		    
-		    // Intentar insertar el jugador
-		    const { error: insertError } = await window.supabase
-		      .from('players')
-		      .insert([
-		        {
-		          club_id: window.currentUser.id,
-		          cedula: player.cedula,
-		          first_name: firstName,
-		          last_name: lastName,
-		          matches_played: 0,
-		          matches_won: 0,
-		          created_at: new Date().toISOString(),
-		          last_match_date: new Date().toISOString()
-		        }
-		      ]);
-		    
-		    if (insertError) {
-		      if (insertError.code === '23505') {
-		        console.error("Error de unicidad inesperado:", insertError);
-		      } else {
-		        console.error("Error al registrar jugador:", insertError);
-		        window.showNotification(`Error al registrar ${firstName} ${lastName}`);
-		        return;
-		      }
-		    }
-		    
-		    // Actualizar playersData con los nombres reales
-		    window.playersData[key] = {
-		      ...window.playersData[key],
-		      firstName: firstName,
-		      lastName: lastName
-		    };
-		  }
-		  
-		  // ✅ CREAR EL PARTIDO EN LA BASE DE DATOS (AHORA SÍ ES CRÍTICO PARA LOS TVs)
-		  try {
-		    // Determinar el club_id a usar (priorizar gameData.club_id si existe)
-		    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
-		    
-		    // Crear el partido en la tabla matches con estado 'active'
-		    const { data: matchData, error: matchError } = await window.supabase
-		      .from('matches')
-		      .insert([
-		        {
-		          club_id: clubIdToUse,
-		          court: window.gameData.court,
-		          scoring_type: window.scoringType,
-		          status: 'active',
-		          start_time: new Date().toISOString(),
-		          team_a_score: 0,
-		          team_b_score: 0,
-		          games_a: 0,
-		          games_b: 0,
-		          sets_a: 0,
-		          sets_b: 0,
-		          tiebreak: false,
-		          team_a_name: window.teamNames.teamA,
-		          team_b_name: window.teamNames.teamB,
-		          duration: "00:00"
-		        }
-		      ])
-		      .select('id')
-		      .single();
-		    
-		    if (matchError) {
-		      console.error("Error al crear partido:", matchError);
-		      
-		      // Mensaje específico para errores de RLS
-		      if (matchError.code === '42501') {
-		        window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
-		      } else {
-		        window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
-		      }
-		      return;
-		    }
-		    
-		    // Guardar el ID del partido para uso posterior
-		    window.lastMatchId = matchData.id;
-		    
-		    // ✅ VINCULAR JUGADORES AL PARTIDO (ahora SÍ en el inicio)
-		    try {
-		      const insertPlayerInMatch = async (playerKey, team) => {
-		        const player = window.playersData[playerKey];
-		        
-		        // Buscar el ID del jugador por su cédula y club_id
-		        const { data: playerData, error: playerError } = await window.supabase
-		          .from('players')
-		          .select('id')
-		          .eq('cedula', player.cedula)
-		          .eq('club_id', clubIdToUse)
-		          .single();
-		        
-		        if (playerError) {
-		          console.error(`Error al buscar jugador ${player.cedula}:`, playerError);
-		          return;
-		        }
-		        
-		        // Insertar en match_players
-		        const { error: matchPlayerError } = await window.supabase
-		          .from('match_players')
-		          .insert([
-		            {
-		              match_id: matchData.id,
-		              player_id: playerData.id,
-		              team: team
-		            }
-		          ]);
-		        
-		        if (matchPlayerError) {
-		          console.error(`Error al vincular jugador ${player.cedula} al partido:`, matchPlayerError);
-		        }
-		      };
-		      
-		      // Insertar jugadores del equipo A
-		      await insertPlayerInMatch('A1', 'teamA');
-		      await insertPlayerInMatch('A2', 'teamA');
-		      
-		      // Insertar jugadores del equipo B
-		      await insertPlayerInMatch('B1', 'teamB');
-		      await insertPlayerInMatch('B2', 'teamB');
-		      
-		    } catch (error) {
-		      console.error("Error al vincular jugadores al partido:", error);
-		      // Continuar igual porque el partido ya se creó
-		    }
-		    
-		    // ✅ Actualizar la función addPoint para que use el partido actual
-		    window.updateAddPointFunction();
-		    
-		    // Éxito - resetear marcador y redirigir
-		    window.resetGame(); // Asegura que todo esté limpio antes de empezar
-		    window.goToScreen('game');
-		    
-		    // ✅ Iniciar temporizador
-		    window.startTimer();
-		    
-		  } catch (error) {
-		    console.error("Error crítico al crear partido:", error);
-		    window.showNotification('Error crítico al crear partido. Inténtalo de nuevo.');
-		  }
-		};
 		
 		// ✅ Nueva función: Actualizar addPoint para usar el partido actual
 		window.updateAddPointFunction = function() {
@@ -3030,215 +3353,6 @@
 		    }
 		  };
 		};				
-        
-        // Función para finalizar partido
-        window.finalizeGame = async function() {
-          if (!window.currentUser) {
-            window.showNotification('Por favor, inicia sesión primero');
-            window.goToScreen('login');
-            return;
-          }
-          
-          // ✅ Marcar el partido como terminado
-          window.gameEnded = true;  
-          
-          // Determinar ganador
-          let winner = '';
-          if (window.scoringType === 'traditional') {
-            if (window.inTiebreak) {
-              winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
-            } else {
-              winner = window.gamesA > window.gamesB ? 'A' : 'B';
-            }
-          } else {
-            if (window.inTiebreak) {
-              winner = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
-            } else {
-              winner = window.scoreA > window.scoreB ? 'A' : 'B';
-            }
-          }
-          
-          // Actualizar pantalla de finalización
-          const resultTitle = document.getElementById('result-title');
-          if (resultTitle) {
-            resultTitle.innerHTML = 
-              `<i class="fas fa-trophy"></i> ¡${winner === 'A' ? window.teamNames.teamA : window.teamNames.teamB} se lleva la victoria!`;
-          }
-          
-          // Calcular puntajes según sistema
-          let gamesAVal = 0, gamesBVal = 0, pointsAVal = 0, pointsBVal = 0;
-          if (window.scoringType === 'traditional') {
-            gamesAVal = window.gamesA;
-            gamesBVal = window.gamesB;
-            pointsAVal = window.inTiebreak ? window.tiebreakPointsA : 0;
-            pointsBVal = window.inTiebreak ? window.tiebreakPointsB : 0;
-          } else {
-            pointsAVal = window.inTiebreak ? window.tiebreakPointsA : window.scoreA;
-            pointsBVal = window.inTiebreak ? window.tiebreakPointsB : window.scoreB;
-          }
-          
-          const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
-          const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
-          
-          // ✅ ACTUALIZAR el partido existente en Supabase (NO crear uno nuevo)
-          try {
-            const { error } = await window.supabase
-              .from('matches')
-              .update([
-                {
-                  status: 'completed',
-                  end_time: new Date().toISOString(),
-                  winner: winner === 'A' ? 'teamA' : 'teamB',
-                  games_a: gamesAVal,
-                  games_b: gamesBVal,
-                  points_a: pointsAVal,
-                  pointsBVal,
-                  tiebreak: window.inTiebreak,
-                  duration: window.gameDuration
-                }
-              ])
-              .eq('id', window.lastMatchId);
-            
-            if (error) {
-              console.error("Error al actualizar partido: ", {
-                code: error.code,
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                data: {
-                  id: window.lastMatchId,
-                  winner: winner === 'A' ? 'teamA' : 'teamB',
-                  games_a: gamesAVal,
-                  games_b: gamesBVal
-                }
-              });
-            
-              // Mensaje más específico para errores de RLS
-              if (error.code === '42501') {
-                window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
-              } else {
-                window.showNotification('Error al actualizar partido. Inténtalo de nuevo.');
-              }
-            } else {
-              // ⭐⭐⭐ ACTUALIZACIÓN CRÍTICA - Manejo mejorado del uso de canchas
-              try {
-                // Intentar llamar a la función RPC
-                const { error: courtError } = await window.supabase
-                  .rpc('increment_court_usage', {
-                    p_club_id: window.currentUser.id,
-                    p_court: window.selectedCourt
-                  });
-                
-                if (courtError) {
-                  console.error("Error DETALLADO al actualizar uso de canchas:", {
-                    code: courtError.code,
-                    message: courtError.message,
-                    details: courtError.details,
-                    hint: courtError.hint
-                  });
-                  
-                  // Verificar si la tabla court_usage existe
-                  const { error: tableCheck } = await window.supabase
-                    .from('court_usage')
-                    .select('count(*)', { count: 'exact' })
-                    .limit(1);
-                  
-                  if (tableCheck) {
-                    window.showNotification('Tabla court_usage no existe. Configura Supabase correctamente.');
-                  } else {
-                    window.showNotification('Error al actualizar uso de canchas. Revisa la configuración.');
-                  }
-                } else {
-                  console.log("Uso de canchas actualizado correctamente");
-                }
-              } catch (error) {
-                console.error("Error CRÍTICO al actualizar uso de canchas:", error);
-                window.showNotification('Error crítico al actualizar uso de canchas.');
-              }
-              
-              // Actualizar estadísticas de jugadores
-              await window.updatePlayerStats(winner === 'A' ? 'teamA' : 'teamB');
-            }
-            
-            // --- 1. Actualizar duración real ---
-            const durationEl = document.getElementById('final-duration');
-            if (durationEl) {
-              const minutes = Math.floor(window.seconds / 60);
-              const secs = window.seconds % 60;
-              durationEl.textContent = `${minutes} min ${secs.toString().padStart(2, '0')} seg`;
-            }
-            
-            // --- 2. Calcular dominio del partido para "promedio de saques" ---
-            let total, teamAVal;
-            if (window.scoringType === 'traditional') {
-              // Modo tradicional: usar juegos ganados
-              total = window.gamesA + window.gamesB;
-              teamAVal = window.gamesA;
-            } else {
-              // Modo americano: usar puntos ganados
-              total = window.scoreA + window.scoreB;
-              teamAVal = window.scoreA;
-            }
-            
-            // Calcular porcentaje de dominio
-            const percentage = total > 0 ? Math.round((teamAVal / total) * 100) : 50;
-            
-            // Actualizar % de saques
-            const servePercentageEl = document.getElementById('serve-percentage');
-            if (servePercentageEl) {
-              servePercentageEl.textContent = `${percentage}%`;
-              
-              // Opcional: mejorar el mensaje según quién dominó
-              const serveP = servePercentageEl.parentElement;
-              if (percentage > 50) {
-                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${percentage}%</span> a favor de <strong>${window.teamNames.teamA}</strong>`;
-              } else if (percentage < 50) {
-                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">${100 - percentage}%</span> a favor de <strong>${window.teamNames.teamB}</strong>`;
-              } else {
-                serveP.innerHTML = `<strong>🎯 Promedio de saques:</strong> <span id="serve-percentage">50%</span> (equilibrado)`;
-              }
-            }
-        
-            // --- ✅ Mostrar resultado de todos los sets ---
-            const setScoresEl = document.getElementById('set-scores');
-            if (setScoresEl) {
-              let scoreHtml = '';
-            
-              if (window.scoringType === 'traditional') {
-                if (window.setHistory && window.setHistory.length > 0) {
-                  const setLines = window.setHistory.map((set, i) => {
-                    let setLine = `<strong>Set ${i + 1}:</strong> ${set.gamesA}-${set.gamesB}`;
-                    if (set.tiebreak) {
-                      setLine += ` (Tiebreak: ${set.tiebreakA}-${set.tiebreakB})`;
-                    }
-                    return setLine;
-                  });
-                  scoreHtml = setLines.join('<br>');
-                } else {
-                  scoreHtml = 'No se completó ningún set';
-                }
-              } else {
-                // Modo americano
-                if (window.inTiebreak) {
-                  scoreHtml = `
-                    <strong>Puntos regulares:</strong> ${window.scoreA}-${window.scoreB} <br>
-                    <strong>Tiebreak:</strong> ${window.tiebreakPointsA}-${window.tiebreakPointsB}
-                  `;
-                } else {
-                  scoreHtml = `<strong>Puntos finales:</strong> ${window.scoreA}-${window.scoreB}`;
-                }
-              }
-            
-              setScoresEl.innerHTML = scoreHtml;
-            }
-            
-            // Mostrar pantalla de finalización
-            window.goToScreen('end');
-          } catch (error) {
-            console.error("Error crítico al finalizar partido:", error);
-            window.showNotification('Error crítico al finalizar partido. Inténtalo de nuevo.');
-          }
-        };        
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
@@ -3314,115 +3428,6 @@
 		  console.log("Estadísticas actualizadas correctamente");
 		  window.loadRanking();
 		};		
-        
-        // Función para cargar ranking
-        window.loadRanking = async function() {
-            if (!window.currentUser) {
-                const rankingList = document.getElementById('ranking-list');
-                if (rankingList) {
-                    rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error:</strong> Por favor, inicia sesión primero</div>`;
-                }
-                return;
-            }
-        
-            // Mostrar estado de carga
-            const rankingList = document.getElementById('ranking-list');
-            if (rankingList) {
-                rankingList.innerHTML = `<p>Cargando ranking...</p>`;
-            }
-        
-            // Calcular fecha de hace 7 días
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const lastWeek = new Date(today);
-            lastWeek.setDate(today.getDate() - 7);
-			
-            // Mostrar fecha de corte del ranking
-            const cutoffDate = lastWeek.toLocaleDateString('es-ES', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric' 
-            });
-            const cutoffElement = document.getElementById('ranking-cutoff');
-            if (cutoffElement) {
-                cutoffElement.textContent = `Activos desde el ${cutoffDate}`;
-            }			
-        
-            try {
-				const { data, error } = await window.supabase
-				  .from('players')
-				  .select(`
-				    *,
-				    match_players!inner(
-				      matches!inner(created_at)
-				    )
-				  `)
-				  .eq('club_id', window.currentUser.id)
-				  .gte('match_players.matches.created_at', lastWeek.toISOString())
-				  .gt('matches_played', 0)
-				  .order('matches_won', { ascending: false });
-        
-                if (error) {
-                    console.error("Error al cargar ranking:", error);
-                    if (rankingList) {
-                        rankingList.innerHTML = `<div class="alert" style="margin: 15px 0;"><i class="fas fa-exclamation-circle"></i><strong>Error al cargar ranking: ${error.message}</strong></div>`;
-                    }
-                    return;
-                }
-        
-                if (!data || data.length === 0) {
-                    if (rankingList) {
-                        rankingList.innerHTML = `<p style="text-align: center; padding: 15px; color: #666;">
-													<i class="fas fa-trophy" style="font-size: 24px; opacity: 0.5; display: block; margin-bottom: 10px;"></i>
-													<strong>¡Anímate a jugar!</strong><br>
-													No hay partidos esta semana.<br>
-													Sé el primero en marcar un partido.
-												</p>`;
-                    }
-                    return;
-                }
-        
-                // Generar HTML del ranking
-                let html = '';
-                let rank = 1;
-                data.forEach(player => {
-                  const matchesPlayed = player.matches_played || 0;
-                  const matchesWon = window.safeNumber(player.matches_won, 0);
-                  const matchesLost = matchesPlayed - matchesWon;
-                  const winPercentage = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
-                  const level = window.getPlayerLevel(winPercentage);
-                  const initials = `${player.first_name?.[0] || ''}${player.last_name?.[0] || ''}`.toUpperCase();
-                
-                  html += `
-                  <div class="ranking-item">
-                    <div class="ranking-name">
-                      <span class="ranking-rank">${rank}.</span>
-                      <span>👤</span>
-                      <strong>${initials}</strong>
-                      <span>${player.first_name || 'Nombre'} ${player.last_name || 'Apellido'}</span>
-                    </div>
-                    <div class="ranking-level">
-                      <i class="fas fa-${level.icon}" style="color: ${level.color};"></i> ${level.name} (${winPercentage}%)
-                    </div>
-                    <div class="ranking-stats">
-                      <i class="fas fa-tennis-ball" style="margin-right: 4px;"></i> ${matchesPlayed} jugados |
-                      <i class="fas fa-check-circle" style="color: #4CAF50; margin-right: 4px;"></i> ${matchesWon} ganados |
-                      <i class="fas fa-times-circle" style="color: #D32F2F; margin-right: 4px;"></i> ${matchesLost} perdidos
-                    </div>
-                  </div>`;
-                  rank++;
-                });
-				
-                if (rankingList) {
-                    rankingList.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("Error crítico al cargar ranking:", error);
-                if (rankingList) {
-                    rankingList.innerHTML = `<div class="alert"><i class="fas fa-exclamation-circle"></i><strong>Error crítico:</strong> ${error.message}</div>`;
-                }
-            }
-        };
 
         // Función para generar URL para TV - MODIFICADA PARA CORREGIR EL ERROR DEL QR
         window.generateTVUrl = function(courtId) {
