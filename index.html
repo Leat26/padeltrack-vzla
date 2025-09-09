@@ -1007,6 +1007,50 @@
 	    notification.classList.remove('show');
 	  }, 3000);
 	};	
+
+	// Resetear validación de jugadores
+	window.resetPlayerValidation = function() {
+	  // Limpiar datos en memoria
+	  Object.keys(window.playersData).forEach(key => {
+	    window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
+	  });
+	
+	  // Limpiar campos de cédula
+	  document.querySelectorAll('.cedula-type').forEach(select => {
+	    select.value = '';
+	  });
+	  document.querySelectorAll('.cedula-number').forEach(input => {
+	    input.value = '';
+	    const id = input.dataset.team + input.dataset.player;
+	    const statusElement = document.getElementById(`cedula-status-${id}`);
+	    const playerStatusElement = document.getElementById(`player-status-${id}`);
+	    const errorElement = document.getElementById(`error-${id}`);
+	    
+	    if (statusElement) statusElement.innerHTML = '';
+	    if (playerStatusElement) playerStatusElement.textContent = '';
+	    if (errorElement) errorElement.style.display = 'none';																 
+	  });
+	
+	  // Limpiar nombres y apellidos
+	  document.querySelectorAll('.first-name, .last-name').forEach(input => {
+	    input.value = '';
+	    input.disabled = true;
+	  });
+	  
+	  // Limpiar estado visual: iconos y mensajes
+	  document.querySelectorAll('.cedula-validation').forEach(el => {
+	    el.innerHTML = '';
+	    el.className = 'cedula-validation';
+	  });
+	  document.querySelectorAll('.player-status').forEach(el => {
+	    el.textContent = '';
+	  });
+	  document.querySelectorAll('.error-message').forEach(el => {
+	    el.style.display = 'none';
+	  });
+	
+	  console.log("Campos de jugadores reseteados correctamente");
+	};
 	
 	window.verifyAuth = async function() {
 	    const { data, error } = await window.supabase.auth.getSession();
@@ -2277,50 +2321,6 @@
 		    window.playersData[id] = { cedula: '', firstName: '', lastName: '', exists: false };
 		  }
 		};
-
-        // Resetear validación de jugadores
-        window.resetPlayerValidation = function() {
-          // Limpiar datos en memoria
-          Object.keys(window.playersData).forEach(key => {
-            window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
-          });
-        
-          // Limpiar campos de cédula
-          document.querySelectorAll('.cedula-type').forEach(select => {
-            select.value = '';
-          });
-          document.querySelectorAll('.cedula-number').forEach(input => {
-            input.value = '';
-            const id = input.dataset.team + input.dataset.player;
-            const statusElement = document.getElementById(`cedula-status-${id}`);
-            const playerStatusElement = document.getElementById(`player-status-${id}`);
-            const errorElement = document.getElementById(`error-${id}`);
-            
-            if (statusElement) statusElement.innerHTML = '';
-            if (playerStatusElement) playerStatusElement.textContent = '';
-            if (errorElement) errorElement.style.display = 'none';																 
-          });
-        
-          // Limpiar nombres y apellidos
-          document.querySelectorAll('.first-name, .last-name').forEach(input => {
-            input.value = '';
-            input.disabled = true;
-          });
-		  
-          // Limpiar estado visual: iconos y mensajes
-          document.querySelectorAll('.cedula-validation').forEach(el => {
-            el.innerHTML = '';
-            el.className = 'cedula-validation';
-          });
-          document.querySelectorAll('.player-status').forEach(el => {
-            el.textContent = '';
-          });
-          document.querySelectorAll('.error-message').forEach(el => {
-            el.style.display = 'none';
-          });
-        
-          console.log("Campos de jugadores reseteados correctamente");
-        };
         
         // Validar formato del RIF venezolano
         window.validateRifFormat = function(rif) {
