@@ -1549,23 +1549,19 @@
 	      court: window.gameData.court,
 	      scoring_type: window.scoringType,
 	      status: 'active',
-	      start_time: new Date().toISOString(),
 	      team_a_score: 0,
 	      team_b_score: 0,
 	      games_a: 0,
 	      games_b: 0,
+		  points_a: 0,
+		  points_b: 0,
 	      tiebreak: false,
 	      team_a_name: window.teamNames.teamA,
 	      team_b_name: window.teamNames.teamB,
 	      duration: "00:00"
 	    };
 	    
-	    // Solo incluir sets_a y sets_b si el scoring_type es 'sets' (y las columnas existen)
-	    if (window.scoringType === 'sets') {
-	      matchToInsert.sets_a = 0;
-	      matchToInsert.sets_b = 0;
-	    }
-	    
+	    // Insertar en la base de datos
 	    const { data: matchData, error: matchError } = await window.supabase
 	      .from('matches')
 	      .insert([matchToInsert])
@@ -1574,6 +1570,11 @@
 	    
 	    if (matchError) {
 	      console.error("Error al crear partido:", matchError);
+	      window.showNotification('Error al iniciar el partido. Inténtalo de nuevo.');
+	      return;
+	    }
+	    
+	    window.lastMatchId = matchData.id;
 	      
 	      // Mensaje específico para errores de RLS
 	      if (matchError.code === '42501') {
