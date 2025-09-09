@@ -995,6 +995,36 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
 	
+	// Variables globales
+	window.lastMatchId = null;
+	window.currentUser = null;
+	window.currentClub = null;
+	window.selectedCourt = "Cancha 1";
+	window.scoringType = null;
+	window.scoreA = 0;
+	window.scoreB = 0;
+	window.gamesA = 0;
+	window.gamesB = 0;
+	window.setsA = 0;
+	window.setsB = 0;
+	window.inTiebreak = false;
+	window.tiebreakPointsA = 0;
+	window.tiebreakPointsB = 0;
+	window.seconds = 0;
+	window.interval = null;
+	window.gameDuration = "00:00";
+	window.teamNames = {
+	  teamA: "Equipo A",
+	  teamB: "Equipo B"
+	};
+	window.setHistory = []; 
+	window.playersData = {
+	  'A1': { cedula: '', firstName: '', lastName: '', exists: false },
+	  'A2': { cedula: '', firstName: '', lastName: '', exists: false },
+	  'B1': { cedula: '', firstName: '', lastName: '', exists: false },
+	  'B2': { cedula: '', firstName: '', lastName: '', exists: false }
+	};	
+	
 	// Mostrar notificación
 	window.showNotification = function(message) {
 	  const notification = document.getElementById('notification');
@@ -1010,6 +1040,17 @@
 
 	// Resetear validación de jugadores
 	window.resetPlayerValidation = function() {
+	  // ✅ Protección: Verificar que window.playersData exista
+	  if (!window.playersData) {
+	    console.warn("window.playersData no está definido aún. Inicializando...");
+	    window.playersData = {
+	      A1: { cedula: '', firstName: '', lastName: '', exists: false },
+	      A2: { cedula: '', firstName: '', lastName: '', exists: false },
+	      B1: { cedula: '', firstName: '', lastName: '', exists: false },
+	      B2: { cedula: '', firstName: '', lastName: '', exists: false }
+	    };
+	  }
+	
 	  // Limpiar datos en memoria
 	  Object.keys(window.playersData).forEach(key => {
 	    window.playersData[key] = { cedula: '', firstName: '', lastName: '', exists: false };
@@ -1253,36 +1294,6 @@
             return;
           }
         }
-		
-        // Variables globales
-        window.lastMatchId = null;
-		window.currentUser = null;
-        window.currentClub = null;
-        window.selectedCourt = "Cancha 1";
-        window.scoringType = null;
-        window.scoreA = 0;
-        window.scoreB = 0;
-        window.gamesA = 0;
-        window.gamesB = 0;
-        window.setsA = 0;
-        window.setsB = 0;
-        window.inTiebreak = false;
-        window.tiebreakPointsA = 0;
-        window.tiebreakPointsB = 0;
-        window.seconds = 0;
-        window.interval = null;
-        window.gameDuration = "00:00";
-        window.teamNames = {
-          teamA: "Equipo A",
-          teamB: "Equipo B"
-        };
-		window.setHistory = []; 
-        window.playersData = {
-          'A1': { cedula: '', firstName: '', lastName: '', exists: false },
-          'A2': { cedula: '', firstName: '', lastName: '', exists: false },
-          'B1': { cedula: '', firstName: '', lastName: '', exists: false },
-          'B2': { cedula: '', firstName: '', lastName: '', exists: false }
-        };
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
