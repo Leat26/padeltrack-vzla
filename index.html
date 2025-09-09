@@ -3495,9 +3495,8 @@
                   <i class="fas fa-copy"></i> Copiar URL
                 </button>
               </div>
-              <button class="btn btn-red" style="margin-top: 15px; width: 100%;" 
-                      onclick="document.body.removeChild(this.closest('div[style*=\\"fixed\\"]'));">
-                <i class="fas fa-times"></i> Cerrar
+              <button class="btn btn-red" style="margin-top: 15px; width: 100%;" id="close-modal">
+                  <i class="fas fa-times"></i> Cerrar
               </button>
             </div>
           `;
@@ -3552,6 +3551,11 @@
               window.showNotification('Error al descargar QR');
             }
           });
+		  
+          const closeModalButton = document.getElementById('close-modal');
+          closeModalButton.addEventListener('click', function() {
+            modal.remove();
+          });
         
           document.getElementById('copy-url').addEventListener('click', function() {
             navigator.clipboard.writeText(tvUrl).then(() => {
@@ -3561,6 +3565,11 @@
               window.showNotification('Error al copiar la URL. Por favor, copia manualmente.');
             });
           });
+
+          const closeModalButton = document.getElementById('close-modal');
+          closeModalButton.addEventListener('click', function() {
+            modal.remove();
+          });		  
         };        
 
         // Función para cargar la selección de canchas - MODIFICADA
