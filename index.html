@@ -1575,15 +1575,6 @@
 	    }
 	    
 	    window.lastMatchId = matchData.id;
-	      
-	      // Mensaje específico para errores de RLS
-	      if (matchError.code === '42501') {
-	        window.showNotification('Error de permisos. Verifica que tu política RLS esté configurada correctamente');
-	      } else {
-	        window.showNotification('Error al guardar partido. Inténtalo de nuevo.');
-	      }
-	      return;
-	    }
 	    
 	    // Guardar el ID del partido para uso posterior
 	    window.lastMatchId = matchData.id;
