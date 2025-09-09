@@ -994,6 +994,17 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
+	
+	// Definir verifyAuth INMEDIATAMENTE después
+	window.verifyAuth = async function() {
+	    const { data, error } = await window.supabase.auth.getSession();
+	    if (error) {
+	        console.error("Error al verificar sesión:", error);
+	        return false;
+	    }
+	    return !!data.session;
+	};	
+	
 	// Navegación entre pantallas - Versión mejorada con seguridad
 	window.goToScreen = async function(id) {
 	  
@@ -1186,16 +1197,6 @@
             return;
           }
         }
-        
-        // Definir verifyAuth INMEDIATAMENTE después
-        window.verifyAuth = async function() {
-            const { data, error } = await window.supabase.auth.getSession();
-            if (error) {
-                console.error("Error al verificar sesión:", error);
-                return false;
-            }
-            return !!data.session;
-        };		
 		
         // Variables globales
         window.lastMatchId = null;
