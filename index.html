@@ -3458,7 +3458,95 @@
             }
         };
 
-        // Función para cargar la selección de canchas
+        // Función para generar URL para TV - NUEVA
+        window.generateTVUrl = function(courtId) {
+          if (!window.currentUser || !window.currentUser.id) {
+            window.showNotification('Error: No se pudo generar la URL. Inicie sesión primero.');
+            return;
+          }
+          
+          const tvUrl = `${window.location.origin}/tv.html?club=${window.currentUser.id}&court=${courtId}`;
+          
+          // Crear modal con la URL y QR
+          const modal = document.createElement('div');
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+          modal.style.display = 'flex';
+          modal.style.justifyContent = 'center';
+          modal.style.alignItems = 'center';
+          modal.style.zIndex = '1000';
+        
+          modal.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px;">
+              <h3>URL para TV - Cancha ${courtId}</h3>
+              <div id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></div>
+              <p style="margin-bottom: 15px; font-size: 0.85rem; color: #555;">
+                URL: <br><small style="word-break: break-all;">${tvUrl}</small>
+              </p>
+              <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                <button class="btn" id="download-qr">
+                  <i class="fas fa-download"></i> Descargar QR
+                </button>
+                <button class="btn btn-blue" id="copy-url">
+                  <i class="fas fa-copy"></i> Copiar URL
+                </button>
+              </div>
+              <button class="btn btn-red" style="margin-top: 15px; width: 100%;" 
+                      onclick="document.body.removeChild(this.closest('div[style*=\\"fixed\\"]'));">
+                <i class="fas fa-times"></i> Cerrar
+              </button>
+            </div>
+          `;
+          
+          document.body.appendChild(modal);
+          
+          // Generar QR code
+          const qrElement = document.getElementById('modal-qrcode');
+          if (qrElement) {
+            QRCode.toCanvas(qrElement, tvUrl, {
+              width: 200,
+              margin: 1,
+              color: {
+                dark: '#2c3e50',
+                light: '#ffffff'
+              }
+            }, function(error) {
+              if (error) {
+                console.error("Error al generar QR:", error);
+                qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
+              }
+            });
+          }
+          
+          // Configurar eventos para los botones
+          document.getElementById('download-qr').addEventListener('click', function() {
+            const canvas = document.querySelector('#modal-qrcode canvas');
+            if (canvas) {
+              const pngUrl = canvas.toDataURL("image/png");
+              const downloadLink = document.createElement('a');
+              downloadLink.href = pngUrl;
+              downloadLink.download = `QR_Cancha_${courtId}.png`;
+              document.body.appendChild(downloadLink);
+              downloadLink.click();
+              document.body.removeChild(downloadLink);
+            }
+          });
+        
+          document.getElementById('copy-url').addEventListener('click', function() {
+            navigator.clipboard.writeText(tvUrl).then(() => {
+              window.showNotification('URL copiada al portapapeles');
+            }).catch(err => {
+              console.error('Error al copiar:', err);
+              window.showNotification('Error al copiar la URL. Por favor, copia manualmente.');
+            });
+          });
+        };
+
+        // Función para cargar la selección de canchas - MODIFICADA
         window.loadCourtsSelection = function() {
           const courtsList = document.getElementById('courts-list');
           if (!courtsList || !window.currentClub) return;
@@ -3481,126 +3569,34 @@
               <p>Selecciona para iniciar un partido</p>
             `;
             
-            // Botón para generar QR
-            const qrButton = document.createElement('button');
-            qrButton.className = 'btn btn-small';
-            qrButton.innerHTML = '<i class="fas fa-qrcode"></i> Generar QR para TV';
-            qrButton.style.marginTop = '10px';
-            qrButton.style.width = '100%';
+            // Botón para generar URL para TV - NUEVO
+            const tvUrlButton = document.createElement('button');
+            tvUrlButton.className = 'btn btn-small';
+            tvUrlButton.innerHTML = '<i class="fas fa-tv"></i> Generar URL para TV';
+            tvUrlButton.style.marginTop = '10px';
+            tvUrlButton.style.width = '100%';
             
-            // Añadir funcionalidad al botón QR
-            qrButton.onclick = function(e) {
+            // Añadir funcionalidad al botón TV
+            tvUrlButton.onclick = function(e) {
               e.stopPropagation();
-              const courtNumber = i;
-              const registrationUrl = `${window.location.origin}${window.location.pathname}?mode=qr&club=${window.currentUser.id}&court=${courtNumber}`;
-              
-              // Crear modal con QR
-              const modal = document.createElement('div');
-              modal.style.position = 'fixed';
-              modal.style.top = '0';
-              modal.style.left = '0';
-              modal.style.width = '100%';
-              modal.style.height = '100%';
-              modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
-              modal.style.display = 'flex';
-              modal.style.justifyContent = 'center';
-              modal.style.alignItems = 'center';
-              modal.style.zIndex = '1000';
-              
-              modal.innerHTML = `
-                <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px;">
-                  <h3>QR para Cancha ${courtNumber}</h3>
-                  <div id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></div>
-                  <p style="margin-bottom: 15px; font-size: 0.85rem; color: #555;">
-                    URL: <br><small style="word-break: break-all;">${registrationUrl}</small>
-                  </p>
-                  <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                    <button class="btn" id="download-qr">
-                      <i class="fas fa-download"></i> Descargar QR
-                    </button>
-                    <button class="btn btn-blue" id="copy-url">
-                      <i class="fas fa-copy"></i> Copiar URL
-                    </button>
-                  </div>
-                  <button class="btn btn-red" style="margin-top: 15px; width: 100%;" 
-                          onclick="document.body.removeChild(this.closest('div[style*=\\"fixed\\"]'));">
-                    <i class="fas fa-times"></i> Cerrar
-                  </button>
-                </div>
-              `;
-              
-              document.body.appendChild(modal);
-              
-              // CORREGIDO: Esperar a que se cree el elemento
-              setTimeout(() => {
-                const qrElement = document.getElementById('modal-qrcode');
-                if (qrElement) {
-                  qrElement.innerHTML = '';
-                  
-                  // Crear un elemento canvas para el QR
-                  const canvas = document.createElement('canvas');
-                  qrElement.appendChild(canvas);
-                  
-                  // Generar el QR en el canvas
-                  QRCode.toCanvas(canvas, registrationUrl, {
-                    width: 200,
-                    margin: 2,
-                    color: { 
-                      dark: '#2c3e50', 
-                      light: '#ffffff' 
-                    }
-                  }, function(error) {
-                    if (error) {
-                      console.error("Error al generar QR:", error);
-                      qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
-                    }
-                  });
-                }
-              }, 100);
-              
-              // Funcionalidad de descarga - CORREGIDO: Usar evento delegado
-              document.getElementById('download-qr').addEventListener('click', function() {
-                const canvas = document.querySelector('#modal-qrcode canvas');
-                if (canvas) {
-                  const pngUrl = canvas.toDataURL("image/png");
-                  const downloadLink = document.createElement('a');
-                  downloadLink.href = pngUrl;
-                  downloadLink.download = `QR_Cancha_${courtNumber}.png`;
-                  document.body.appendChild(downloadLink);
-                  downloadLink.click();
-                  document.body.removeChild(downloadLink);
-                }
-              });
-              
-              // Funcionalidad de copiar URL - CORREGIDO: Usar evento delegado
-                document.getElementById('copy-url').addEventListener('click', function() {
-                  navigator.clipboard.writeText(registrationUrl).then(() => {
-                    alert('URL copiada al portapapeles!');
-                  }).catch(err => {
-                    console.error('Error al copiar:', err);
-                    alert('Error al copiar la URL. Por favor, copia manualmente.');
-                  });
-                });
-              };
+              window.generateTVUrl(i);
+            };
             
-            courtOption.appendChild(qrButton);
+            courtOption.appendChild(tvUrlButton);
             
+            // Seleccionar cancha al hacer clic
             courtOption.addEventListener('click', function() {
-              // Deseleccionar todas las opciones
               document.querySelectorAll('.court-option').forEach(opt => {
                 opt.classList.remove('selected');
               });
               
-              // Seleccionar esta opción
               this.classList.add('selected');
-              
-              // Habilitar botón de confirmación
               document.getElementById('confirm-court-btn').disabled = false;
             });
             
             courtsList.appendChild(courtOption);
           }
-        };        
+        };
 
 		// Función para cargar dashboard
 		window.loadDashboard = async function() {
