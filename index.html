@@ -3458,14 +3458,14 @@
             }
         };
 
-        // Función para generar URL para TV - NUEVA
+        // Función para generar URL para TV - MODIFICADA PARA CORREGIR EL ERROR DEL QR
         window.generateTVUrl = function(courtId) {
           if (!window.currentUser || !window.currentUser.id) {
             window.showNotification('Error: No se pudo generar la URL. Inicie sesión primero.');
             return;
           }
           
-          const tvUrl = `${window.location.origin}/tv.html?club=${window.currentUser.id}&court=${courtId}`;
+          const tvUrl = `${window.location.origin}${window.location.pathname}?mode=qr&club=${window.currentUser.id}&court=${courtId}`;
           
           // Crear modal con la URL y QR
           const modal = document.createElement('div');
@@ -3483,7 +3483,7 @@
           modal.innerHTML = `
             <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 400px;">
               <h3>URL para TV - Cancha ${courtId}</h3>
-              <div id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></div>
+              <canvas id="modal-qrcode" style="margin: 15px auto; width: 200px; height: 200px;"></canvas>
               <p style="margin-bottom: 15px; font-size: 0.85rem; color: #555;">
                 URL: <br><small style="word-break: break-all;">${tvUrl}</small>
               </p>
@@ -3504,35 +3504,52 @@
           
           document.body.appendChild(modal);
           
-          // Generar QR code
-          const qrElement = document.getElementById('modal-qrcode');
-          if (qrElement) {
-            QRCode.toCanvas(qrElement, tvUrl, {
-              width: 200,
-              margin: 1,
-              color: {
-                dark: '#2c3e50',
-                light: '#ffffff'
-              }
-            }, function(error) {
-              if (error) {
-                console.error("Error al generar QR:", error);
-                qrElement.innerHTML = '<div style="color: #e74c3c; padding: 10px;">Error al generar QR</div>';
-              }
-            });
+          // Generar QR code - CORREGIDO: usar el canvas correctamente
+          const canvasElement = document.getElementById('modal-qrcode');
+          if (canvasElement) {
+            try {
+              QRCode.toCanvas(canvasElement, tvUrl, {
+                width: 200,
+                margin: 1,
+                color: {
+                  dark: '#2c3e50',
+                  light: '#ffffff'
+                }
+              }, function(error) {
+                if (error) {
+                  console.error("Error al generar QR:", error);
+                  // Mostrar mensaje de error en el canvas
+                  const ctx = canvasElement.getContext('2d');
+                  ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                  ctx.fillStyle = '#f8f9fa';
+                  ctx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+                  ctx.fillStyle = '#D32F2F';
+                  ctx.font = '14px Montserrat';
+                  ctx.textAlign = 'center';
+                  ctx.fillText('Error al generar QR', canvasElement.width / 2, canvasElement.height / 2);
+                }
+              });
+            } catch (error) {
+              console.error("Error crítico al generar QR:", error);
+            }
           }
           
           // Configurar eventos para los botones
           document.getElementById('download-qr').addEventListener('click', function() {
-            const canvas = document.querySelector('#modal-qrcode canvas');
-            if (canvas) {
-              const pngUrl = canvas.toDataURL("image/png");
-              const downloadLink = document.createElement('a');
-              downloadLink.href = pngUrl;
-              downloadLink.download = `QR_Cancha_${courtId}.png`;
-              document.body.appendChild(downloadLink);
-              downloadLink.click();
-              document.body.removeChild(downloadLink);
+            try {
+              const canvas = document.querySelector('#modal-qrcode');
+              if (canvas) {
+                const pngUrl = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement('a');
+                downloadLink.href = pngUrl;
+                downloadLink.download = `QR_Cancha_${courtId}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+              }
+            } catch (error) {
+              console.error("Error al descargar QR:", error);
+              window.showNotification('Error al descargar QR');
             }
           });
         
@@ -3544,7 +3561,7 @@
               window.showNotification('Error al copiar la URL. Por favor, copia manualmente.');
             });
           });
-        };
+        };        
 
         // Función para cargar la selección de canchas - MODIFICADA
         window.loadCourtsSelection = function() {
