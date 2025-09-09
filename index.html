@@ -1137,6 +1137,55 @@
         window.supabase = supabase;
         
         console.log("Supabase client creado exitosamente");
+
+        // === INICIO: Manejo PRIORITARIO de modo QR ===
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const courtId = urlParams.get('court');
+        const clubIdFromUrl = urlParams.get('club');
+        
+        if (mode === 'qr' && courtId) {
+          console.log("Modo QR detectado para cancha:", courtId, "club:", clubIdFromUrl);
+        
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          
+          if (clubIdFromUrl && uuidRegex.test(clubIdFromUrl)) {
+            window.currentClubId = clubIdFromUrl;
+            window.selectedCourt = `Cancha ${courtId}`;
+            
+            window.goToScreen('register');
+            
+            const registerTitle = document.querySelector('#register h2');
+            if (registerTitle) {
+              registerTitle.textContent = `Registro para Cancha ${courtId}`;
+            }
+        
+            const originalStartGame = window.startGame;
+            window.startGame = async function() {
+              window.gameData.club_id = clubIdFromUrl;
+              return await originalStartGame.call(this);
+            };
+        
+            return; // 🔥 Detener ejecución aquí
+          } else if (!clubIdFromUrl) {
+            window.currentCourtId = courtId;
+            window.selectedCourt = `Cancha ${courtId}`;
+            
+            window.goToScreen('register');
+            
+            const registerTitle = document.querySelector('#register h2');
+            if (registerTitle) {
+              registerTitle.textContent = `Registro para Cancha ${courtId}`;
+            }
+        
+            return; // 🔥 Detener ejecución aquí
+          } else {
+            console.error("ID de club inválido en la URL:", clubIdFromUrl);
+            window.showNotification("QR inválido. Contacte al administrador.");
+            window.goToScreen('home');
+            return;
+          }
+        }
         
         // Definir verifyAuth INMEDIATAMENTE después
         window.verifyAuth = async function() {
@@ -1177,100 +1226,6 @@
           'B1': { cedula: '', firstName: '', lastName: '', exists: false },
           'B2': { cedula: '', firstName: '', lastName: '', exists: false }
         };
-		
-        // Verificar si hay parámetros de URL para modo QR
-        const urlParams = new URLSearchParams(window.location.search);
-        const courtId = urlParams.get('court');
-        const clubIdFromUrl = urlParams.get('club');
-        const mode = urlParams.get('mode');
-        
-        if (mode === 'qr' && courtId) {
-            console.log("Modo QR detectado para cancha:", courtId, "club:", clubIdFromUrl);
-			
-            // Si hay clubId en la URL, usarlo en lugar de depender de la sesión
-            if (clubIdFromUrl) {
-                // Validar formato UUID
-                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-                if (uuidRegex.test(clubIdFromUrl)) {
-                    // Guardar el clubId para usar en startGame
-                    window.currentClubId = clubIdFromUrl;
-                    
-                    // Establecer la cancha seleccionada
-                    window.selectedCourt = `Cancha ${courtId}`;
-                    
-                    // Mostrar pantalla de registro
-                    window.goToScreen('register');
-                    
-                    // Actualizar título
-                    const registerTitle = document.querySelector('#register h2');
-                    if (registerTitle) {
-                        registerTitle.textContent = `Registro para Cancha ${courtId}`;
-                    }
-                    
-                    // Modificar temporalmente window.startGame para usar el clubId de la URL
-                    const originalStartGame = window.startGame;
-                    window.startGame = async function() {
-                        // Forzar club_id desde la URL
-                        window.gameData.club_id = clubIdFromUrl;
-                        return await originalStartGame.call(this);
-                    };
-                } else {
-                    console.error("ID de club inválido en la URL:", clubIdFromUrl);
-                    window.showNotification("QR inválido. Contacte al administrador.");
-                    window.goToScreen('home');
-                }
-            } else {
-                // Flujo original si no hay clubId en la URL
-                const isAuthenticated = await window.verifyAuth();
-                if (!isAuthenticated) {
-                    window.goToScreen('tv-mode');
-                    initializeTvMode(courtId);
-                    return;
-                }
-                
-                // Establecer la cancha seleccionada
-                window.selectedCourt = `Cancha ${courtId}`;
-                
-                // Mostrar pantalla de registro después de breve delay
-                setTimeout(() => {
-                    window.goToScreen('register');
-                    
-                    // Actualizar título
-                    const registerTitle = document.querySelector('#register h2');
-                    if (registerTitle) {
-                        registerTitle.textContent = `Registro para Cancha ${courtId}`;
-                    }
-                }, 500);
-            }
-        }		
-        
-        if (mode === 'qr' && courtId) {
-            console.log("Modo QR detectado para cancha:", courtId);
-            
-            // NO verificar autenticación del jugador
-            // El jugador solo debe registrar sus datos
-            
-            // Guardar la cancha en una variable global
-            window.currentCourtId = courtId;
-            
-            // Mostrar pantalla de registro
-            window.goToScreen('register');
-            
-            // Actualizar el título para mostrar la cancha
-            const registerTitle = document.querySelector('#register h2');
-            if (registerTitle) {
-                registerTitle.textContent = `Registro para Cancha ${courtId}`;
-            }
-            
-            // Modificar temporalmente window.startGame para usar la cancha correcta
-            const originalStartGame = window.startGame;
-            window.startGame = async function() {
-                window.gameData.court = `Cancha ${courtId}`;
-                return await originalStartGame.call(this);
-            };
-            
-            return;
-        }
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
