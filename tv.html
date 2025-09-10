@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PadelTrack - Pantalla TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>  
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -15,658 +15,347 @@
       --dark: #2c3e50;
       --success: #2ecc71;
     }
-    
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       font-family: 'Montserrat', sans-serif;
     }
-    
     body {
-      background: linear-gradient(135deg, #2c3e50 0%, #1a2530 100%);
+      background: linear-gradient(135deg, #2c3e50, #1a2530);
       color: white;
       min-height: 100vh;
-      overflow: hidden;
-    }
-    
-    .container {
-      max-width: 100%;
-      height: 100vh;
-      padding: 20px;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
-    
+    .container {
+      width: 100%;
+      max-width: 1400px;
+      height: 90vh;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
     .court-header {
       text-align: center;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
     .court-header h1 {
       font-size: 2.5rem;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
-    
-    .match-status {
-      padding: 8px 16px;
-      background-color: #e67e22;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 1.1rem;
-      display: inline-block;
+    .court-header p {
+      font-size: 1rem;
+      opacity: 0.8;
     }
-    
-    .match-status.active {
-      background-color: var(--success);
-    }
-    
     .main-content {
       display: flex;
-      flex: 1;
-      gap: 30px;
+      height: calc(100% - 100px);
     }
-    
-    .match-info {
-      flex: 2;
-      display: flex;
-      flex-direction: column;
-    }
-    
     .scoreboard {
+      flex: 3;
       display: flex;
-      justify-content: space-between;
+      justify-content: space-around;
       align-items: center;
-      margin: 20px 0;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 30px;
-      border-radius: 15px;
-      flex: 1;
+      padding: 20px;
     }
-    
     .team {
       text-align: center;
       flex: 1;
     }
-    
-    .team h2 {
+    .team h3 {
       font-size: 1.8rem;
-      margin-bottom: 15px;
-      color: var(--light);
+      margin-bottom: 10px;
     }
-    
-    .team-a .score {
-      color: #3498db;
-      font-size: 5rem;
-      font-weight: bold;
-    }
-    
-    .team-b .score {
-      color: #e74c3c;
-      font-size: 5rem;
-      font-weight: bold;
-    }
-    
     .players {
-      font-size: 1.4rem;
-      margin: 15px 0;
-      min-height: 1.4em;
-    }
-    
-    .vs {
-      font-size: 3rem;
-      font-weight: bold;
-      margin: 0 30px;
-      opacity: 0.7;
-    }
-    
-    .game-info {
-      display: flex;
-      justify-content: space-around;
-      margin: 20px 0;
-    }
-    
-    .info-box {
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 15px 25px;
-      border-radius: 10px;
-      text-align: center;
-      flex: 1;
-      margin: 0 10px;
-    }
-    
-    .info-box span:first-child {
-      display: block;
       font-size: 1.1rem;
-      opacity: 0.8;
-      margin-bottom: 8px;
-    }
-    
-    .info-box span:last-child {
-      font-size: 1.8rem;
-      font-weight: bold;
-    }
-    
-    .scoring-system {
-      text-align: center;
-      margin: 15px 0;
-      font-size: 1.2rem;
+      margin: 5px 0 15px;
       opacity: 0.9;
     }
-    
-    .qr-section {
+    .score {
+      font-size: 6rem;
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .vs {
+      font-size: 2rem;
+      margin: 0 20px;
+      color: #ddd;
+      transform: rotate(-90deg);
+    }
+    .game-info {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background-color: rgba(255, 255, 255, 0.05);
-      border-radius: 15px;
-      padding: 25px;
+      gap: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
     }
-    
-    #qrcode {
-      margin: 20px auto;
-      display: inline-block;
-      background: white;
+    .info-box {
+      background: rgba(255, 255, 255, 0.1);
       padding: 15px;
       border-radius: 10px;
-    }
-    
-    .qr-section h3 {
-      font-size: 1.4rem;
-      margin-bottom: 10px;
       text-align: center;
+      backdrop-filter: blur(5px);
     }
-    
-    .qr-section p {
-      font-size: 1.1rem;
+    .info-box span:first-child {
+      display: block;
+      font-size: 1rem;
       opacity: 0.8;
-      text-align: center;
-      margin-top: 15px;
+      margin-bottom: 5px;
     }
-    
-    .team-names {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-    }
-    
-    .team-name {
-      font-size: 1.3rem;
+    .info-box span:last-child {
+      font-size: 1.5rem;
       font-weight: bold;
-      padding: 10px 20px;
-      border-radius: 8px;
-      background-color: rgba(255, 255, 255, 0.1);
     }
-    
-    .team-a-name {
-      color: #3498db;
+    .qr-section {
+      text-align: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
-    .team-b-name {
-      color: #e74c3c;
+    .qr-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
     }
-    
-    /* Responsive adjustments for TV */
+    .qr-section p {
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
     @media (max-width: 1200px) {
-      .team-a .score, .team-b .score {
-        font-size: 4rem;
-      }
-      
-      .players {
-        font-size: 1.2rem;
-      }
-      
-      .vs {
-        font-size: 2.5rem;
-      }
+      .team-a .score, .team-b .score { font-size: 4rem; }
+      .players { font-size: 1.2rem; }
+      .vs { font-size: 2.5rem; }
     }
-    
     @media (max-width: 900px) {
-      .main-content {
-        flex-direction: column;
-      }
-      
-      .scoreboard {
-        flex-direction: column;
-        gap: 25px;
-      }
-      
-      .vs {
-        margin: 15px 0;
-        transform: rotate(0deg);
-      }
-      
-      .qr-section {
-        margin-top: 20px;
-      }
+      .main-content { flex-direction: column; }
+      .scoreboard { flex-direction: column; gap: 25px; }
+      .vs { margin: 15px 0; transform: rotate(0deg); }
+      .qr-section { margin-top: 20px; }
     }
-
     @media (max-height: 800px) {
-      .container {
-        padding: 15px;
-      }
-      
-      .court-header {
-        margin-bottom: 15px;
-      }
-      
-      .court-header h1 {
-        font-size: 2rem;
-      }
-      
-      .scoreboard {
-        margin: 15px 0;
-        padding: 20px;
-      }
-      
-      .team-a .score, .team-b .score {
-        font-size: 3.5rem;
-      }
-      
-      .players {
-        font-size: 1.1rem;
-      }
-      
-      .game-info {
-        margin: 15px 0;
-      }
-      
-      .info-box {
-        padding: 10px 15px;
-      }
-      
-      .info-box span:last-child {
-        font-size: 1.5rem;
-      }
+      .container { padding: 15px; }
+      .court-header { margin-bottom: 15px; }
+      .court-header h1 { font-size: 2rem; }
+      .scoreboard { margin: 15px 0; padding: 20px; }
+      .team-a .score, .team-b .score { font-size: 3.5rem; }
     }
   </style>
 </head>
 <body>
+
   <div class="container">
     <div class="court-header">
-      <h1>Cancha #<span id="court-number">1</span></h1>
-      <div class="match-status" id="match-status">En espera</div>
+      <h1>Pista #<span id="tv-court-number">?</span></h1>
+      <p>Partido en vivo</p>
     </div>
-    
+
     <div class="main-content">
-      <div class="match-info">
-        <div class="scoreboard">
-          <div class="team team-a">
-            <h2>EQUIPO A</h2>
-            <div class="players" id="team-a-players">
-              <div class="player">Jugador 1</div>
-              <div class="player">Jugador 2</div>
-            </div>
-            <div class="score" id="team-a-score">0</div>
-          </div>
-          
-          <div class="vs">VS</div>
-          
-          <div class="team team-b">
-            <h2>EQUIPO B</h2>
-            <div class="players" id="team-b-players">
-              <div class="player">Jugador 1</div>
-              <div class="player">Jugador 2</div>
-            </div>
-            <div class="score" id="team-b-score">0</div>
-          </div>
+      <div class="scoreboard">
+        <div class="team team-a">
+          <h3 id="tv-team-a-name">Equipo A</h3>
+          <div class="players" id="tv-team-a-players">-</div>
+          <div class="score" id="tv-score-a">0</div>
         </div>
-        
-        <div class="game-info">
-          <div class="info-box">
-            <span>Duración</span>
-            <span id="match-duration">00:00</span>
-          </div>
-          <div class="info-box">
-            <span>Puntos totales</span>
-            <span id="total-points">0</span>
-          </div>
-        </div>
-        
-        <div class="scoring-system">
-          Sistema Tradicional
+        <div class="vs">VS</div>
+        <div class="team team-b">
+          <h3 id="tv-team-b-name">Equipo B</h3>
+          <div class="players" id="tv-team-b-players">-</div>
+          <div class="score" id="tv-score-b">0</div>
         </div>
       </div>
-      
-      <div class="qr-section">
-        <h3>Escanee para registrar su partido</h3>
-        <div id="qrcode"></div>
-        <div class="team-names">
-          <div class="team-name team-a-name">EQUIPO A</div>
-          <div class="team-name team-b-name">EQUIPO B</div>
+
+      <div class="game-info">
+        <div class="info-box">
+          <span>Duración</span>
+          <span id="tv-match-duration">00:00</span>
         </div>
-        <p>Use su smartphone para escanear el código</p>
+        <div class="info-box">
+          <span>Puntos totales</span>
+          <span id="tv-total-points">0</span>
+        </div>
       </div>
+    </div>
+
+    <div class="qr-section">
+      <h3>Escanee para registrar su partido</h3>
+      <div id="qrcode"></div>
+      <p>Use su smartphone para escanear el código</p>
     </div>
   </div>
 
+  <!-- Notificación flotante -->
+  <div class="notification" id="notification">¡Tiebreak activado! Juega a 7 puntos</div>
+
   <script>
-    // === INICIALIZACIÓN ===
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // Obtener parámetros de la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const clubId = urlParams.get('club');
-        const courtId = urlParams.get('court');
-        
-        if (!clubId || !courtId) {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-              <h1>Error</h1>
-              <p>Parámetros faltantes. Debe incluir club y court en la URL.</p>
-              <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-            </div>
-          `;
-          return;
-        }
-        
-        // Validar formato UUID para clubId
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(clubId)) {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-              <h1>Error</h1>
-              <p>QR inválido. Identificador de club no válido.</p>
-              <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-            </div>
-          `;
-          return;
-        }
-        
-        // Configurar variables globales
-        window.clubId = clubId;
-        window.courtId = courtId;
-        
-        // Actualizar interfaz
-        const tvCourtNumber = document.getElementById('court-number');
-        if (tvCourtNumber) {
-          tvCourtNumber.textContent = courtId;
-        }
-        
-        // Inicializar Supabase (solo lectura)
-        const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
-      
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        window.supabase = supabase;
+    // === PARÁMETROS DE LA URL ===
+    const urlParams = new URLSearchParams(window.location.search);
+    const clubId = urlParams.get('club');
+    const courtId = urlParams.get('court');
 
-        // Cargar estado inicial
-        await initApp();
-        
-        // Generar QR DESPUÉS de que todo esté listo
-        setTimeout(generateQRCode, 100);
-        
-      } catch (error) {
-        console.error("Error crítico al inicializar:", error);
-        document.body.innerHTML = `
-          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-            <h1>Error</h1>
-            <p>Error crítico al inicializar la aplicación.</p>
-            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-          </div>
-        `;
-      }
-    });        
-        
-    // === FUNCIONES PRINCIPALES ===
-    async function initApp() {
-      try {
-        // Cargar partido activo
-        const match = await loadActiveMatch();
-        updateDisplay(match);
-        
-        // Configurar suscripción en tiempo real
-        setupRealtimeSubscription();
-        
-        // Iniciar temporizador si hay partido activo
-        if (match) {
-          startMatchTimer(match.start_time);
-          document.getElementById('match-status').textContent = 'En curso';
-          document.getElementById('match-status').classList.add('active');
-        }
-        
-      } catch (error) {
-        console.error("Error al inicializar la aplicación:", error);
-        showErrorScreen("Error al cargar datos. Intente nuevamente.");
-      }
-    }
-    
-    async function loadActiveMatch() {
-      try {
-        // Formato de cancha: "Cancha 1"
-        const courtName = `Cancha ${courtId}`;
-        
-        // Obtener partido activo
-        const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .select(`
-            *,
-            match_players (
-              player_id,
-              players (
-                first_name,
-                last_name
-              )
-            )
-          `)
-          .eq('court', courtName)
-          .eq('status', 'active')
-          .maybeSingle();
-    
-        if (matchError) {
-          console.error("Error al cargar partido:", matchError);
-          return null;
-        }
-    
-        if (!matchData) {
-          return null; // No hay partido activo
-        }
-    
-        // Procesar jugadores
-        const teamAPlayers = [];
-        const teamBPlayers = [];
-    
-        if (matchData.match_players) {
-          matchData.match_players.forEach(mp => {
-            if (mp.players) {
-              const playerName = `${mp.players.first_name} ${mp.players.last_name}`;
-              if (mp.team === 'teamA') {
-                teamAPlayers.push(playerName);
-              } else {
-                teamBPlayers.push(playerName);
-              }
-            }
-          });
-        }
-    
-        // Devolver partido con información completa
-        return {
-          ...matchData,
-          teamAPlayers,
-          teamBPlayers
-        };
-      } catch (error) {
-        console.error("Error al cargar partido:", error);
-        return null;
-      }
-    }
-    
-    function updateDisplay(match) {
-      if (!match) {
-        // No hay partido activo, mostrar valores por defecto
-        document.getElementById('team-a-score').textContent = '0';
-        document.getElementById('team-b-score').textContent = '0';
-        document.getElementById('total-points').textContent = '0';
-        document.getElementById('match-duration').textContent = '00:00';
-        updatePlayersDisplay('team-a', []);
-        updatePlayersDisplay('team-b', []);
-        return;
-      }
-      
-      // Actualizar puntuación
-      document.getElementById('team-a-score').textContent = match.team_a_score || 0;
-      document.getElementById('team-b-score').textContent = match.team_b_score || 0;
-      document.getElementById('total-points').textContent = 
-        (match.team_a_score || 0) + (match.team_b_score || 0);
-      
-      // Actualizar nombres de jugadores
-      updatePlayersDisplay('team-a', match.teamAPlayers);
-      updatePlayersDisplay('team-b', match.teamBPlayers);
-    }
-    
-    function updatePlayersDisplay(teamId, players) {
-      const playersContainer = document.getElementById(`${teamId}-players`);
-      playersContainer.innerHTML = '';
-      
-      if (!players || players.length === 0) {
-        // Mostrar marcadores genéricos si no hay jugadores
-        const placeholder = document.createElement('div');
-        placeholder.className = 'player placeholder';
-        placeholder.textContent = 'Jugador 1';
-        playersContainer.appendChild(placeholder);
-        
-        const placeholder2 = document.createElement('div');
-        placeholder2.className = 'player placeholder';
-        placeholder2.textContent = 'Jugador 2';
-        playersContainer.appendChild(placeholder2);
-        return;
-      }
-      
-      // Mostrar jugadores reales
-      players.forEach(playerName => {
-        const playerEl = document.createElement('div');
-        playerEl.className = 'player';
-        playerEl.textContent = playerName;
-        playersContainer.appendChild(playerEl);
-      });
-    }
-    
-    function startMatchTimer(startTime) {
-      const timerElement = document.getElementById('match-duration');
-      const start = new Date(startTime);
-      
-      function updateTimer() {
-        const now = new Date();
-        const diff = now - start;
-        const minutes = Math.floor(diff / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        
-        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      }
-      
-      // Actualizar inmediatamente y luego cada segundo
-      updateTimer();
-      window.matchTimerInterval = setInterval(updateTimer, 1000);
-    }
-    
-    // En setupRealtimeSubscription, mejorar el filtro
-    function setupRealtimeSubscription() {
-      try {
-        const courtName = `Cancha ${courtId}`;
-        
-        const subscription = supabase
-          .channel('tv-channel')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'matches',
-              filter: `court=eq.${encodeURIComponent(courtName)}`
-            },
-            async (payload) => {
-              // Actualizar cuando hay cambios en partidos de esta cancha
-              const match = await loadActiveMatch();
-              updateDisplay(match);
-              
-              // Actualizar estado
-              if (match) {
-                document.getElementById('match-status').textContent = 'En curso';
-                document.getElementById('match-status').classList.add('active');
-                
-                // Reiniciar temporizador si es un nuevo partido
-                if (payload.eventType === 'INSERT') {
-                  if (window.matchTimerInterval) {
-                    clearInterval(window.matchTimerInterval);
-                  }
-                  startMatchTimer(match.start_time);
-                }
-              } else {
-                document.getElementById('match-status').textContent = 'En espera';
-                document.getElementById('match-status').classList.remove('active');
-                if (window.matchTimerInterval) {
-                  clearInterval(window.matchTimerInterval);
-                }
-                document.getElementById('match-duration').textContent = '00:00';
-              }
-            }
-          )
-          .subscribe();
-    
-        return subscription;
-      } catch (error) {
-        console.error("Error al configurar suscripción:", error);
-        return null;
-      }
-    }        
-    
-    // Función para generar QR - CORREGIDA
-    function generateQRCode() {
-      // El QR debe apuntar a index.html?mode=qr
-      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${window.courtId}`;
-      
-      const qrElement = document.getElementById('qrcode');
-      if (!qrElement) return;
-
-      // Limpiar contenido previo
-      qrElement.innerHTML = '';      
-
-      // Crear un elemento canvas para el QR
-      const canvas = document.createElement('canvas');
-      qrElement.appendChild(canvas);
-  
-      // CORREGIDO: Verificar explícitamente que QRCode esté definido
-      if (typeof QRCode === 'undefined') {
-        console.error("Biblioteca QRCode no está cargada");
-        qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Biblioteca QR no cargada</div>';
-        return;
-      }
-      
-      // Generar QR
-      try {
-        QRCode.toCanvas(canvas, registrationUrl, {
-          width: 200,
-          margin: 1,
-          color: {
-            dark: '#2c3e50',
-            light: '#ffffff'
-          }
-        }, function(error) {
-          if (error) {
-            console.error("Error al generar QR:", error);
-            qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error al generar QR</div>';
-          }
-        });
-      } catch (error) {
-        console.error("Error en QRCode.toCanvas:", error);
-        qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error al generar QR</div>';
-      }
-    }       
-    
-    // Función para mostrar errores
-    function showErrorScreen(message) {
+    // Validaciones iniciales
+    if (!clubId || !courtId) {
       document.body.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
           <h1>Error</h1>
-          <p>${message}</p>
+          <p>Faltan parámetros: <strong>club</strong> y <strong>court</strong></p>
           <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-        </div>
-      `;
+        </div>`;
+      throw new Error('Parámetros faltantes');
     }
+
+    // Validar formato UUID del club
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(clubId)) {
+      document.body.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
+          <h1>Error</h1>
+          <p>Identificador de club inválido.</p>
+          <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
+        </div>`;
+      return;
+    }
+
+    // Asignar globalmente para acceso en generateQRCode
+    window.clubId = clubId;
+    window.courtId = courtId;
+
+    // === INICIALIZAR SUPABASE ===
+    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnNieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMTQ3OTUsImV4cCI6MjA1NDY5MDc5NX0.TWv7f8bH2NqT5wL0y9uK7g1dZv0Jx9Y8ZqQ6Z0ZqQ6Z';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // === GENERAR QR INMEDIATAMENTE ===
+    function generateQRCode() {
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${window.courtId}`;
+      const qrElement = document.getElementById('qrcode');
+      if (!qrElement) return;
+      qrElement.innerHTML = '';
+      const canvas = document.createElement('canvas');
+      qrElement.appendChild(canvas);
+      QRCode.toCanvas(canvas, registrationUrl, {
+        width: 180,
+        margin: 1,
+        color: { dark: '#2c3e50', light: '#ffffff' }
+      });
+    }
+
+    // === SUSCRIBIRSE A CAMBIOS EN TIEMPO REAL ===
+    async function setupRealtimeUpdates() {
+      const channel = supabase
+        .channel(`tv-court-${courtId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'matches',
+            filter: `court=eq.Cancha ${courtId}`
+          },
+          async (payload) => {
+            console.log("Nuevo partido detectado:", payload.new);
+            await loadMatchData(payload.new.id);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'matches',
+            filter: `court=eq.Cancha ${courtId}`
+          },
+          (payload) => {
+            console.log("Partido actualizado:", payload.new);
+            updateTvScoreboard(payload.new);
+          }
+        )
+        .subscribe();
+    }
+
+    // === CARGAR DATOS DEL PARTIDO ===
+    async function loadMatchData(matchId) {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_players (
+            player_id,
+            team,
+            players (
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('id', matchId)
+        .single();
+
+      if (error || !data) return;
+
+      updateTvScoreboard(data);
+
+      // Iniciar temporizador
+      if (data.start_time) {
+        const start = new Date(data.start_time);
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        updateTimer(elapsed);
+      }
+    }
+
+    // === ACTUALIZAR MARCADOR ===
+    function updateTvScoreboard(matchData) {
+      document.getElementById('tv-team-a-name').textContent = matchData.team_a_name || 'Equipo A';
+      document.getElementById('tv-team-b-name').textContent = matchData.team_b_name || 'Equipo B';
+
+      const playersA = getPlayersNames(matchData.match_players, 'A');
+      const playersB = getPlayersNames(matchData.match_players, 'B');
+      document.getElementById('tv-team-a-players').textContent = playersA.length ? playersA.join(' / ') : '-';
+      document.getElementById('tv-team-b-players').textContent = playersB.length ? playersB.join(' / ') : '-';
+
+      const scoreA = matchData.scoring_type === 'traditional' ? matchData.games_a : matchData.points_a;
+      const scoreB = matchData.scoring_type === 'traditional' ? matchData.games_b : matchData.points_b;
+      document.getElementById('tv-score-a').textContent = scoreA || 0;
+      document.getElementById('tv-score-b').textContent = scoreB || 0;
+
+      document.getElementById('tv-total-points').textContent = (matchData.points_a || 0) + (matchData.points_b || 0);
+    }
+
+    function getPlayersNames(players, team) {
+      return (players || [])
+        .filter(p => p.team === team)
+        .map(p => `${p.players?.first_name || ''} ${p.players?.last_name || ''}`.trim())
+        .filter(name => name);
+    }
+
+    function updateTimer(initialSeconds) {
+      let seconds = initialSeconds;
+      document.getElementById('tv-match-duration').textContent = formatTime(seconds);
+      setInterval(() => {
+        seconds++;
+        document.getElementById('tv-match-duration').textContent = formatTime(seconds);
+      }, 1000);
+    }
+
+    function formatTime(totalSeconds) {
+      const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+      const secs = String(totalSeconds % 60).padStart(2, '0');
+      return `${mins}:${secs}`;
+    }
+
+    // === INICIAR ===
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('tv-court-number').textContent = courtId;
+      generateQRCode();
+      setupRealtimeUpdates();
+    });
   </script>
 </body>
 </html>
