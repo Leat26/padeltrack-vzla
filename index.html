@@ -1151,6 +1151,56 @@
 	    }
 	  };
 	};
+	
+	// Resetear el juego (marcador, temporizador, variables)
+	window.resetGame = function() {
+	
+	  // ✅ Reiniciar estado del juego
+	  window.gameEnded = false;
+	  
+	  // Resetear variables de puntuación
+	  window.scoreA = 0;
+	  window.scoreB = 0;
+	  window.gamesA = 0;
+	  window.gamesB = 0;
+	  window.setsA = 0;
+	  window.setsB = 0;		  
+	  window.inTiebreak = false;
+	  window.tiebreakPointsA = 0;
+	  window.tiebreakPointsB = 0;
+	
+	  // Resetear temporizador
+	  if (window.interval) {
+	    clearInterval(window.interval);
+	    window.interval = null;
+	  }
+	  window.minutes = 0;
+	  window.seconds = 0;
+	  window.gameDuration = "00:00";
+	  // Resetear UI
+	  window.updateScoreboard();
+	  
+	  // Resetear indicadores visuales
+	  const scoreAElement = document.getElementById('scoreA');
+	  const scoreBElement = document.getElementById('scoreB');
+	  const gamesAElement = document.getElementById('gamesA');
+	  const gamesBElement = document.getElementById('gamesB');
+	  const timerElement = document.getElementById('timer');
+	  const tiebreakNotification = document.getElementById('tiebreak-notification');
+	
+	  if (scoreAElement) scoreAElement.textContent = '0';
+	  if (scoreBElement) scoreBElement.textContent = '0';
+	  if (gamesAElement) gamesAElement.textContent = '0';
+	  if (gamesBElement) gamesBElement.textContent = '0';
+	  if (timerElement) timerElement.textContent = '00:00';
+	  if (tiebreakNotification) tiebreakNotification.style.display = 'none';
+	
+	  // Resetear colores y clases
+	  if (scoreAElement) scoreAElement.style.color = '#D32F2F';
+	  if (scoreBElement) scoreBElement.style.color = '#1976D2';
+	
+	  console.log("Marcador y temporizador reseteados correctamente");
+	};	
 		
 	// Seleccionar sistema de puntuación
 	window.selectScoring = function(type) {
@@ -3913,57 +3963,6 @@
           window.updateScoreboard();
         };
 		
-        // Resetear el juego (marcador, temporizador, variables)
-        window.resetGame = function() {
-		
-		  // ✅ Reiniciar estado del juego
-		  window.gameEnded = false;
-          
-		  // Resetear variables de puntuación
-          window.scoreA = 0;
-          window.scoreB = 0;
-          window.gamesA = 0;
-          window.gamesB = 0;
-          window.setsA = 0;
-          window.setsB = 0;		  
-          window.inTiebreak = false;
-          window.tiebreakPointsA = 0;
-          window.tiebreakPointsB = 0;
-        
-          // Resetear temporizador
-          if (window.interval) {
-            clearInterval(window.interval);
-            window.interval = null;
-          }
-          window.minutes = 0;
-          window.seconds = 0;
-          window.gameDuration = "00:00";
-          // Resetear UI
-          window.updateScoreboard();
-		  
-          // Resetear indicadores visuales
-          const scoreAElement = document.getElementById('scoreA');
-          const scoreBElement = document.getElementById('scoreB');
-          const gamesAElement = document.getElementById('gamesA');
-          const gamesBElement = document.getElementById('gamesB');
-          const timerElement = document.getElementById('timer');
-          const tiebreakNotification = document.getElementById('tiebreak-notification');
-        
-          if (scoreAElement) scoreAElement.textContent = '0';
-          if (scoreBElement) scoreBElement.textContent = '0';
-          if (gamesAElement) gamesAElement.textContent = '0';
-          if (gamesBElement) gamesBElement.textContent = '0';
-          if (timerElement) timerElement.textContent = '00:00';
-          if (tiebreakNotification) tiebreakNotification.style.display = 'none';
-        
-          // Resetear colores y clases
-          if (scoreAElement) scoreAElement.style.color = '#D32F2F';
-          if (scoreBElement) scoreBElement.style.color = '#1976D2';
-        
-          console.log("Marcador y temporizador reseteados correctamente");
-        };		
-        
-
         // Configurar listener de autenticación
         window.supabase.auth.onAuthStateChange((event, session) => {
           if (session) {
