@@ -1109,6 +1109,15 @@
 	  return points; // Modo americano o tiebreak
 	};
 
+	// Manejar puntos
+	window.addPoint = function(team) {
+	  if (window.scoringType === 'traditional') {
+	    window.addTraditionalPoint(team);
+	  } else {
+	    window.addAmericanPoint(team);
+	  }
+	};
+
 	// ✅ Función mejorada: Actualizar addPoint para usar el partido actual
 	window.updateAddPointFunction = function() {
 	  // Verificar que window.addPoint exista y sea una función
@@ -2955,14 +2964,6 @@
           window.updateScoreboard();
         };
         
-        // Manejar puntos
-        window.addPoint = function(team) {
-          if (window.scoringType === 'traditional') {
-            window.addTraditionalPoint(team);
-          } else {
-            window.addAmericanPoint(team);
-          }
-        };
         
         window.subPoint = function(team) {
           if (window.scoringType === 'traditional') {
