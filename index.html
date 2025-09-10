@@ -1481,6 +1481,54 @@
 	  if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
 	  if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
 	};
+	
+	// Funcion varios sets
+	window.completeSet = function() {
+	  let winnerSet = '';
+	  if (window.inTiebreak) {
+	    winnerSet = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
+	  } else {
+	    winnerSet = window.gamesA > window.gamesB ? 'A' : 'B';
+	  }
+	
+	  const teamName = winnerSet === 'A' ? window.teamNames.teamA : window.teamNames.teamB;
+	  const setNumber = (window.setsA + window.setsB) + 1;
+	
+	  // ✅ Guardar el resultado del set en el historial ANTES de resetear los juegos
+	  window.setHistory.push({
+	    gamesA: window.gamesA,
+	    gamesB: window.gamesB,
+	    tiebreak: window.inTiebreak,
+	    tiebreakA: window.inTiebreak ? window.tiebreakPointsA : 0,
+	    tiebreakB: window.inTiebreak ? window.tiebreakPointsB : 0
+	  });
+	
+	  // Aumentar sets ganados
+	  if (winnerSet === 'A') {
+	    window.setsA++;
+	  } else {
+	    window.setsB++;
+	  }
+	
+	  window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
+	
+	  // Verificar si el partido terminó (2 sets)
+	  if (window.setsA === 2 || window.setsB === 2) {
+	    window.finalizeGame();
+	    return;
+	  }
+	
+	  // Resetear para el próximo set
+	  window.gamesA = 0;
+	  window.gamesB = 0;
+	  window.scoreA = 0;
+	  window.scoreB = 0;
+	  window.inTiebreak = false;
+	  window.tiebreakPointsA = 0;
+	  window.tiebreakPointsB = 0;
+	
+	  window.updateScoreboard();
+	};	
 		
 	// Seleccionar sistema de puntuación
 	window.selectScoring = function(type) {
@@ -3943,53 +3991,6 @@
           window.showNotification('¡Datos exportados exitosamente!');
         };
         
-        // Funcion varios sets
-        window.completeSet = function() {
-          let winnerSet = '';
-          if (window.inTiebreak) {
-            winnerSet = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
-          } else {
-            winnerSet = window.gamesA > window.gamesB ? 'A' : 'B';
-          }
-        
-          const teamName = winnerSet === 'A' ? window.teamNames.teamA : window.teamNames.teamB;
-          const setNumber = (window.setsA + window.setsB) + 1;
-        
-          // ✅ Guardar el resultado del set en el historial ANTES de resetear los juegos
-          window.setHistory.push({
-            gamesA: window.gamesA,
-            gamesB: window.gamesB,
-            tiebreak: window.inTiebreak,
-            tiebreakA: window.inTiebreak ? window.tiebreakPointsA : 0,
-            tiebreakB: window.inTiebreak ? window.tiebreakPointsB : 0
-          });
-        
-          // Aumentar sets ganados
-          if (winnerSet === 'A') {
-            window.setsA++;
-          } else {
-            window.setsB++;
-          }
-        
-          window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
-        
-          // Verificar si el partido terminó (2 sets)
-          if (window.setsA === 2 || window.setsB === 2) {
-            window.finalizeGame();
-            return;
-          }
-        
-          // Resetear para el próximo set
-          window.gamesA = 0;
-          window.gamesB = 0;
-          window.scoreA = 0;
-          window.scoreB = 0;
-          window.inTiebreak = false;
-          window.tiebreakPointsA = 0;
-          window.tiebreakPointsB = 0;
-        
-          window.updateScoreboard();
-        };
 		
         // Configurar listener de autenticación
         window.supabase.auth.onAuthStateChange((event, session) => {
