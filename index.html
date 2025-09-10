@@ -1201,6 +1201,43 @@
 	
 	  console.log("Marcador y temporizador reseteados correctamente");
 	};	
+
+	// Iniciar temporizador del partido
+	window.startTimer = function() {
+	  if (window.interval) {
+	    clearInterval(window.interval);
+	  }
+	
+	  window.interval = setInterval(function() {
+	    window.seconds++;
+	    if (window.seconds >= 60) {
+	      window.minutes++;
+	      window.seconds = 0;
+	    }
+	
+	    const timerElement = document.getElementById('timer');
+	    if (timerElement) {
+	      timerElement.textContent = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
+	    }
+	
+	    // Actualizar duración del juego
+	    window.gameDuration = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
+	  }, 1000);
+	};
+
+	// Actualizar nombres de equipos en el marcador
+	window.updateTeamNamesDisplay = function() {
+	  const teamAName = document.getElementById('teamA-name')?.value;
+	  const teamBName = document.getElementById('teamB-name')?.value;
+	  window.teamNames.teamA = teamAName || "Equipo A";
+	  window.teamNames.teamB = teamBName || "Equipo B";
+	  
+	  const teamAElement = document.getElementById('teamA-display');
+	  const teamBElement = document.getElementById('teamB-display');
+	  
+	  if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
+	  if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
+	};
 		
 	// Seleccionar sistema de puntuación
 	window.selectScoring = function(type) {
@@ -2613,20 +2650,6 @@
           }
         };
 
-        // Actualizar nombres de equipos en el marcador
-        window.updateTeamNamesDisplay = function() {
-          const teamAName = document.getElementById('teamA-name')?.value;
-          const teamBName = document.getElementById('teamB-name')?.value;
-          window.teamNames.teamA = teamAName || "Equipo A";
-          window.teamNames.teamB = teamBName || "Equipo B";
-          
-          const teamAElement = document.getElementById('teamA-display');
-          const teamBElement = document.getElementById('teamB-display');
-          
-          if (teamAElement) teamAElement.textContent = window.teamNames.teamA;
-          if (teamBElement) teamBElement.textContent = window.teamNames.teamB;
-        };
-
         // Función para cargar las canchas en la pantalla de inicio
         window.loadHomeCourts = function() {
           const courtsGrid = document.getElementById('courts-grid');
@@ -3390,30 +3413,7 @@
                 window.showNotification('¡Sesión cerrada exitosamente!');
                 window.goToScreen('login');
             }
-        };
-
-		// Iniciar temporizador del partido
-		window.startTimer = function() {
-		  if (window.interval) {
-		    clearInterval(window.interval);
-		  }
-		
-		  window.interval = setInterval(function() {
-		    window.seconds++;
-		    if (window.seconds >= 60) {
-		      window.minutes++;
-		      window.seconds = 0;
-		    }
-		
-		    const timerElement = document.getElementById('timer');
-		    if (timerElement) {
-		      timerElement.textContent = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
-		    }
-		
-		    // Actualizar duración del juego
-		    window.gameDuration = `${window.minutes.toString().padStart(2, '0')}:${window.seconds.toString().padStart(2, '0')}`;
-		  }, 1000);
-		};				
+        };				
         
 		// Función para actualizar estadísticas
 		window.updatePlayerStats = async function(winnerTeam) {
