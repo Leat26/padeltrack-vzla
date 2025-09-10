@@ -2021,7 +2021,7 @@
 	    // Crear el partido en la tabla matches con estado 'active'
 	    const matchToInsert = {
 	      club_id: clubIdToUse,
-	      court: window.gameData.court,
+	      court: window.selectedCourt,
 	      scoring_type: window.scoringType,
 	      status: 'active',
 	      team_a_name: window.teamNames.teamA,
