@@ -1118,6 +1118,214 @@
 	  }
 	};
 
+	// Manejar puntos en modo tradicional
+	window.addTraditionalPoint = function(team) {
+		// ✅ Validación: si el partido ya terminó, no hacer nada
+		if (window.gameEnded) {
+		    return;
+		}            
+		// Si está en tiebreak, manejar puntos de tiebreak
+	    if (window.inTiebreak) {
+	        if (team === 'A') window.tiebreakPointsA++;
+	        else window.tiebreakPointsB++;
+	
+	        const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
+	        if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
+	            if (window.tiebreakPointsA > window.tiebreakPointsB) {
+	                window.gamesA = 7;
+	                window.gamesB = 6;
+	            } else {
+	                window.gamesA = 6;
+	                window.gamesB = 7;
+	            }
+	            window.completeSet();
+	            return;
+	        }
+	        window.updateScoreboard();
+	        return;
+	    }
+	
+	    // --- LÓGICA: ¿El punto actual gana el juego? ---
+	    let gameWon = false;
+	    let gameWinner = '';
+	
+	    // Caso 1: Alguien llega a 40 y tiene ventaja (40-0, 40-15, 40-30)
+	    if (window.scoreA === 3 && window.scoreB <= 2 && team === 'A') {
+	        gameWon = true;
+	        gameWinner = 'A';
+	    } else if (window.scoreB === 3 && window.scoreA <= 2 && team === 'B') {
+	        gameWon = true;
+	        gameWinner = 'B';
+	    }
+	
+	    // Caso 2: 40-40 → el siguiente punto gana el juego
+	    if (window.scoreA === 3 && window.scoreB === 3) {
+	        gameWon = true;
+	        gameWinner = team;
+	    }
+	
+	    if (gameWon) {
+	        // Referencias a los elementos del marcador
+	        const scoreAElement = document.getElementById('scoreA');
+	        const scoreBElement = document.getElementById('scoreB');
+	
+	        // Mostrar "Game" temporalmente
+	        if (scoreAElement) {
+	            scoreAElement.textContent = gameWinner === 'A' ? 'Game' : window.getDisplayScore(window.scoreA);
+	            if (gameWinner === 'A') scoreAElement.style.fontWeight = 'bold';
+	        }
+	        if (scoreBElement) {
+	            scoreBElement.textContent = gameWinner === 'B' ? 'Game' : window.getDisplayScore(window.scoreB);
+	            if (gameWinner === 'B') scoreBElement.style.fontWeight = 'bold';
+	        }
+	
+	        // Sumar el juego al equipo ganador
+	        if (gameWinner === 'A') {
+	            window.gamesA++;
+	        } else {
+	            window.gamesB++;
+	        }
+	
+	        // Reiniciar puntos inmediatamente
+	        window.scoreA = 0;
+	        window.scoreB = 0;
+	
+	        // Volver a mostrar "0" después de 800ms
+	        setTimeout(() => {
+	            window.updateScoreboard();
+	        }, 800);
+	
+	        // Verificar si termina el set
+	        const minWinGames = 6;
+	        const maxGame = 7;
+	        const minDiff = 2;
+	
+	        // Caso 1: Gana con 6 juegos (6-0, 6-1, 6-2, 6-3, 6-4)
+	        if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) ||
+	            (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
+	            window.completeSet();
+	            return;
+	        }
+	
+	        // Caso 2: Gana con 7-5
+	        else if ((window.gamesA === maxGame && window.gamesB === maxGame - minDiff) ||
+	                 (window.gamesB === maxGame && window.gamesA === maxGame - minDiff)) {
+	            window.completeSet();
+	            return;
+	        }
+	
+	        // Caso 3: 6-6 → activar tiebreak
+	        else if (window.gamesA === 6 && window.gamesB === 6) {
+	            window.inTiebreak = true;
+	            window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+	            window.updateScoreboard();
+	            return;
+	        }
+	
+	        // Si no terminó el set, simplemente seguimos
+	        return;
+	    }
+	
+	    // Si no se ganó el juego, solo sumar el punto
+	    if (team === 'A') {
+	        window.scoreA++;
+	    } else {
+	        window.scoreB++;
+	    }
+	
+	    // Actualizar marcador inmediatamente
+	    window.updateScoreboard();
+	};
+	
+	// Manejar puntos en modo americano
+	window.addAmericanPoint = function(team) {
+	  // Si estamos en tiebreak
+	  if (window.inTiebreak) {
+	    // Manejar puntos de tiebreak
+	    if (team === 'A') window.tiebreakPointsA++;
+	    else window.tiebreakPointsB++;
+	    // Verificar si termina el tiebreak
+	    const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
+	    if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
+	      // El ganador del tiebreak gana el partido
+	      window.finalizeGame();
+	    }
+	    window.updateScoreboard();
+	    return;
+	  }
+	  // Modo normal
+	  if (team === 'A') window.scoreA++;
+	  else window.scoreB++;
+	  // Calcular puntos totales acumulados
+	  const totalPoints = window.scoreA + window.scoreB;
+	  // Verificar si termina el juego normal (16 puntos acumulados)
+	  if (totalPoints === 16) {
+	    window.finalizeGame();
+	    return;
+	  }
+	  // Verificar si empieza el tiebreak (8-8)
+	  if (window.scoreA === 8 && window.scoreB === 8) {
+	    window.inTiebreak = true;
+	    window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+	  }
+	  window.updateScoreboard();
+	};
+	
+	
+	window.subPoint = function(team) {
+	  if (window.scoringType === 'traditional') {
+	    if (window.inTiebreak) {
+	      // Restar puntos en tiebreak tradicional
+	      if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
+	      if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
+	    } else {
+	      // Restar puntos en modo tradicional
+	      if (team === 'A' && window.scoreA > 0) window.scoreA--;
+	      if (team === 'B' && window.scoreB > 0) window.scoreB--;
+	    }
+	  } else {
+	    // Modo americano
+	    if (window.inTiebreak) {
+	      // Restar puntos en tiebreak americano
+	      if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
+	      if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
+	    } else {
+	      // Restar puntos en modo americano normal
+	      if ((team === 'A' && window.scoreA > 0) || (team === 'B' && window.scoreB > 0)) {
+	        if (team === 'A') window.scoreA--;
+	        else window.scoreB--;
+	      }
+	    }
+	  }
+	  // Limpiar clases de ganador
+	  const scoreAElement = document.getElementById('scoreA');
+	  const scoreBElement = document.getElementById('scoreB');
+	  
+	  if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
+	  if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
+	  
+	  window.updateScoreboard();
+	};
+	
+	// Temporizador
+	const gameScreen = document.getElementById('game');
+	if (gameScreen) {
+	  gameScreen.addEventListener('click', function() {
+	    if (!window.interval) {
+	      window.interval = setInterval(() => {
+	        window.seconds++;
+	        const mins = Math.floor(window.seconds / 60).toString().padStart(2, '0');
+	        const secs = (window.seconds % 60).toString().padStart(2, '0');
+	        const timerElement = document.getElementById('timer');
+	        if (timerElement) {
+	          timerElement.textContent = `${mins}:${secs}`;
+	        }
+	        window.gameDuration = `${mins}m ${secs}s`;
+	      }, 1000);
+	    }
+	  });
+	}
+		
 	// ✅ Función mejorada: Actualizar addPoint para usar el partido actual
 	window.updateAddPointFunction = function() {
 	  // Verificar que window.addPoint exista y sea una función
@@ -2811,213 +3019,6 @@
           window.goToScreen('scoring-type');
         };
         
-        // Manejar puntos en modo tradicional
-        window.addTraditionalPoint = function(team) {
-			// ✅ Validación: si el partido ya terminó, no hacer nada
-			if (window.gameEnded) {
-			    return;
-			}            
-			// Si está en tiebreak, manejar puntos de tiebreak
-            if (window.inTiebreak) {
-                if (team === 'A') window.tiebreakPointsA++;
-                else window.tiebreakPointsB++;
-        
-                const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
-                if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
-                    if (window.tiebreakPointsA > window.tiebreakPointsB) {
-                        window.gamesA = 7;
-                        window.gamesB = 6;
-                    } else {
-                        window.gamesA = 6;
-                        window.gamesB = 7;
-                    }
-                    window.completeSet();
-                    return;
-                }
-                window.updateScoreboard();
-                return;
-            }
-        
-            // --- LÓGICA: ¿El punto actual gana el juego? ---
-            let gameWon = false;
-            let gameWinner = '';
-        
-            // Caso 1: Alguien llega a 40 y tiene ventaja (40-0, 40-15, 40-30)
-            if (window.scoreA === 3 && window.scoreB <= 2 && team === 'A') {
-                gameWon = true;
-                gameWinner = 'A';
-            } else if (window.scoreB === 3 && window.scoreA <= 2 && team === 'B') {
-                gameWon = true;
-                gameWinner = 'B';
-            }
-        
-            // Caso 2: 40-40 → el siguiente punto gana el juego
-            if (window.scoreA === 3 && window.scoreB === 3) {
-                gameWon = true;
-                gameWinner = team;
-            }
-        
-            if (gameWon) {
-                // Referencias a los elementos del marcador
-                const scoreAElement = document.getElementById('scoreA');
-                const scoreBElement = document.getElementById('scoreB');
-        
-                // Mostrar "Game" temporalmente
-                if (scoreAElement) {
-                    scoreAElement.textContent = gameWinner === 'A' ? 'Game' : window.getDisplayScore(window.scoreA);
-                    if (gameWinner === 'A') scoreAElement.style.fontWeight = 'bold';
-                }
-                if (scoreBElement) {
-                    scoreBElement.textContent = gameWinner === 'B' ? 'Game' : window.getDisplayScore(window.scoreB);
-                    if (gameWinner === 'B') scoreBElement.style.fontWeight = 'bold';
-                }
-        
-                // Sumar el juego al equipo ganador
-                if (gameWinner === 'A') {
-                    window.gamesA++;
-                } else {
-                    window.gamesB++;
-                }
-        
-                // Reiniciar puntos inmediatamente
-                window.scoreA = 0;
-                window.scoreB = 0;
-        
-                // Volver a mostrar "0" después de 800ms
-                setTimeout(() => {
-                    window.updateScoreboard();
-                }, 800);
-        
-                // Verificar si termina el set
-                const minWinGames = 6;
-                const maxGame = 7;
-                const minDiff = 2;
-        
-                // Caso 1: Gana con 6 juegos (6-0, 6-1, 6-2, 6-3, 6-4)
-                if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) ||
-                    (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
-                    window.completeSet();
-                    return;
-                }
-        
-                // Caso 2: Gana con 7-5
-                else if ((window.gamesA === maxGame && window.gamesB === maxGame - minDiff) ||
-                         (window.gamesB === maxGame && window.gamesA === maxGame - minDiff)) {
-                    window.completeSet();
-                    return;
-                }
-        
-                // Caso 3: 6-6 → activar tiebreak
-                else if (window.gamesA === 6 && window.gamesB === 6) {
-                    window.inTiebreak = true;
-                    window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
-                    window.updateScoreboard();
-                    return;
-                }
-        
-                // Si no terminó el set, simplemente seguimos
-                return;
-            }
-        
-            // Si no se ganó el juego, solo sumar el punto
-            if (team === 'A') {
-                window.scoreA++;
-            } else {
-                window.scoreB++;
-            }
-        
-            // Actualizar marcador inmediatamente
-            window.updateScoreboard();
-        };
-
-        // Manejar puntos en modo americano
-        window.addAmericanPoint = function(team) {
-          // Si estamos en tiebreak
-          if (window.inTiebreak) {
-            // Manejar puntos de tiebreak
-            if (team === 'A') window.tiebreakPointsA++;
-            else window.tiebreakPointsB++;
-            // Verificar si termina el tiebreak
-            const diff = Math.abs(window.tiebreakPointsA - window.tiebreakPointsB);
-            if ((window.tiebreakPointsA >= 7 || window.tiebreakPointsB >= 7) && diff >= 2) {
-              // El ganador del tiebreak gana el partido
-              window.finalizeGame();
-            }
-            window.updateScoreboard();
-            return;
-          }
-          // Modo normal
-          if (team === 'A') window.scoreA++;
-          else window.scoreB++;
-          // Calcular puntos totales acumulados
-          const totalPoints = window.scoreA + window.scoreB;
-          // Verificar si termina el juego normal (16 puntos acumulados)
-          if (totalPoints === 16) {
-            window.finalizeGame();
-            return;
-          }
-          // Verificar si empieza el tiebreak (8-8)
-          if (window.scoreA === 8 && window.scoreB === 8) {
-            window.inTiebreak = true;
-            window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
-          }
-          window.updateScoreboard();
-        };
-        
-        
-        window.subPoint = function(team) {
-          if (window.scoringType === 'traditional') {
-            if (window.inTiebreak) {
-              // Restar puntos en tiebreak tradicional
-              if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
-              if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
-            } else {
-              // Restar puntos en modo tradicional
-              if (team === 'A' && window.scoreA > 0) window.scoreA--;
-              if (team === 'B' && window.scoreB > 0) window.scoreB--;
-            }
-          } else {
-            // Modo americano
-            if (window.inTiebreak) {
-              // Restar puntos en tiebreak americano
-              if (team === 'A' && window.tiebreakPointsA > 0) window.tiebreakPointsA--;
-              if (team === 'B' && window.tiebreakPointsB > 0) window.tiebreakPointsB--;
-            } else {
-              // Restar puntos en modo americano normal
-              if ((team === 'A' && window.scoreA > 0) || (team === 'B' && window.scoreB > 0)) {
-                if (team === 'A') window.scoreA--;
-                else window.scoreB--;
-              }
-            }
-          }
-          // Limpiar clases de ganador
-          const scoreAElement = document.getElementById('scoreA');
-          const scoreBElement = document.getElementById('scoreB');
-          
-          if (scoreAElement) scoreAElement.classList.remove('winner', 'loser');
-          if (scoreBElement) scoreBElement.classList.remove('winner', 'loser');
-          
-          window.updateScoreboard();
-        };
-        
-        // Temporizador
-        const gameScreen = document.getElementById('game');
-        if (gameScreen) {
-          gameScreen.addEventListener('click', function() {
-            if (!window.interval) {
-              window.interval = setInterval(() => {
-                window.seconds++;
-                const mins = Math.floor(window.seconds / 60).toString().padStart(2, '0');
-                const secs = (window.seconds % 60).toString().padStart(2, '0');
-                const timerElement = document.getElementById('timer');
-                if (timerElement) {
-                  timerElement.textContent = `${mins}:${secs}`;
-                }
-                window.gameDuration = `${mins}m ${secs}s`;
-              }, 1000);
-            }
-          });
-        }
         
         // Validar formato del RIF venezolano
         window.validateRifFormat = function(rif) {
