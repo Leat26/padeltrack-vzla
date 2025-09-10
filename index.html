@@ -1094,6 +1094,45 @@
 	  console.log("Campos de jugadores reseteados correctamente");
 	};
 
+	// Seleccionar sistema de puntuación
+	window.selectScoring = function(type) {
+	  window.scoringType = type;
+	  // Resaltar selección
+	  const traditionalOption = document.getElementById('traditional-option');
+	  const americanOption = document.getElementById('american-option');
+	  
+	  if (traditionalOption) traditionalOption.classList.remove('selected');
+	  if (americanOption) americanOption.classList.remove('selected');
+	  
+	  if (type === 'traditional' && traditionalOption) {
+	    traditionalOption.classList.add('selected');
+	  } else if (americanOption) {
+	    americanOption.classList.add('selected');
+	  }
+	  
+	  // Actualizar interfaz
+	  const btn = document.getElementById('continue-btn');
+	  if (btn) {
+	    btn.disabled = false;
+	    btn.classList.remove('btn-disabled');
+	    btn.innerHTML = '<i class="fas fa-play"></i> Continuar';
+	  }
+	  
+	  // Actualizar indicadores
+	  const indicator = document.getElementById('scoring-indicator');
+	  const modeDesc = document.getElementById('mode-description');
+	  
+	  if (indicator && modeDesc) {
+	    if (type === 'traditional') {
+	      indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Tradicional';
+	      modeDesc.textContent = 'Sistema oficial de pádel: Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5)';
+	    } else {
+	      indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Americano';
+	      modeDesc.textContent = 'Sistema venezolano: Puntos acumulativos hasta 16 entre ambos equipos. En 8-8 se juega tiebreak a 7 puntos.';
+	    }
+	  }
+	};
+
 	// Validar cédula (buscar en Supabase)
 	window.validateCedula = async function(input) {
 	  // Obtener el contenedor .cedula-input
@@ -2610,45 +2649,6 @@
           
           window.selectedCourt = selectedCourt.dataset.court;
           window.goToScreen('scoring-type');
-        };
-    
-        // Seleccionar sistema de puntuación
-        window.selectScoring = function(type) {
-          window.scoringType = type;
-          // Resaltar selección
-          const traditionalOption = document.getElementById('traditional-option');
-          const americanOption = document.getElementById('american-option');
-          
-          if (traditionalOption) traditionalOption.classList.remove('selected');
-          if (americanOption) americanOption.classList.remove('selected');
-          
-          if (type === 'traditional' && traditionalOption) {
-            traditionalOption.classList.add('selected');
-          } else if (americanOption) {
-            americanOption.classList.add('selected');
-          }
-          
-          // Actualizar interfaz
-          const btn = document.getElementById('continue-btn');
-          if (btn) {
-            btn.disabled = false;
-            btn.classList.remove('btn-disabled');
-            btn.innerHTML = '<i class="fas fa-play"></i> Continuar';
-          }
-          
-          // Actualizar indicadores
-          const indicator = document.getElementById('scoring-indicator');
-          const modeDesc = document.getElementById('mode-description');
-          
-          if (indicator && modeDesc) {
-            if (type === 'traditional') {
-              indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Tradicional';
-              modeDesc.textContent = 'Sistema oficial de pádel: Gana el set quien llegue a 6 juegos con diferencia de 2 (máximo 7-5)';
-            } else {
-              indicator.innerHTML = '<i class="fas fa-info-circle"></i> Modo Americano';
-              modeDesc.textContent = 'Sistema venezolano: Puntos acumulativos hasta 16 entre ambos equipos. En 8-8 se juega tiebreak a 7 puntos.';
-            }
-          }
         };
         
         // Continuar al registro
