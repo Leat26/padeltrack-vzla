@@ -1094,6 +1094,21 @@
 	  console.log("Campos de jugadores reseteados correctamente");
 	};
 
+	// Continuar al registro
+	window.goToRegister = function() {
+	  if (!window.scoringType) return;
+	  window.goToScreen('register');
+	};
+	
+	// Convertir puntuación según sistema
+	window.getDisplayScore = function(points) {
+	  if (window.scoringType === 'traditional' && !window.inTiebreak) {
+	    const traditionalPoints = ['0', '15', '30', '40', 'Game'];
+	    return traditionalPoints[points] || '40';
+	  }
+	  return points; // Modo americano o tiebreak
+	};
+
 	// Seleccionar sistema de puntuación
 	window.selectScoring = function(type) {
 	  window.scoringType = type;
@@ -2649,21 +2664,6 @@
           
           window.selectedCourt = selectedCourt.dataset.court;
           window.goToScreen('scoring-type');
-        };
-        
-        // Continuar al registro
-        window.goToRegister = function() {
-          if (!window.scoringType) return;
-          window.goToScreen('register');
-        };
-        
-        // Convertir puntuación según sistema
-        window.getDisplayScore = function(points) {
-          if (window.scoringType === 'traditional' && !window.inTiebreak) {
-            const traditionalPoints = ['0', '15', '30', '40', 'Game'];
-            return traditionalPoints[points] || '40';
-          }
-          return points; // Modo americano o tiebreak
         };
         
         // Manejar puntos en modo tradicional
