@@ -2058,58 +2058,39 @@
         if (mode === 'qr' && courtId) {
           console.log("Modo QR detectado para cancha:", courtId, "club:", clubIdFromUrl);
         
-          // Validar formato UUID del club si viene
+          // Validar formato UUID del club
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           
           if (clubIdFromUrl && uuidRegex.test(clubIdFromUrl)) {
-            // Modo QR con club válido
             window.currentClubId = clubIdFromUrl;
-            window.selectedCourt = `Cancha ${courtId}`;
-            window.gameData = window.gameData || {}; // Asegurar que exista
-            window.gameData.court = `Cancha ${courtId}`; // Asignar cancha para evitar error en startGame
-        
-            window.goToScreen('register');
-        
-            const registerTitle = document.querySelector('#register h2');
-            if (registerTitle) {
-              registerTitle.textContent = `Registro para Cancha ${courtId}`;
-            }
-        
-            // Modificar temporalmente startGame para usar el club_id de la URL
-            const originalStartGame = window.startGame;
-            window.startGame = async function() {
-              window.gameData.club_id = clubIdFromUrl;
-              return await originalStartGame.call(this);
-            };
-        
-            return; // 🔥 Detener ejecución aquí
           } else if (!clubIdFromUrl) {
-            // Modo QR sin club (solo cancha) — útil para flujos internos
-            window.currentCourtId = courtId;
-            window.selectedCourt = `Cancha ${courtId}`;
-            window.gameData = window.gameData || {};
-            window.gameData.court = `Cancha ${courtId}`;
-        
-            window.goToScreen('register');
-        
-            const registerTitle = document.querySelector('#register h2');
-            if (registerTitle) {
-              registerTitle.textContent = `Registro para Cancha ${courtId}`;
-            }
-        
-            return; // 🔥 Detener ejecución aquí
+            console.warn("No se proporcionó club_id en la URL");
           } else {
-            // ID de club inválido
             console.error("ID de club inválido en la URL:", clubIdFromUrl);
             if (typeof window.showNotification === 'function') {
               window.showNotification("QR inválido. Contacte al administrador.");
-            } else {
-              console.warn("showNotification no está definido aún");
             }
             window.goToScreen('home');
             return;
           }
-        }
+        
+          // Asignar cancha
+          window.selectedCourt = `Cancha ${courtId}`;
+          window.gameData = window.gameData || {};
+          window.gameData.court = `Cancha ${courtId}`;
+        
+          // ✅ IR A SELECCIÓN DE PUNTUACIÓN, NO A REGISTRO
+          window.goToScreen('scoring-type');
+        
+          // Modificar startGame para usar club_id de URL
+          const originalStartGame = window.startGame;
+          window.startGame = async function() {
+            window.gameData.club_id = window.currentClubId || window.currentUser.id;
+            return await originalStartGame.call(this);
+          };
+        
+          return; // 🔥 Detener ejecución aquí
+        }        
         
         // Función utilitaria para convertir valores a números seguros
         window.safeNumber = function(value, defaultValue = 0) {
