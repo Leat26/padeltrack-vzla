@@ -1109,19 +1109,35 @@
 	  return points; // Modo americano o tiebreak
 	};
 
-	// ✅ Nueva función: Actualizar addPoint para usar el partido actual
+	// ✅ Función mejorada: Actualizar addPoint para usar el partido actual
 	window.updateAddPointFunction = function() {
-	  // Guardar las funciones originales
+	  // Verificar que window.addPoint exista y sea una función
+	  if (typeof window.addPoint !== 'function') {
+	    console.warn("window.addPoint no está definido aún. No se puede envolver.");
+	    return;
+	  }
+	
+	  // Si ya fue envuelta, evitar doble envoltura
+	  if (window.addPoint.hasBeenWrapped === true) {
+	    return;
+	  }
+	
+	  // Guardar la función original
 	  const originalAddPoint = window.addPoint;
-	  
+	
 	  // Reemplazar con una versión que actualiza el partido
 	  window.addPoint = async function(team) {
-	    // Primero, ejecutar la lógica original
-	    originalAddPoint.call(this, team);
-	    
+	    // Ejecutar la lógica original
+	    try {
+	      await originalAddPoint.call(this, team);
+	    } catch (err) {
+	      console.error("Error al ejecutar la lógica original de addPoint:", err);
+	      return;
+	    }
+	
 	    // Si no hay partido activo, no hacer nada
 	    if (!window.lastMatchId) return;
-	    
+	
 	    try {
 	      // Preparar datos de actualización
 	      const updateData = {};
@@ -1136,13 +1152,13 @@
 	          updateData.games_b = window.gamesB;
 	        }
 	      }
-	      
+	
 	      // Actualizar en Supabase
 	      const { error } = await window.supabase
 	        .from('matches')
 	        .update(updateData)
 	        .eq('id', window.lastMatchId);
-	      
+	
 	      if (error) {
 	        console.error('Error al actualizar puntuación en Supabase:', error);
 	      }
@@ -1150,6 +1166,9 @@
 	      console.error('Error al actualizar puntuación:', error);
 	    }
 	  };
+	
+	  // Marcar como modificada para evitar múltiples envolturas
+	  window.addPoint.hasBeenWrapped = true;
 	};
 	
 	// Resetear el juego (marcador, temporizador, variables)
