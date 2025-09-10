@@ -261,27 +261,23 @@
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*', // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
             schema: 'public',
             table: 'matches',
-            filter: `court=eq.Cancha ${courtId}`
+            filter: `court=eq.Cancha ${courtId},club_id=eq.${clubId}`
           },
           async (payload) => {
-            console.log("Nuevo partido detectado:", payload.new);
-            await loadMatchData(payload.new.id);
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'matches',
-            filter: `court=eq.Cancha ${courtId}`
-          },
-          (payload) => {
-            console.log("Partido actualizado:", payload.new);
-            updateTvScoreboard(payload.new);
+            console.log("Cambio detectado:", payload.eventType, payload.new);
+            
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              await loadMatchData(payload.new.id);
+            } else if (payload.eventType === 'DELETE') {
+              // Si se elimina el partido, resetear la pantalla
+              document.getElementById('tv-team-a-name').textContent = 'Partido';
+              document.getElementById('tv-team-b-name').textContent = 'finalizado';
+              document.getElementById('tv-score-a').textContent = '0';
+              document.getElementById('tv-score-b').textContent = '0';
+            }
           }
         )
         .subscribe();
@@ -303,6 +299,9 @@
           )
         `)
         .eq('id', matchId)
+		.eq('status', 'active') // Solo partidos activos
+		.order('created_at', { ascending: false }) // Más reciente primero
+		.limit(1)
         .single();
 
       if (error || !data) return;
@@ -310,8 +309,50 @@
       updateTvScoreboard(data);
 
       // Iniciar temporizador
-      if (data.start_time) {
-        const start = new Date(data.start_time);
+      if (data.created_at) {
+        const start = new Date(data.created_at);
+        const elapsed = Math.floor((Date.now() - start) / 1000);
+        updateTimer(elapsed);
+      }
+    }
+
+    // Función para cargar el partido activo más reciente
+    async function loadActiveMatch() {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_players (
+            player_id,
+            team,
+            players (
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('court', `Cancha ${courtId}`)
+        .eq('club_id', clubId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+    
+      if (error) {
+        console.log('No hay partidos activos o error:', error);
+        // Mostrar mensaje de "No hay partido activo"
+        document.getElementById('tv-team-a-name').textContent = 'Esperando';
+        document.getElementById('tv-team-b-name').textContent = 'jugadores';
+        document.getElementById('tv-team-a-players').textContent = 'Escanea el QR';
+        document.getElementById('tv-team-b-players').textContent = 'para comenzar';
+        return;
+      }
+    
+      updateTvScoreboard(data);
+      
+      // Iniciar temporizador con created_at
+      if (data.created_at) {
+        const start = new Date(data.created_at);
         const elapsed = Math.floor((Date.now() - start) / 1000);
         updateTimer(elapsed);
       }
@@ -321,17 +362,28 @@
     function updateTvScoreboard(matchData) {
       document.getElementById('tv-team-a-name').textContent = matchData.team_a_name || 'Equipo A';
       document.getElementById('tv-team-b-name').textContent = matchData.team_b_name || 'Equipo B';
-
-      const playersA = getPlayersNames(matchData.match_players, 'A');
-      const playersB = getPlayersNames(matchData.match_players, 'B');
-      document.getElementById('tv-team-a-players').textContent = playersA.length ? playersA.join(' / ') : '-';
-      document.getElementById('tv-team-b-players').textContent = playersB.length ? playersB.join(' / ') : '-';
-
+    
+      // Obtener nombres de jugadores directamente si están disponibles
+      if (matchData.team_a_players) {
+        document.getElementById('tv-team-a-players').textContent = matchData.team_a_players;
+      } else {
+        // Si no, intentar obtenerlos de match_players
+        const playersA = getPlayersNames(matchData.match_players, 'A');
+        document.getElementById('tv-team-a-players').textContent = playersA.length ? playersA.join(' / ') : '-';
+      }
+      
+      if (matchData.team_b_players) {
+        document.getElementById('tv-team-b-players').textContent = matchData.team_b_players;
+      } else {
+        const playersB = getPlayersNames(matchData.match_players, 'B');
+        document.getElementById('tv-team-b-players').textContent = playersB.length ? playersB.join(' / ') : '-';
+      }
+    
       const scoreA = matchData.scoring_type === 'traditional' ? matchData.games_a : matchData.points_a;
       const scoreB = matchData.scoring_type === 'traditional' ? matchData.games_b : matchData.points_b;
       document.getElementById('tv-score-a').textContent = scoreA || 0;
       document.getElementById('tv-score-b').textContent = scoreB || 0;
-
+    
       document.getElementById('tv-total-points').textContent = (matchData.points_a || 0) + (matchData.points_b || 0);
     }
 
@@ -361,6 +413,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('tv-court-number').textContent = courtId;
       generateQRCode();
+	  loadActiveMatch(); // Cargar partido activo al iniciar
       setupRealtimeUpdates();
     });
   </script>
