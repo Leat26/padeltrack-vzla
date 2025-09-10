@@ -186,7 +186,7 @@
 
     <div class="qr-section">
       <h3>Escanee para registrar su partido</h3>
-      <div id="qrcode"></div>
+      <div id="tv-qrcode"></div>
       <p>Use su smartphone para escanear el código</p>
     </div>
   </div>
@@ -223,7 +223,7 @@
       return;
     }
 
-    // Asignar globalmente para acceso en generateQRCode
+    // Asignar globalmente
     window.clubId = clubId;
     window.courtId = courtId;
 
@@ -232,19 +232,26 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnNieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkxMTQ3OTUsImV4cCI6MjA1NDY5MDc5NX0.TWv7f8bH2NqT5wL0y9uK7g1dZv0Jx9Y8ZqQ6Z0ZqQ6Z';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // === GENERAR QR INMEDIATAMENTE ===
+    // === GENERAR QR CORRECTAMENTE (usando tv-qrcode) ===
     function generateQRCode() {
-      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${window.courtId}`;
-      const qrElement = document.getElementById('qrcode');
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${clubId}&court=${courtId}`;
+      const qrElement = document.getElementById('tv-qrcode');
       if (!qrElement) return;
-      qrElement.innerHTML = '';
+      
+      qrElement.innerHTML = ''; // Limpiar contenido previo
       const canvas = document.createElement('canvas');
       qrElement.appendChild(canvas);
-      QRCode.toCanvas(canvas, registrationUrl, {
-        width: 180,
-        margin: 1,
-        color: { dark: '#2c3e50', light: '#ffffff' }
-      });
+
+      try {
+        QRCode.toCanvas(canvas, registrationUrl, {
+          width: 180,
+          margin: 1,
+          color: { dark: '#2c3e50', light: '#ffffff' }
+        });
+      } catch (error) {
+        console.error("Error al generar QR:", error);
+        qrElement.innerHTML = '<div style="color: white; padding: 10px; text-align: center;">Error al generar QR</div>';
+      }
     }
 
     // === SUSCRIBIRSE A CAMBIOS EN TIEMPO REAL ===
