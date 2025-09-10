@@ -1359,17 +1359,24 @@
 	      // Preparar datos de actualización
 	      const updateData = {};
 	      if (team === 'A') {
-	        updateData.team_a_score = window.scoreA;
 	        if (window.scoringType === 'traditional') {
 	          updateData.games_a = window.gamesA;
+	        } else {
+	          updateData.points_a = window.scoreA; // Usa points_a, no team_a_score
 	        }
 	      } else {
-	        updateData.team_b_score = window.scoreB;
 	        if (window.scoringType === 'traditional') {
 	          updateData.games_b = window.gamesB;
+	        } else {
+	          updateData.points_b = window.scoreB; // Usa points_b
 	        }
 	      }
 	
+	      // Solo incluir tiebreak si es necesario
+	      if (window.inTiebreak) {
+	        updateData.tiebreak = true;
+	      }	
+		  
 	      // Actualizar en Supabase
 	      const { error } = await window.supabase
 	        .from('matches')
