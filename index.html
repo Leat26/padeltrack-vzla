@@ -1904,6 +1904,7 @@
 
 	// Función para registrar jugadores
 	window.startGame = async function() {
+	  window.resetGame();
 	  // Validar que todos los jugadores tengan datos completos
 	  const missingData = [];
 	  Object.keys(window.playersData).forEach(key => {
@@ -2159,14 +2160,14 @@
 	  // Actualizar juegos ganados
 	  const gamesAElement = document.getElementById('gamesA');
 	  const gamesBElement = document.getElementById('gamesB');
-	  if (gamesAElement) gamesAElement.textContent = window.gamesA;
-	  if (gamesBElement) gamesBElement.textContent = window.gamesB;
+	  if (gamesAElement) gamesAElement.textContent = window.gamesA || 0;
+	  if (gamesBElement) gamesBElement.textContent = window.gamesB || 0;
 	
 	  // Actualizar sets
 	  const setsAElement = document.getElementById('setsA');
 	  const setsBElement = document.getElementById('setsB');
-	  if (setsAElement) setsAElement.textContent = window.setsA;
-	  if (setsBElement) setsBElement.textContent = window.setsB;
+	  if (setsAElement) setsAElement.textContent = window.setsA || 0;
+	  if (setsBElement) setsBElement.textContent = window.setsB || 0;
 	  
 	  // Actualizar puntos actuales
 	  if (window.inTiebreak) {
