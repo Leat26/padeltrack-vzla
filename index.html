@@ -1342,7 +1342,7 @@
 	  // Guardar la función original
 	  const originalAddPoint = window.addPoint;
 	
-	  // Reemplazar con una versión que actualiza el partido
+	  // Reemplazar con una versión que actualice el partido
 	  window.addPoint = async function(team) {
 	    // Ejecutar la lógica original
 	    try {
@@ -1351,45 +1351,50 @@
 	      console.error("Error al ejecutar la lógica original de addPoint:", err);
 	      return;
 	    }
-	
+	  
 	    // Si no hay partido activo, no hacer nada
 	    if (!window.lastMatchId) return;
-	
+	  
 	    try {
 	      // Preparar datos de actualización
-	      const updateData = {};
+	      const updateData = {
+	        updated_at: new Date().toISOString()  // Actualizar marca de tiempo
+	      };
+	      
 	      if (team === 'A') {
 	        if (window.scoringType === 'traditional') {
 	          updateData.games_a = window.gamesA;
 	        } else {
-	          updateData.points_a = window.scoreA; // Usa points_a, no team_a_score
+	          updateData.points_a = window.scoreA;
 	        }
 	      } else {
 	        if (window.scoringType === 'traditional') {
 	          updateData.games_b = window.gamesB;
 	        } else {
-	          updateData.points_b = window.scoreB; // Usa points_b
+	          updateData.points_b = window.scoreB;
 	        }
 	      }
-	
+	  
 	      // Solo incluir tiebreak si es necesario
 	      if (window.inTiebreak) {
 	        updateData.tiebreak = true;
-	      }	
-		  
+	        updateData.tiebreak_points_a = window.tiebreakPointsA;
+	        updateData.tiebreak_points_b = window.tiebreakPointsB;
+	      }  
+	  
 	      // Actualizar en Supabase
 	      const { error } = await window.supabase
 	        .from('matches')
 	        .update(updateData)
 	        .eq('id', window.lastMatchId);
-	
+	  
 	      if (error) {
 	        console.error('Error al actualizar puntuación en Supabase:', error);
 	      }
 	    } catch (error) {
 	      console.error('Error al actualizar puntuación:', error);
 	    }
-	  };
+	  };	  
 	
 	  // Marcar como modificada para evitar múltiples envolturas
 	  window.addPoint.hasBeenWrapped = true;
@@ -2018,21 +2023,26 @@
 	    // Determinar el club_id a usar (priorizar gameData.club_id si existe)
 	    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
 	    
+	    // Obtener nombres de equipos
+	    const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
+	    const teamBName = document.getElementById('teamB-name')?.value || "Equipo B";
+	    
 	    // Crear el partido en la tabla matches con estado 'active'
 	    const matchToInsert = {
 	      club_id: clubIdToUse,
 	      court: window.selectedCourt,
 	      scoring_type: window.scoringType,
 	      status: 'active',
-	      team_a_name: window.teamNames.teamA,
-	      team_b_name: window.teamNames.teamB,
+	      team_a_name: teamAName,
+	      team_b_name: teamBName,
 	      games_a: 0,
 	      games_b: 0,
 	      points_a: 0,
 	      points_b: 0,
 	      tiebreak: false,
 	      duration: "00:00",
-		  winner: 'pending'
+	      winner: 'pending',
+	      created_at: new Date().toISOString()
 	    };
 	    
 	    // Insertar en la base de datos
@@ -2050,15 +2060,12 @@
 	    
 	    window.lastMatchId = matchData.id;
 	    
-	    // Guardar el ID del partido para uso posterior
-	    window.lastMatchId = matchData.id;
-	    
 	    // ✅ VINCULAR JUGADORES AL PARTIDO (ahora SÍ en el inicio)
 	    try {
 	      const insertPlayerInMatch = async (playerKey, team) => {
 	        const player = window.playersData[playerKey];
 	        
-	        // Buscar el ID del jugador por su cédula y club_id
+	        // Buscar el ID del jugador por su cedula y club_id
 	        const { data: playerData, error: playerError } = await window.supabase
 	          .from('players')
 	          .select('id')
@@ -2100,15 +2107,46 @@
 	      // Continuar igual porque el partido ya se creó
 	    }
 	    
+	    // ✅ ACTUALIZACIÓN CRÍTICA: Forzar una actualización para notificar a la TV
+	    // Como no tenemos campos para los nombres de jugadores en la tabla matches,
+	    // actualizamos un campo existente (como team_a_name) con información adicional
+	    const playerNames = {
+	      teamA: [
+	        window.playersData['A1'].firstName + ' ' + window.playersData['A1'].lastName,
+	        window.playersData['A2'].firstName + ' ' + window.playersData['A2'].lastName
+	      ],
+	      teamB: [
+	        window.playersData['B1'].firstName + ' ' + window.playersData['B1'].lastName,
+	        window.playersData['B2'].firstName + ' ' + window.playersData['B2'].lastName
+	      ]
+	    };
+	    
+	    // Actualizar con información de jugadores en el nombre del equipo
+	    const { error: updateError } = await window.supabase
+	      .from('matches')
+	      .update({ 
+	        team_a_players: playerNames.teamA,
+	        team_b_players: playerNames.teamB,
+	        updated_at: new Date().toISOString()
+	      })
+	      .eq('id', matchData.id);
+	    
+	    if (updateError) {
+	      console.error("Error al actualizar partido con nombres de jugadores:", updateError);
+	    }
+	    
 	    // ✅ Actualizar la función addPoint para que use el partido actual
 	    window.updateAddPointFunction();
 	    
 	    // Éxito - resetear marcador y redirigir
-	    window.resetGame(); // Asegura que todo esté limpio antes de empezar
+	    window.resetGame();
 	    window.goToScreen('game');
 	    
 	    // ✅ Iniciar temporizador
 	    window.startTimer();
+	    
+	    // Mostrar confirmación
+	    window.showNotification('¡Partido iniciado! La TV se actualizará automáticamente.');
 	    
 	  } catch (error) {
 	    console.error("Error crítico al crear partido:", error);
