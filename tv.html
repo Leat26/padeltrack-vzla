@@ -437,24 +437,16 @@
     
     async function loadActiveMatch() {
       try {
-        // Formato de cancha: "Cancha 1"
         const courtName = `Cancha ${courtId}`;
         
-        // Obtener partido activo
+        // Obtener partido activo con los nuevos campos
         const { data: matchData, error: matchError } = await supabase
           .from('matches')
-          .select(`
-            *,
-            match_players (
-              player_id,
-              players (
-                first_name,
-                last_name
-              )
-            )
-          `)
+          .select('*')
           .eq('court', courtName)
           .eq('status', 'active')
+          .order('updated_at', { ascending: false }) // Ordenar por última actualización
+          .limit(1)
           .maybeSingle();
     
         if (matchError) {
@@ -466,22 +458,9 @@
           return null; // No hay partido activo
         }
     
-        // Procesar jugadores
-        const teamAPlayers = [];
-        const teamBPlayers = [];
-    
-        if (matchData.match_players) {
-          matchData.match_players.forEach(mp => {
-            if (mp.players) {
-              const playerName = `${mp.players.first_name} ${mp.players.last_name}`;
-              if (mp.team === 'teamA') {
-                teamAPlayers.push(playerName);
-              } else {
-                teamBPlayers.push(playerName);
-              }
-            }
-          });
-        }
+        // Usar los nuevos campos para los jugadores
+        const teamAPlayers = matchData.team_a_players || [];
+        const teamBPlayers = matchData.team_b_players || [];
     
         // Devolver partido con información completa
         return {
@@ -493,7 +472,7 @@
         console.error("Error al cargar partido:", error);
         return null;
       }
-    }
+    }    
     
     function updateDisplay(match) {
       if (!match) {
@@ -508,14 +487,20 @@
       }
       
       // Actualizar puntuación
-      document.getElementById('team-a-score').textContent = match.team_a_score || 0;
-      document.getElementById('team-b-score').textContent = match.team_b_score || 0;
+      document.getElementById('team-a-score').textContent = match.points_a || 0;
+      document.getElementById('team-b-score').textContent = match.points_b || 0;
       document.getElementById('total-points').textContent = 
-        (match.team_a_score || 0) + (match.team_b_score || 0);
+        (match.points_a || 0) + (match.points_b || 0);
       
-      // Actualizar nombres de jugadores
-      updatePlayersDisplay('team-a', match.teamAPlayers);
-      updatePlayersDisplay('team-b', match.teamBPlayers);
+      // Actualizar nombres de jugadores desde los nuevos campos
+      updatePlayersDisplay('team-a', match.team_a_players || []);
+      updatePlayersDisplay('team-b', match.team_b_players || []);
+      
+      // Actualizar juegos si estás en modo tradicional
+      if (match.scoring_type === 'traditional') {
+        document.getElementById('team-a-score').textContent = match.games_a || 0;
+        document.getElementById('team-b-score').textContent = match.games_b || 0;
+      }
     }
     
     function updatePlayersDisplay(teamId, players) {
@@ -545,9 +530,9 @@
       });
     }
     
-    function startMatchTimer(startTime) {
+    function startMatchTimer(createdTime) {
       const timerElement = document.getElementById('match-duration');
-      const start = new Date(startTime);
+      const start = new Date(createdTime);
       
       function updateTimer() {
         const now = new Date();
@@ -564,6 +549,7 @@
     }
     
     // En setupRealtimeSubscription, mejorar el filtro
+
     function setupRealtimeSubscription() {
       try {
         const courtName = `Cancha ${courtId}`;
@@ -579,29 +565,34 @@
               filter: `court=eq.${encodeURIComponent(courtName)}`
             },
             async (payload) => {
-              // Actualizar cuando hay cambios en partidos de esta cancha
-              const match = await loadActiveMatch();
-              updateDisplay(match);
+              console.log('Cambio detectado en partido:', payload);
               
-              // Actualizar estado
-              if (match) {
-                document.getElementById('match-status').textContent = 'En curso';
-                document.getElementById('match-status').classList.add('active');
+              // Solo actualizar si el partido está activo o si es una inserción
+              if (payload.eventType === 'INSERT' || 
+                  (payload.new && payload.new.status === 'active')) {
+                const match = await loadActiveMatch();
+                updateDisplay(match);
                 
-                // Reiniciar temporizador si es un nuevo partido
-                if (payload.eventType === 'INSERT') {
+                if (match) {
+                  document.getElementById('match-status').textContent = 'En curso';
+                  document.getElementById('match-status').classList.add('active');
+                  
+                  // Reiniciar temporizador si es un nuevo partido
+                  if (payload.eventType === 'INSERT') {
+                    if (window.matchTimerInterval) {
+                      clearInterval(window.matchTimerInterval);
+                    }
+                    // Usar created_at si no hay start_time
+                    startMatchTimer(match.created_at);
+                  }
+                } else {
+                  document.getElementById('match-status').textContent = 'En espera';
+                  document.getElementById('match-status').classList.remove('active');
                   if (window.matchTimerInterval) {
                     clearInterval(window.matchTimerInterval);
                   }
-                  startMatchTimer(match.start_time);
+                  document.getElementById('match-duration').textContent = '00:00';
                 }
-              } else {
-                document.getElementById('match-status').textContent = 'En espera';
-                document.getElementById('match-status').classList.remove('active');
-                if (window.matchTimerInterval) {
-                  clearInterval(window.matchTimerInterval);
-                }
-                document.getElementById('match-duration').textContent = '00:00';
               }
             }
           )
@@ -612,7 +603,20 @@
         console.error("Error al configurar suscripción:", error);
         return null;
       }
-    }        
+    }            
+	
+    // Función auxiliar para obtener IDs de partidos activos
+    async function getActiveMatchIds() {
+      const courtName = `Cancha ${courtId}`;
+      const { data: matches, error } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('court', courtName)
+        .eq('status', 'active');
+      
+      if (error || !matches) return '';
+      return matches.map(m => m.id).join(',');
+    }	
     
     // Función para generar QR - CORREGIDA
     function generateQRCode() {
