@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PadelTrack - Pantalla TV</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>  
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -14,6 +14,8 @@
       --light: #ecf0f1;
       --dark: #2c3e50;
       --success: #2ecc71;
+      --waiting: #e67e22;
+      --pending: #f39c12;
     }
     
     * {
@@ -52,15 +54,26 @@
     
     .match-status {
       padding: 8px 16px;
-      background-color: #e67e22;
       border-radius: 20px;
       font-weight: bold;
       font-size: 1.1rem;
       display: inline-block;
     }
     
-    .match-status.active {
+    .status-pending {
+      background-color: var(--pending);
+    }
+    
+    .status-active {
       background-color: var(--success);
+    }
+    
+    .status-completed {
+      background-color: var(--secondary);
+    }
+    
+    .status-waiting {
+      background-color: var(--waiting);
     }
     
     .main-content {
@@ -115,6 +128,10 @@
       min-height: 1.4em;
     }
     
+    .player {
+      margin: 5px 0;
+    }
+    
     .vs {
       font-size: 3rem;
       font-weight: bold;
@@ -154,6 +171,16 @@
       margin: 15px 0;
       font-size: 1.2rem;
       opacity: 0.9;
+    }
+    
+    .tiebreak-indicator {
+      background-color: #e67e22;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: bold;
+      display: inline-block;
+      margin: 10px 0;
     }
     
     .qr-section {
@@ -210,6 +237,52 @@
       color: #e74c3c;
     }
     
+    .simulation-controls {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      text-align: center;
+    }
+    
+    .simulation-controls h3 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
+    
+    .simulation-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .sim-btn {
+      padding: 8px 15px;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .sim-btn:hover {
+      opacity: 0.9;
+    }
+    
+    .sim-btn.team-a {
+      background-color: #3498db;
+    }
+    
+    .sim-btn.team-b {
+      background-color: #e74c3c;
+    }
+    
+    .sim-btn.secondary {
+      background-color: #7f8c8d;
+    }
+    
     /* Responsive adjustments for TV */
     @media (max-width: 1200px) {
       .team-a .score, .team-b .score {
@@ -242,6 +315,10 @@
       
       .qr-section {
         margin-top: 20px;
+      }
+      
+      .simulation-buttons {
+        flex-direction: column;
       }
     }
 
@@ -288,15 +365,15 @@
 <body>
   <div class="container">
     <div class="court-header">
-      <h1>Cancha #<span id="court-number">1</span></h1>
-      <div class="match-status" id="match-status">En espera</div>
+      <h1>Cancha #<span id="court-number">2</span></h1>
+      <div class="match-status status-waiting" id="match-status">En espera</div>
     </div>
     
     <div class="main-content">
       <div class="match-info">
         <div class="scoreboard">
           <div class="team team-a">
-            <h2>EQUIPO A</h2>
+            <h2 id="team-a-name">EQUIPO A</h2>
             <div class="players" id="team-a-players">
               <div class="player">Jugador 1</div>
               <div class="player">Jugador 2</div>
@@ -307,7 +384,7 @@
           <div class="vs">VS</div>
           
           <div class="team team-b">
-            <h2>EQUIPO B</h2>
+            <h2 id="team-b-name">EQUIPO B</h2>
             <div class="players" id="team-b-players">
               <div class="player">Jugador 1</div>
               <div class="player">Jugador 2</div>
@@ -325,10 +402,32 @@
             <span>Puntos totales</span>
             <span id="total-points">0</span>
           </div>
+          <div class="info-box">
+            <span>Juegos</span>
+            <span id="games-score">0-0</span>
+          </div>
         </div>
         
-        <div class="scoring-system">
+        <div class="scoring-system" id="scoring-system">
           Sistema Tradicional
+        </div>
+        
+        <div id="tiebreak-container" style="display: none;">
+          <div class="tiebreak-indicator">
+            <i class="fas fa-bolt"></i> Tiebreak en progreso
+          </div>
+        </div>
+
+        <div class="simulation-controls">
+          <h3>Simulación de Puntos (Para pruebas)</h3>
+          <div class="simulation-buttons">
+            <button class="sim-btn team-a" onclick="addPoint('A')">Punto Equipo A</button>
+            <button class="sim-btn team-b" onclick="addPoint('B')">Punto Equipo B</button>
+            <button class="sim-btn secondary" onclick="addGame('A')">Juego Equipo A</button>
+            <button class="sim-btn secondary" onclick="addGame('B')">Juego Equipo B</button>
+            <button class="sim-btn" style="background-color: #9b59b6;" onclick="toggleTiebreak()">Toggle Tiebreak</button>
+            <button class="sim-btn" style="background-color: #e74c3c;" onclick="endMatch()">Finalizar Partido</button>
+          </div>
         </div>
       </div>
       
@@ -336,8 +435,8 @@
         <h3>Escanee para registrar su partido</h3>
         <div id="qrcode"></div>
         <div class="team-names">
-          <div class="team-name team-a-name">EQUIPO A</div>
-          <div class="team-name team-b-name">EQUIPO B</div>
+          <div class="team-name team-a-name" id="team-a-display">EQUIPO A</div>
+          <div class="team-name team-b-name" id="team-b-display">EQUIPO B</div>
         </div>
         <p>Use su smartphone para escanear el código</p>
       </div>
@@ -345,41 +444,48 @@
   </div>
 
   <script>
+    // Configuración de Supabase (reemplaza con tus propias credenciales)
+    const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
+      
+    
+    // Inicializar Supabase
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+	window.supabase = supabase;
+    
+    // Estado del partido
+    let matchState = {
+      id: null,
+      club_id: null,
+      court: "",
+      scoring_type: "traditional",
+      team_a_name: "EQUIPO A",
+      team_b_name: "EQUIPO B",
+      winner: null,
+      games_a: 0,
+      games_b: 0,
+      points_a: 0,
+      points_b: 0,
+      tiebreak: false,
+      duration: "00:00",
+      status: "waiting",
+      team_a_players: ["Jugador 1", "Jugador 2"],
+      team_b_players: ["Jugador 1", "Jugador 2"],
+      startTime: null,
+      timerInterval: null
+    };
+
     // === INICIALIZACIÓN ===
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club');
-        const courtId = urlParams.get('court');
-        
-        if (!clubId || !courtId) {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-              <h1>Error</h1>
-              <p>Parámetros faltantes. Debe incluir club y court en la URL.</p>
-              <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-            </div>
-          `;
-          return;
-        }
-        
-        // Validar formato UUID para clubId
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(clubId)) {
-          document.body.innerHTML = `
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-              <h1>Error</h1>
-              <p>QR inválido. Identificador de club no válido.</p>
-              <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-            </div>
-          `;
-          return;
-        }
+        const courtId = urlParams.get('court') || "2";
         
         // Configurar variables globales
         window.clubId = clubId;
-        window.courtId = courtId;
+        matchState.court = `Cancha ${courtId}`;
         
         // Actualizar interfaz
         const tvCourtNumber = document.getElementById('court-number');
@@ -387,236 +493,473 @@
           tvCourtNumber.textContent = courtId;
         }
         
-        // Inicializar Supabase (solo lectura)
-        const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
-      
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        window.supabase = supabase;
-
-        // Cargar estado inicial
-        await initApp();
+        // Inicializar con estado en espera
+        resetDisplay();
         
-        // Generar QR DESPUÉS de que todo esté listo
+        // Configurar suscripción a cambios en la base de datos
+        setupRealtimeSubscription();
+        
+        // Cargar partido activo si existe
+        await loadActiveMatch();
+        
+        // Generar QR
         setTimeout(generateQRCode, 100);
         
       } catch (error) {
         console.error("Error crítico al inicializar:", error);
-        document.body.innerHTML = `
-          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-            <h1>Error</h1>
-            <p>Error crítico al inicializar la aplicación.</p>
-            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
-          </div>
-        `;
+        showErrorScreen("Error al inicializar la aplicación.");
       }
-    });        
-        
-    // === FUNCIONES PRINCIPALES ===
-    async function initApp() {
+    });
+    
+    // Configurar suscripción en tiempo real
+    function setupRealtimeSubscription() {
       try {
-        // Cargar partido activo
-        const match = await loadActiveMatch();
-        updateDisplay(match);
-        
-        // Configurar suscripción en tiempo real
-        setupRealtimeSubscription();
-        
-        // Iniciar temporizador si hay partido activo
-        if (match) {
-          startMatchTimer(match.start_time || match.created_at);
-          document.getElementById('match-status').textContent = 'En curso';
-          document.getElementById('match-status').classList.add('active');
-        }
-        
+        // Suscribirse a cambios en la tabla de partidos
+        const subscription = supabase
+          .channel('matches')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'matches',
+              filter: `court=eq.${matchState.court}`
+            }, 
+            handleMatchUpdate)
+          .subscribe();
+          
+        console.log("Suscripción a cambios en tiempo real configurada");
       } catch (error) {
-        console.error("Error al inicializar la aplicación:", error);
-        showErrorScreen("Error al cargar datos. Intente nuevamente.");
+        console.error("Error al configurar suscripción:", error);
       }
     }
     
+    // Manejar actualizaciones de partidos
+    async function handleMatchUpdate(payload) {
+      console.log("Actualización recibida:", payload);
+      
+      // Si es un nuevo partido o una actualización
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const match = payload.new;
+        
+        // Si el partido está activo
+        if (match.status === 'active') {
+          await updateMatchDisplay(match);
+        } 
+        // Si el partido está pendiente
+        else if (match.status === 'pending') {
+          updateMatchStatus('pending');
+        }
+        // Si el partido ha finalizado
+        else if (match.status === 'completed') {
+          resetDisplay();
+        }
+      } else if (payload.eventType === 'DELETE') {
+        // Si se eliminó el partido
+        resetDisplay();
+      }
+    }
+    
+    // Cargar partido activo
     async function loadActiveMatch() {
       try {
-        const courtName = `Cancha ${courtId}`;
-        
-        // Obtener partido activo con los nuevos campos
-        const { data: matchData, error: matchError } = await supabase
+        const { data: match, error } = await supabase
           .from('matches')
           .select('*')
-          .eq('court', courtName)
+          .eq('court', matchState.court)
           .eq('status', 'active')
-          .order('updated_at', { ascending: false }) // Ordenar por última actualización
+          .order('created_at', { ascending: false })
           .limit(1)
-          .maybeSingle();
-    
-        if (matchError) {
-          console.error("Error al cargar partido:", matchError);
-          return null;
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error al cargar partido activo:", error);
+          return;
         }
-    
-        if (!matchData) {
-          return null; // No hay partido activo
+        
+        if (match) {
+          await updateMatchDisplay(match);
+        } else {
+          // Verificar si hay un partido pendiente
+          const { data: pendingMatch, error: pendingError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('court', matchState.court)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (pendingMatch && !pendingError) {
+            updateMatchStatus('pending');
+          }
         }
-    
-        // Usar los nuevos campos para los jugadores
-        const teamAPlayers = matchData.team_a_players || [];
-        const teamBPlayers = matchData.team_b_players || [];
-    
-        // Devolver partido con información completa
-        return {
-          ...matchData,
-          teamAPlayers,
-          teamBPlayers
-        };
       } catch (error) {
-        console.error("Error al cargar partido:", error);
-        return null;
+        console.error("Error al cargar partido activo:", error);
       }
-    }    
-    
-    function updateDisplay(match) {
-      if (!match) {
-        // No hay partido activo, mostrar valores por defecto
-        document.getElementById('team-a-score').textContent = '0';
-        document.getElementById('team-b-score').textContent = '0';
-        document.getElementById('total-points').textContent = '0';
-        document.getElementById('match-duration').textContent = '00:00';
-        updatePlayersDisplay('team-a', []);
-        updatePlayersDisplay('team-b', []);
-        return;
-      }
-      
-      // Actualizar puntuación según el tipo de sistema
-      if (match.scoring_type === 'traditional') {
-        // Modo tradicional: mostrar juegos en el marcador principal
-        document.getElementById('team-a-score').textContent = match.games_a || 0;
-        document.getElementById('team-b-score').textContent = match.games_b || 0;
-      } else {
-        // Modo americano: mostrar puntos en el marcador principal
-        document.getElementById('team-a-score').textContent = match.points_a || 0;
-        document.getElementById('team-b-score').textContent = match.points_b || 0;
-      }
-      
-      // Actualizar puntos totales (suma de puntos de ambos equipos)
-      document.getElementById('total-points').textContent = 
-        (match.points_a || 0) + (match.points_b || 0);
-      
-      // Actualizar nombres de jugadores desde los nuevos campos
-      updatePlayersDisplay('team-a', match.team_a_players || []);
-      updatePlayersDisplay('team-b', match.team_b_players || []);
     }
     
+    // Actualizar la pantalla con datos del partido
+    async function updateMatchDisplay(match) {
+      // Actualizar estado interno
+      matchState = {
+        ...matchState,
+        id: match.id,
+        club_id: match.club_id,
+        court: match.court,
+        scoring_type: match.scoring_type,
+        team_a_name: match.team_a_name || "EQUIPO A",
+        team_b_name: match.team_b_name || "EQUIPO B",
+        winner: match.winner,
+        games_a: match.games_a || 0,
+        games_b: match.games_b || 0,
+        points_a: match.points_a || 0,
+        points_b: match.points_b || 0,
+        tiebreak: match.tiebreak || false,
+        duration: match.duration || "00:00",
+        status: match.status,
+        team_a_players: match.team_a_players || ["Jugador 1", "Jugador 2"],
+        team_b_players: match.team_b_players || ["Jugador 1", "Jugador 2"]
+      };
+      
+      // Actualizar nombres de equipos
+      document.getElementById('team-a-name').textContent = matchState.team_a_name;
+      document.getElementById('team-b-name').textContent = matchState.team_b_name;
+      document.getElementById('team-a-display').textContent = matchState.team_a_name;
+      document.getElementById('team-b-display').textContent = matchState.team_b_name;
+      
+      // Actualizar jugadores
+      updatePlayersDisplay('team-a', matchState.team_a_players);
+      updatePlayersDisplay('team-b', matchState.team_b_players);
+      
+      // Actualizar puntuación
+      document.getElementById('team-a-score').textContent = matchState.points_a;
+      document.getElementById('team-b-score').textContent = matchState.points_b;
+      document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
+      document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
+      
+      // Actualizar sistema de puntuación
+      document.getElementById('scoring-system').textContent = 
+        matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
+      
+      // Actualizar tiebreak
+      if (matchState.tiebreak) {
+        document.getElementById('tiebreak-container').style.display = 'block';
+      } else {
+        document.getElementById('tiebreak-container').style.display = 'none';
+      }
+      
+      // Iniciar temporizador si es un partido activo
+      if (matchState.status === 'active' && !matchState.timerInterval) {
+        matchState.startTime = new Date(match.created_at);
+        startTimer();
+      }
+      
+      // Actualizar estado
+      updateMatchStatus(matchState.status);
+    }
+    
+    // Actualizar visualización de jugadores
     function updatePlayersDisplay(teamId, players) {
       const playersContainer = document.getElementById(`${teamId}-players`);
       playersContainer.innerHTML = '';
       
       if (!players || players.length === 0) {
-        // Mostrar marcadores genéricos si no hay jugadores
-        const placeholder = document.createElement('div');
-        placeholder.className = 'player placeholder';
-        placeholder.textContent = 'Jugador 1';
-        playersContainer.appendChild(placeholder);
-        
-        const placeholder2 = document.createElement('div');
-        placeholder2.className = 'player placeholder';
-        placeholder2.textContent = 'Jugador 2';
-        playersContainer.appendChild(placeholder2);
+        playersContainer.innerHTML = `
+          <div class="player">Jugador 1</div>
+          <div class="player">Jugador 2</div>
+        `;
         return;
       }
       
-      // Mostrar jugadores reales
-      players.forEach(playerName => {
+      players.forEach(player => {
         const playerEl = document.createElement('div');
         playerEl.className = 'player';
-        playerEl.textContent = playerName;
+        playerEl.textContent = player;
         playersContainer.appendChild(playerEl);
       });
     }
     
-    function startMatchTimer(createdTime) {
-      const timerElement = document.getElementById('match-duration');
-      const start = new Date(createdTime);
+    // Actualizar estado del partido
+    function updateMatchStatus(status) {
+      const statusElement = document.getElementById('match-status');
+      statusElement.className = 'match-status';
       
-      function updateTimer() {
+      switch(status) {
+        case 'pending':
+          statusElement.classList.add('status-pending');
+          statusElement.textContent = 'Partido Pendiente';
+          break;
+        case 'active':
+          statusElement.classList.add('status-active');
+          statusElement.textContent = 'En Curso';
+          break;
+        case 'completed':
+          statusElement.classList.add('status-completed');
+          statusElement.textContent = 'Partido Finalizado';
+          break;
+        default:
+          statusElement.classList.add('status-waiting');
+          statusElement.textContent = 'En Espera';
+      }
+      
+      matchState.status = status;
+    }
+    
+    // Reiniciar visualización
+    function resetDisplay() {
+      if (matchState.timerInterval) {
+        clearInterval(matchState.timerInterval);
+        matchState.timerInterval = null;
+      }
+      
+      // Restablecer estado
+      matchState = {
+        ...matchState,
+        id: null,
+        team_a_name: "EQUIPO A",
+        team_b_name: "EQUIPO B",
+        winner: null,
+        games_a: 0,
+        games_b: 0,
+        points_a: 0,
+        points_b: 0,
+        tiebreak: false,
+        duration: "00:00",
+        status: "waiting",
+        team_a_players: ["Jugador 1", "Jugador 2"],
+        team_b_players: ["Jugador 1", "Jugador 2"],
+        startTime: null
+      };
+      
+      // Actualizar UI
+      document.getElementById('team-a-score').textContent = '0';
+      document.getElementById('team-b-score').textContent = '0';
+      document.getElementById('total-points').textContent = '0';
+      document.getElementById('games-score').textContent = '0-0';
+      document.getElementById('match-duration').textContent = '00:00';
+      document.getElementById('tiebreak-container').style.display = 'none';
+      
+      document.getElementById('team-a-name').textContent = 'EQUIPO A';
+      document.getElementById('team-b-name').textContent = 'EQUIPO B';
+      document.getElementById('team-a-display').textContent = 'EQUIPO A';
+      document.getElementById('team-b-display').textContent = 'EQUIPO B';
+      
+      updatePlayersDisplay('team-a', matchState.team_a_players);
+      updatePlayersDisplay('team-b', matchState.team_b_players);
+      
+      updateMatchStatus('waiting');
+    }
+    
+    // Iniciar temporizador
+    function startTimer() {
+      if (matchState.timerInterval) {
+        clearInterval(matchState.timerInterval);
+      }
+      
+      matchState.timerInterval = setInterval(() => {
         const now = new Date();
-        const diff = now - start;
+        const diff = now - matchState.startTime;
         const minutes = Math.floor(diff / 60000);
         const seconds = Math.floor((diff % 60000) / 1000);
         
-        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      }
-      
-      // Actualizar inmediatamente y luego cada segundo
-      updateTimer();
-      window.matchTimerInterval = setInterval(updateTimer, 1000);
+        matchState.duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        document.getElementById('match-duration').textContent = matchState.duration;
+        
+        // Actualizar duración en la base de datos cada minuto
+        if (seconds === 0 && matchState.id) {
+          updateMatchDuration();
+        }
+      }, 1000);
     }
     
-    // En setupRealtimeSubscription, mejorar el filtro
-    function setupRealtimeSubscription() {
+    // Actualizar duración en la base de datos
+    async function updateMatchDuration() {
       try {
-        const courtName = `Cancha ${courtId}`;
-        
-        const subscription = supabase
-          .channel('tv-channel')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'matches',
-              filter: `court=eq.${encodeURIComponent(courtName)}`
-            },
-            async (payload) => {
-              console.log('Cambio detectado en partido:', payload);
-              
-              // Solo actualizar si el partido está activo o si es una inserción
-              if (payload.eventType === 'INSERT' || 
-                  (payload.new && payload.new.status === 'active')) {
-                const match = await loadActiveMatch();
-                updateDisplay(match);
-                
-                if (match) {
-                  document.getElementById('match-status').textContent = 'En curso';
-                  document.getElementById('match-status').classList.add('active');
-                  
-                  // Reiniciar temporizador si es un nuevo partido
-                  if (payload.eventType === 'INSERT') {
-                    if (window.matchTimerInterval) {
-                      clearInterval(window.matchTimerInterval);
-                    }
-                    // Usar created_at si no hay start_time
-                    startMatchTimer(match.created_at);
-                  }
-                } else {
-                  // Si no hay partido, resetear a valores por defecto
-                  document.getElementById('match-status').textContent = 'En espera';
-                  document.getElementById('match-status').classList.remove('active');
-                  if (window.matchTimerInterval) {
-                    clearInterval(window.matchTimerInterval);
-                  }
-                  document.getElementById('match-duration').textContent = '00:00';
-                  document.getElementById('team-a-score').textContent = '0';
-                  document.getElementById('team-b-score').textContent = '0';
-                  document.getElementById('total-points').textContent = '0';
-                  updatePlayersDisplay('team-a', []);
-                  updatePlayersDisplay('team-b', []);
-                }
-              }
-            }
-          )
-          .subscribe();
-    
-        return subscription;
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            duration: matchState.duration,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchState.id);
+          
+        if (error) {
+          console.error("Error al actualizar duración:", error);
+        }
       } catch (error) {
-        console.error("Error al configurar suscripción:", error);
-        return null;
+        console.error("Error al actualizar duración:", error);
       }
-    }            
+    }
     
-    // Función para generar QR - CORREGIDA
+    // Añadir punto (simulación)
+    async function addPoint(team) {
+      if (!matchState.id || matchState.status !== 'active') {
+        alert("No hay un partido activo para añadir puntos");
+        return;
+      }
+      
+      try {
+        // Determinar qué campo actualizar según el equipo
+        const field = team === 'A' ? 'points_a' : 'points_b';
+        const newValue = team === 'A' ? matchState.points_a + 1 : matchState.points_b + 1;
+        
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            [field]: newValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchState.id);
+          
+        if (error) {
+          console.error("Error al actualizar punto:", error);
+          alert("Error al registrar el punto. Intenta nuevamente.");
+        } else {
+          console.log(`Punto registrado para equipo ${team}`);
+          
+          // Actualizar estado local
+          if (team === 'A') {
+            matchState.points_a = newValue;
+          } else {
+            matchState.points_b = newValue;
+          }
+          
+          // Actualizar UI
+          document.getElementById('team-a-score').textContent = matchState.points_a;
+          document.getElementById('team-b-score').textContent = matchState.points_b;
+          document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
+        }
+      } catch (error) {
+        console.error("Error al añadir punto:", error);
+      }
+    }
+    
+    // Añadir juego (simulación)
+    async function addGame(team) {
+      if (!matchState.id || matchState.status !== 'active') {
+        alert("No hay un partido activo para añadir juegos");
+        return;
+      }
+      
+      try {
+        // Determinar qué campo actualizar según el equipo
+        const field = team === 'A' ? 'games_a' : 'games_b';
+        const newValue = team === 'A' ? matchState.games_a + 1 : matchState.games_b + 1;
+        
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            [field]: newValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchState.id);
+          
+        if (error) {
+          console.error("Error al actualizar juego:", error);
+          alert("Error al registrar el juego. Intenta nuevamente.");
+        } else {
+          console.log(`Juego registrado para equipo ${team}`);
+          
+          // Actualizar estado local
+          if (team === 'A') {
+            matchState.games_a = newValue;
+          } else {
+            matchState.games_b = newValue;
+          }
+          
+          // Actualizar UI
+          document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
+        }
+      } catch (error) {
+        console.error("Error al añadir juego:", error);
+      }
+    }
+    
+    // Alternar tiebreak
+    async function toggleTiebreak() {
+      if (!matchState.id || matchState.status !== 'active') {
+        alert("No hay un partido activo para modificar el tiebreak");
+        return;
+      }
+      
+      try {
+        const newTiebreakValue = !matchState.tiebreak;
+        
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            tiebreak: newTiebreakValue,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchState.id);
+          
+        if (error) {
+          console.error("Error al actualizar tiebreak:", error);
+          alert("Error al modificar el tiebreak. Intenta nuevamente.");
+        } else {
+          console.log(`Tiebreak ${newTiebreakValue ? 'activado' : 'desactivado'}`);
+          
+          // Actualizar estado local
+          matchState.tiebreak = newTiebreakValue;
+          
+          // Actualizar UI
+          if (matchState.tiebreak) {
+            document.getElementById('tiebreak-container').style.display = 'block';
+          } else {
+            document.getElementById('tiebreak-container').style.display = 'none';
+          }
+        }
+      } catch (error) {
+        console.error("Error al alternar tiebreak:", error);
+      }
+    }
+    
+    // Finalizar partido
+    async function endMatch() {
+      if (!matchState.id || matchState.status !== 'active') {
+        alert("No hay un partido activo para finalizar");
+        return;
+      }
+      
+      try {
+        // Determinar ganador
+        let winner = null;
+        if (matchState.scoring_type === 'traditional') {
+          // Lógica para determinar ganador en sistema tradicional
+          winner = matchState.games_a > matchState.games_b ? 'team_a' : 'team_b';
+        } else {
+          // Lógica para determinar ganador en sistema americano
+          winner = matchState.points_a > matchState.points_b ? 'team_a' : 'team_b';
+        }
+        
+        // Actualizar en la base de datos
+        const { error } = await supabase
+          .from('matches')
+          .update({ 
+            status: 'completed',
+            winner: winner,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', matchState.id);
+          
+        if (error) {
+          console.error("Error al finalizar partido:", error);
+          alert("Error al finalizar el partido. Intenta nuevamente.");
+        } else {
+          console.log("Partido finalizado");
+          resetDisplay();
+        }
+      } catch (error) {
+        console.error("Error al finalizar partido:", error);
+      }
+    }
+    
+    // Función para generar QR
     function generateQRCode() {
-      // El QR debe apuntar a index.html?mode=qr
-      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${window.courtId}`;
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId || 'demo'}&court=${matchState.court.replace('Cancha ', '')}`;
       
       const qrElement = document.getElementById('qrcode');
       if (!qrElement) return;
@@ -627,14 +970,7 @@
       // Crear un elemento canvas para el QR
       const canvas = document.createElement('canvas');
       qrElement.appendChild(canvas);
-  
-      // CORREGIDO: Verificar explícitamente que QRCode esté definido
-      if (typeof QRCode === 'undefined') {
-        console.error("Biblioteca QRCode no está cargada");
-        qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Biblioteca QR no cargada</div>';
-        return;
-      }
-      
+
       // Generar QR
       try {
         QRCode.toCanvas(canvas, registrationUrl, {
