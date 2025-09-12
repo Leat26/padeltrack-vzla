@@ -424,7 +424,7 @@
         
         // Iniciar temporizador si hay partido activo
         if (match) {
-          startMatchTimer(match.start_time);
+          startMatchTimer(match.start_time || match.created_at);
           document.getElementById('match-status').textContent = 'En curso';
           document.getElementById('match-status').classList.add('active');
         }
@@ -486,21 +486,24 @@
         return;
       }
       
-      // Actualizar puntuación
-      document.getElementById('team-a-score').textContent = match.points_a || 0;
-      document.getElementById('team-b-score').textContent = match.points_b || 0;
+      // Actualizar puntuación según el tipo de sistema
+      if (match.scoring_type === 'traditional') {
+        // Modo tradicional: mostrar juegos en el marcador principal
+        document.getElementById('team-a-score').textContent = match.games_a || 0;
+        document.getElementById('team-b-score').textContent = match.games_b || 0;
+      } else {
+        // Modo americano: mostrar puntos en el marcador principal
+        document.getElementById('team-a-score').textContent = match.points_a || 0;
+        document.getElementById('team-b-score').textContent = match.points_b || 0;
+      }
+      
+      // Actualizar puntos totales (suma de puntos de ambos equipos)
       document.getElementById('total-points').textContent = 
         (match.points_a || 0) + (match.points_b || 0);
       
       // Actualizar nombres de jugadores desde los nuevos campos
       updatePlayersDisplay('team-a', match.team_a_players || []);
       updatePlayersDisplay('team-b', match.team_b_players || []);
-      
-      // Actualizar juegos si estás en modo tradicional
-      if (match.scoring_type === 'traditional') {
-        document.getElementById('team-a-score').textContent = match.games_a || 0;
-        document.getElementById('team-b-score').textContent = match.games_b || 0;
-      }
     }
     
     function updatePlayersDisplay(teamId, players) {
@@ -549,7 +552,6 @@
     }
     
     // En setupRealtimeSubscription, mejorar el filtro
-
     function setupRealtimeSubscription() {
       try {
         const courtName = `Cancha ${courtId}`;
@@ -586,12 +588,18 @@
                     startMatchTimer(match.created_at);
                   }
                 } else {
+                  // Si no hay partido, resetear a valores por defecto
                   document.getElementById('match-status').textContent = 'En espera';
                   document.getElementById('match-status').classList.remove('active');
                   if (window.matchTimerInterval) {
                     clearInterval(window.matchTimerInterval);
                   }
                   document.getElementById('match-duration').textContent = '00:00';
+                  document.getElementById('team-a-score').textContent = '0';
+                  document.getElementById('team-b-score').textContent = '0';
+                  document.getElementById('total-points').textContent = '0';
+                  updatePlayersDisplay('team-a', []);
+                  updatePlayersDisplay('team-b', []);
                 }
               }
             }
@@ -604,19 +612,6 @@
         return null;
       }
     }            
-	
-    // Función auxiliar para obtener IDs de partidos activos
-    async function getActiveMatchIds() {
-      const courtName = `Cancha ${courtId}`;
-      const { data: matches, error } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('court', courtName)
-        .eq('status', 'active');
-      
-      if (error || !matches) return '';
-      return matches.map(m => m.id).join(',');
-    }	
     
     // Función para generar QR - CORREGIDA
     function generateQRCode() {
