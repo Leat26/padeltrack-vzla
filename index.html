@@ -2063,10 +2063,15 @@
 	      ]);
 	    
 	    if (insertError) {
-	      if (insertError.code === '23505') {
-	        console.error("Error de unicidad inesperado:", insertError);
+	      console.error("Error al registrar jugador:", insertError);
+	      
+	      // Manejo específico de error de políticas RLS
+	      if (insertError.code === '42501') {
+	        window.showNotification('Error de configuración de seguridad. Contacte al administrador.');
+	      } else if (insertError.code === '23505') {
+	        // Error de duplicidad, el jugador ya existe
+	        console.log("Jugador ya existe, continuando...");
 	      } else {
-	        console.error("Error al registrar jugador:", insertError);
 	        window.showNotification(`Error al registrar ${firstName} ${lastName}`);
 	        return;
 	      }
