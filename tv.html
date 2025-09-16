@@ -483,8 +483,22 @@
         const clubId = urlParams.get('club');
         const courtId = urlParams.get('court') || "2";
         
-        // Configurar variables globales
+        // 🔐 VALIDACIÓN CRÍTICA: Verificar que tenemos clubId
+        if (!clubId) {
+          showErrorScreen("URL inválida: falta el identificador del club. Contacte al administrador.");
+          return;
+        }
+        
+        // Validar formato UUID del club
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(clubId)) {
+          showErrorScreen("URL inválida: identificador de club incorrecto. Contacte al administrador.");
+          return;
+        }
+        
+        // Configurar variables globales con validación
         window.clubId = clubId;
+        matchState.club_id = clubId;
         matchState.court = `Cancha ${courtId}`;
         
         // Actualizar interfaz
@@ -533,29 +547,30 @@
       }
     }
     
-    // Manejar actualizaciones de partidos
-    async function handleMatchUpdate(payload) {
-      console.log("Actualización recibida:", payload);
-      
-      // Si es un nuevo partido o una actualización
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        const match = payload.new;
-        
-        // Si el partido está activo
-        if (match.status === 'active') {
-          await updateMatchDisplay(match);
-        } 
-        // Si el partido está pendiente
-        else if (match.status === 'pending') {
-          updateMatchStatus('pending');
-        }
-        // Si el partido ha finalizado
-        else if (match.status === 'completed') {
-          resetDisplay();
-        }
-      } else if (payload.eventType === 'DELETE') {
-        // Si se eliminó el partido
-        resetDisplay();
+    // Configurar suscripción en tiempo real
+    function setupRealtimeSubscription() {
+      try {
+        // 🔐 FILTRO MEJORADO: Solo suscribirse a partidos del club y cancha específicos
+        const subscription = supabase
+          .channel('matches')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'matches',
+              filter: `club_id=eq.${matchState.club_id}`
+            }, 
+            (payload) => {
+              // 🔐 FILTRADO ADICIONAL: Verificar que el partido es de esta cancha
+              if (payload.new && payload.new.court === matchState.court) {
+                handleMatchUpdate(payload);
+              }
+            })
+          .subscribe();
+          
+        console.log("Suscripción a cambios en tiempo real configurada para club:", matchState.club_id);
+      } catch (error) {
+        console.error("Error al configurar suscripción:", error);
       }
     }
     
@@ -565,6 +580,7 @@
         const { data: match, error } = await supabase
           .from('matches')
           .select('*')
+          .eq('club_id', matchState.club_id)  // 🔐 Solo partidos de este club
           .eq('court', matchState.court)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
@@ -577,12 +593,19 @@
         }
         
         if (match) {
+          // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
+          if (match.club_id !== matchState.club_id) {
+            console.warn("Intento de acceso a partido de otro club detectado.");
+            return;
+          }
+          
           await updateMatchDisplay(match);
         } else {
           // Verificar si hay un partido pendiente
           const { data: pendingMatch, error: pendingError } = await supabase
             .from('matches')
             .select('*')
+            .eq('club_id', matchState.club_id)  // 🔐 Solo partidos de este club
             .eq('court', matchState.court)
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
@@ -590,6 +613,12 @@
             .single();
             
           if (pendingMatch && !pendingError) {
+            // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
+            if (pendingMatch.club_id !== matchState.club_id) {
+              console.warn("Intento de acceso a partido de otro club detectado.");
+              return;
+            }
+            
             updateMatchStatus('pending');
           }
         }
@@ -600,7 +629,14 @@
     
     // Actualizar la pantalla con datos del partido
     async function updateMatchDisplay(match) {
-      // Actualizar estado interno
+      
+	  // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
+	  if (match.club_id !== matchState.club_id) {
+	    console.warn("Intento de mostrar partido de otro club detectado.");
+	    return;
+	  }	  
+	  
+	  // Actualizar estado interno
       matchState = {
         ...matchState,
         id: match.id,
@@ -798,6 +834,12 @@
         return;
       }
       
+      // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que estamos modificando un partido de nuestro club
+      if (matchState.club_id !== window.clubId) {
+        alert("No tiene permisos para modificar este partido.");
+        return;
+      }      
+	  
       try {
         // Determinar qué campo actualizar según el equipo
         const field = team === 'A' ? 'points_a' : 'points_b';
@@ -842,6 +884,12 @@
         return;
       }
       
+      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
+      if (matchState.club_id !== window.clubId) {
+        alert("No tiene permisos para modificar este partido.");
+        return;
+      }
+      
       try {
         // Determinar qué campo actualizar según el equipo
         const field = team === 'A' ? 'games_a' : 'games_b';
@@ -854,8 +902,9 @@
             [field]: newValue,
             updated_at: new Date().toISOString()
           })
-          .eq('id', matchState.id);
-          
+          .eq('id', matchState.id)
+          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
+        
         if (error) {
           console.error("Error al actualizar juego:", error);
           alert("Error al registrar el juego. Intenta nuevamente.");
@@ -875,12 +924,18 @@
       } catch (error) {
         console.error("Error al añadir juego:", error);
       }
-    }
+    }    
     
     // Alternar tiebreak
     async function toggleTiebreak() {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para modificar el tiebreak");
+        return;
+      }
+      
+      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
+      if (matchState.club_id !== window.clubId) {
+        alert("No tiene permisos para modificar este partido.");
         return;
       }
       
@@ -894,7 +949,8 @@
             tiebreak: newTiebreakValue,
             updated_at: new Date().toISOString()
           })
-          .eq('id', matchState.id);
+          .eq('id', matchState.id)
+          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
           
         if (error) {
           console.error("Error al actualizar tiebreak:", error);
@@ -915,12 +971,18 @@
       } catch (error) {
         console.error("Error al alternar tiebreak:", error);
       }
-    }
+    }    
     
     // Finalizar partido
     async function endMatch() {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para finalizar");
+        return;
+      }
+      
+      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
+      if (matchState.club_id !== window.clubId) {
+        alert("No tiene permisos para modificar este partido.");
         return;
       }
       
@@ -943,7 +1005,8 @@
             winner: winner,
             updated_at: new Date().toISOString()
           })
-          .eq('id', matchState.id);
+          .eq('id', matchState.id)
+          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
           
         if (error) {
           console.error("Error al finalizar partido:", error);
@@ -959,18 +1022,25 @@
     
     // Función para generar QR
     function generateQRCode() {
-      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId || 'demo'}&court=${matchState.court.replace('Cancha ', '')}`;
+      // 🔐 GENERACIÓN SEGURA: Usar solo el club_id de la URL actual
+      if (!window.clubId) {
+        console.error("No se puede generar QR: falta clubId");
+        return;
+      }
+      
+      const courtNumber = matchState.court.replace('Cancha ', '');
+      const registrationUrl = `${window.location.origin}/index.html?mode=qr&club=${window.clubId}&court=${courtNumber}`;
       
       const qrElement = document.getElementById('qrcode');
       if (!qrElement) return;
-
+    
       // Limpiar contenido previo
       qrElement.innerHTML = '';      
-
+    
       // Crear un elemento canvas para el QR
       const canvas = document.createElement('canvas');
       qrElement.appendChild(canvas);
-
+    
       // Generar QR
       try {
         QRCode.toCanvas(canvas, registrationUrl, {
@@ -995,10 +1065,11 @@
     // Función para mostrar errores
     function showErrorScreen(message) {
       document.body.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
-          <h1>Error</h1>
-          <p>${message}</p>
-          <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">Recargar Página</button>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center; padding: 20px;">
+          <h1 style="color: #e74c3c; margin-bottom: 20px;">Error de Configuración</h1>
+          <p style="margin-bottom: 30px; font-size: 18px;">${message}</p>
+          <button onclick="location.reload()" style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Reintentar</button>
+          <p style="margin-top: 30px; color: #7f8c8d; font-size: 14px;">Si el problema persiste, contacte al administrador del sistema.</p>
         </div>
       `;
     }
