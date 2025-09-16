@@ -507,6 +507,8 @@
           tvCourtNumber.textContent = courtId;
         }
         
+        console.log("TV inicializada para:", clubId, matchState.court);
+        
         // Inicializar con estado en espera
         resetDisplay();
         
@@ -525,43 +527,100 @@
       }
     });
 
-    async function handleMatchUpdate(payload) {
-      console.log("Actualización recibida:", payload);
+    // Función para verificar el estado de la suscripción
+    window.checkSubscriptionStatus = function() {
+      console.log("Estado actual:");
+      console.log("- Club ID:", matchState.club_id);
+      console.log("- Cancha:", matchState.court);
+      console.log("- Partido ID:", matchState.id);
+      console.log("- Estado:", matchState.status);
       
-      // Si es un nuevo partido o una actualización
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        const match = payload.new;
+      // Verificar conexión con Supabase
+      supabase
+        .from('matches')
+        .select('count', { count: 'exact' })
+        .eq('club_id', matchState.club_id)
+        .then(({ count, error }) => {
+          if (error) {
+            console.error("Error de conexión a Supabase:", error);
+          } else {
+            console.log(`Total de partidos del club: ${count}`);
+          }
+        });
+    };
+    
+    // Función para forzar una actualización
+    window.forceRefresh = function() {
+      console.log("Forzando actualización...");
+      loadActiveMatch();
+    };
+    
+    // Agregar botones de depuración a la interfaz (opcional)
+    function addDebugButtons() {
+      const debugDiv = document.createElement('div');
+      debugDiv.style.position = 'fixed';
+      debugDiv.style.bottom = '10px';
+      debugDiv.style.right = '10px';
+      debugDiv.style.zIndex = '1000';
+      
+      debugDiv.innerHTML = `
+        <button onclick="checkSubscriptionStatus()" style="padding: 5px 10px; margin: 2px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">Estado</button>
+        <button onclick="forceRefresh()" style="padding: 5px 10px; margin: 2px; background: #2ecc71; color: white; border: none; border-radius: 3px; cursor: pointer;">Actualizar</button>
+      `;
+      
+      document.body.appendChild(debugDiv);
+    }
+    
+    // Llamar a addDebugButtons después de que se cargue la página
+    setTimeout(addDebugButtons, 3000);
+
+    async function handleMatchUpdate(payload) {
+      try {
+        console.log("Actualización recibida:", payload.eventType, payload.new);
         
-        // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
-        if (match.club_id !== matchState.club_id) {
-          console.warn("Intento de mostrar partido de otro club detectado.");
-          return;
-        }
-        
-        // Si el partido está activo
-        if (match.status === 'active') {
-          await updateMatchDisplay(match);
-        } 
-        // Si el partido está pendiente
-        else if (match.status === 'pending') {
-          updateMatchStatus('pending');
-        }
-        // Si el partido ha finalizado
-        else if (match.status === 'completed') {
+        // Si es un nuevo partido o una actualización
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const match = payload.new;
+          
+          // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
+          if (match.club_id !== matchState.club_id) {
+            console.warn("Intento de mostrar partido de otro club detectado.");
+            return;
+          }
+          
+          // Si el partido está activo
+          if (match.status === 'active') {
+            console.log("Partido activo detectado, actualizando pantalla...");
+            await updateMatchDisplay(match);
+          } 
+          // Si el partido está pendiente
+          else if (match.status === 'pending') {
+            console.log("Partido pendiente detectado");
+            updateMatchStatus('pending');
+          }
+          // Si el partido ha finalizado
+          else if (match.status === 'completed') {
+            console.log("Partido completado detectado, reiniciando pantalla...");
+            resetDisplay();
+          }
+        } else if (payload.eventType === 'DELETE') {
+          // Si se eliminó el partido
+          console.log("Partido eliminado detectado, reiniciando pantalla...");
           resetDisplay();
         }
-      } else if (payload.eventType === 'DELETE') {
-        // Si se eliminó el partido
-        resetDisplay();
+      } catch (error) {
+        console.error("Error en handleMatchUpdate:", error);
       }
     }
     
-    // Configurar suscripción en tiempo real
+    // Configurar suscripción en tiempo real - VERSIÓN CORREGIDA
     function setupRealtimeSubscription() {
       try {
-        // Suscribirse a cambios en la tabla de partidos
+        console.log("Configurando suscripción para club:", matchState.club_id);
+        
+        // 🔄 SUSCRIPCIÓN MEJORADA: Filtrar por club Y cancha
         const subscription = supabase
-          .channel('matches')
+          .channel('matches-channel')
           .on('postgres_changes', 
             { 
               event: '*', 
@@ -569,22 +628,38 @@
               table: 'matches',
               filter: `club_id=eq.${matchState.club_id}`
             }, 
-            handleMatchUpdate)  // ✅ Ahora esta función está definida
-          .subscribe();
+            (payload) => {
+              console.log("Evento recibido:", payload.eventType, payload.new);
+              
+              // 🔄 FILTRADO ADICIONAL: Verificar que el partido es de esta cancha
+              if (payload.new && payload.new.court === matchState.court) {
+                console.log("Partido coincide con esta cancha, procesando...");
+                handleMatchUpdate(payload);
+              } else if (payload.new) {
+                console.log("Partido ignorado (diferente cancha):", payload.new.court);
+              }
+            })
+          .subscribe((status) => {
+            console.log("Estado de suscripción:", status);
+          });
           
-        console.log("Suscripción a cambios en tiempo real configurada");
+        console.log("Suscripción a cambios en tiempo real configurada correctamente");
       } catch (error) {
         console.error("Error al configurar suscripción:", error);
+        // Reintentar después de 5 segundos
+        setTimeout(setupRealtimeSubscription, 5000);
       }
     }
     
-    // Cargar partido activo
+    // Cargar partido activo - VERSIÓN MEJORADA
     async function loadActiveMatch() {
       try {
+        console.log("Buscando partido activo para:", matchState.club_id, matchState.court);
+        
         const { data: match, error } = await supabase
           .from('matches')
           .select('*')
-          .eq('club_id', matchState.club_id)  // 🔐 Solo partidos de este club
+          .eq('club_id', matchState.club_id)
           .eq('court', matchState.court)
           .eq('status', 'active')
           .order('created_at', { ascending: false })
@@ -597,19 +672,21 @@
         }
         
         if (match) {
+          console.log("Partido activo encontrado:", match.id);
           // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
           if (match.club_id !== matchState.club_id) {
-            console.warn("Intento de acceso a partido de otro club detectado.");
+            console.warn("Intento de cargar partido de otro club detectado.");
             return;
           }
           
           await updateMatchDisplay(match);
         } else {
+          console.log("No hay partidos activos para esta cancha");
           // Verificar si hay un partido pendiente
           const { data: pendingMatch, error: pendingError } = await supabase
             .from('matches')
             .select('*')
-            .eq('club_id', matchState.club_id)  // 🔐 Solo partidos de este club
+            .eq('club_id', matchState.club_id)
             .eq('court', matchState.court)
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
@@ -619,17 +696,20 @@
           if (pendingMatch && !pendingError) {
             // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
             if (pendingMatch.club_id !== matchState.club_id) {
-              console.warn("Intento de acceso a partido de otro club detectado.");
+              console.warn("Intento de cargar partido de otro club detectado.");
               return;
             }
             
+            console.log("Partido pendiente encontrado:", pendingMatch.id);
             updateMatchStatus('pending');
+          } else {
+            console.log("No hay partidos pendientes para esta cancha");
           }
         }
       } catch (error) {
         console.error("Error al cargar partido activo:", error);
       }
-    }
+    }    
     
     // Actualizar la pantalla con datos del partido
     async function updateMatchDisplay(match) {
