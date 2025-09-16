@@ -360,6 +360,21 @@
         font-size: 1.5rem;
       }
     }
+	
+    /* Estilos para puntuación tradicional */
+    .traditional-score {
+      font-size: 4rem;
+      font-weight: bold;
+    }
+    
+    .advantage-score {
+      color: #FFD700; /* Dorado para ventaja */
+      font-size: 3.5rem;
+    }
+    
+    .tiebreak-score {
+      color: #FF9800; /* Naranja para tiebreak */
+    }	
   </style>
 </head>
 <body>
@@ -554,6 +569,28 @@
       console.log("Forzando actualización...");
       loadActiveMatch();
     };
+
+    // Función para convertir puntos al formato tradicional
+    function getTraditionalDisplayScore(points, otherPoints, isTiebreak) {
+      if (isTiebreak) {
+        return points; // En tiebreak mostrar puntos numéricos
+      }
+      
+      const traditionalPoints = ['0', '15', '30', '40'];
+      
+      // Si ambos jugadores tienen 3 o más puntos (40-40 o ventaja)
+      if (points >= 3 && otherPoints >= 3) {
+        if (points === otherPoints) {
+          return '40';
+        } else if (points > otherPoints) {
+          return 'AD';
+        } else {
+          return '40';
+        }
+      }
+      
+      return traditionalPoints[points] || '40';
+    }
     
     // Agregar botones de depuración a la interfaz (opcional)
     function addDebugButtons() {
@@ -711,73 +748,87 @@
       }
     }    
     
-    // Actualizar la pantalla con datos del partido
+    // Actualizar la pantalla con datos del partido - VERSIÓN MODIFICADA
     async function updateMatchDisplay(match) {
-      
-	  // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
-	  if (match.club_id !== matchState.club_id) {
-	    console.warn("Intento de mostrar partido de otro club detectado.");
-	    return;
-	  }	  
-	  
-	  // Actualizar estado interno
-      matchState = {
-        ...matchState,
-        id: match.id,
-        club_id: match.club_id,
-        court: match.court,
-        scoring_type: match.scoring_type,
-        team_a_name: match.team_a_name || "EQUIPO A",
-        team_b_name: match.team_b_name || "EQUIPO B",
-        winner: match.winner,
-        games_a: match.games_a || 0,
-        games_b: match.games_b || 0,
-        points_a: match.points_a || 0,
-        points_b: match.points_b || 0,
-        tiebreak: match.tiebreak || false,
-        duration: match.duration || "00:00",
-        status: match.status,
-        team_a_players: match.team_a_players || ["Jugador 1", "Jugador 2"],
-        team_b_players: match.team_b_players || ["Jugador 1", "Jugador 2"]
-      };
-      
-      // Actualizar nombres de equipos
-      document.getElementById('team-a-name').textContent = matchState.team_a_name;
-      document.getElementById('team-b-name').textContent = matchState.team_b_name;
-      document.getElementById('team-a-display').textContent = matchState.team_a_name;
-      document.getElementById('team-b-display').textContent = matchState.team_b_name;
-      
-      // Actualizar jugadores
-      updatePlayersDisplay('team-a', matchState.team_a_players);
-      updatePlayersDisplay('team-b', matchState.team_b_players);
-      
-      // Actualizar puntuación
-      document.getElementById('team-a-score').textContent = matchState.points_a;
-      document.getElementById('team-b-score').textContent = matchState.points_b;
-      document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
-      document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
-      
-      // Actualizar sistema de puntuación
-      document.getElementById('scoring-system').textContent = 
-        matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
-      
-      // Actualizar tiebreak
-      if (matchState.tiebreak) {
-        document.getElementById('tiebreak-container').style.display = 'block';
-      } else {
-        document.getElementById('tiebreak-container').style.display = 'none';
+      try {
+        // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
+        if (match.club_id !== matchState.club_id) {
+          console.warn("Intento de mostrar partido de otro club detectado.");
+          return;
+        }
+        
+        // Actualizar estado interno
+        matchState = {
+          ...matchState,
+          id: match.id,
+          club_id: match.club_id,
+          court: match.court,
+          scoring_type: match.scoring_type,
+          team_a_name: match.team_a_name || "EQUIPO A",
+          team_b_name: match.team_b_name || "EQUIPO B",
+          winner: match.winner,
+          games_a: match.games_a || 0,
+          games_b: match.games_b || 0,
+          points_a: match.points_a || 0,
+          points_b: match.points_b || 0,
+          tiebreak: match.tiebreak || false,
+          duration: match.duration || "00:00",
+          status: match.status,
+          team_a_players: match.team_a_players || ["Jugador 1", "Jugador 2"],
+          team_b_players: match.team_b_players || ["Jugador 1", "Jugador 2"]
+        };
+        
+        // Actualizar nombres de equipos
+        document.getElementById('team-a-name').textContent = matchState.team_a_name;
+        document.getElementById('team-b-name').textContent = matchState.team_b_name;
+        document.getElementById('team-a-display').textContent = matchState.team_a_name;
+        document.getElementById('team-b-display').textContent = matchState.team_b_name;
+        
+        // Actualizar jugadores
+        updatePlayersDisplay('team-a', matchState.team_a_players);
+        updatePlayersDisplay('team-b', matchState.team_b_players);
+        
+        // Actualizar puntuación según el sistema de puntuación
+        if (matchState.scoring_type === 'traditional') {
+          // Usar formato tradicional
+          document.getElementById('team-a-score').textContent = 
+            getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
+          document.getElementById('team-b-score').textContent = 
+            getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
+        } else {
+          // Mostrar puntos numéricos para modo americano
+          document.getElementById('team-a-score').textContent = matchState.points_a;
+          document.getElementById('team-b-score').textContent = matchState.points_b;
+        }
+        
+        document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
+        document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
+        
+        // Actualizar sistema de puntuación
+        document.getElementById('scoring-system').textContent = 
+          matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
+        
+        // Actualizar tiebreak
+        if (matchState.tiebreak) {
+          document.getElementById('tiebreak-container').style.display = 'block';
+        } else {
+          document.getElementById('tiebreak-container').style.display = 'none';
+        }
+        
+        // Iniciar temporizador si es un partido activo
+        if (matchState.status === 'active' && !matchState.timerInterval) {
+          matchState.startTime = new Date(match.created_at);
+          startTimer();
+        }
+        
+        // Actualizar estado
+        updateMatchStatus(matchState.status);
+        
+      } catch (error) {
+        console.error("Error en updateMatchDisplay:", error);
       }
-      
-      // Iniciar temporizador si es un partido activo
-      if (matchState.status === 'active' && !matchState.timerInterval) {
-        matchState.startTime = new Date(match.created_at);
-        startTimer();
-      }
-      
-      // Actualizar estado
-      updateMatchStatus(matchState.status);
     }
-    
+
     // Actualizar visualización de jugadores
     function updatePlayersDisplay(teamId, players) {
       const playersContainer = document.getElementById(`${teamId}-players`);
@@ -911,19 +962,19 @@
       }
     }
     
-    // Añadir punto (simulación)
+    // Añadir punto (simulación) - VERSIÓN MEJORADA
     async function addPoint(team) {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para añadir puntos");
         return;
       }
       
-      // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que estamos modificando un partido de nuestro club
+      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
       if (matchState.club_id !== window.clubId) {
         alert("No tiene permisos para modificar este partido.");
         return;
-      }      
-	  
+      }
+      
       try {
         // Determinar qué campo actualizar según el equipo
         const field = team === 'A' ? 'points_a' : 'points_b';
@@ -936,11 +987,18 @@
             [field]: newValue,
             updated_at: new Date().toISOString()
           })
-          .eq('id', matchState.id);
+          .eq('id', matchState.id)
+          .eq('club_id', window.clubId);
           
         if (error) {
           console.error("Error al actualizar punto:", error);
-          alert("Error al registrar el punto. Intenta nuevamente.");
+          
+          // Manejo específico de error 401 (No autorizado)
+          if (error.code === '401' || error.status === 401) {
+            alert("Error de permisos. Contacte al administrador para configurar las políticas de seguridad.");
+          } else {
+            alert("Error al registrar el punto. Intenta nuevamente.");
+          }
         } else {
           console.log(`Punto registrado para equipo ${team}`);
           
@@ -951,9 +1009,17 @@
             matchState.points_b = newValue;
           }
           
-          // Actualizar UI
-          document.getElementById('team-a-score').textContent = matchState.points_a;
-          document.getElementById('team-b-score').textContent = matchState.points_b;
+          // Actualizar UI - manejar formato tradicional
+          if (matchState.scoring_type === 'traditional') {
+            document.getElementById('team-a-score').textContent = 
+              getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
+            document.getElementById('team-b-score').textContent = 
+              getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
+          } else {
+            document.getElementById('team-a-score').textContent = matchState.points_a;
+            document.getElementById('team-b-score').textContent = matchState.points_b;
+          }
+          
           document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
         }
       } catch (error) {
