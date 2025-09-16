@@ -488,6 +488,13 @@
           showErrorScreen("URL inválida: falta el identificador del club. Contacte al administrador.");
           return;
         }
+
+        // Verificación adicional al inicio
+        if (!window.clubId) {
+          console.error("No se ha proporcionado clubId en la URL");
+          showErrorScreen("Configuración incorrecta: falta el identificador del club en la URL.");
+          return;
+        }
         
         // Validar formato UUID del club
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -524,6 +531,37 @@
         showErrorScreen("Error al inicializar la aplicación.");
       }
     });
+
+    async function handleMatchUpdate(payload) {
+      console.log("Actualización recibida:", payload);
+      
+      // Si es un nuevo partido o una actualización
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const match = payload.new;
+        
+        // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
+        if (match.club_id !== matchState.club_id) {
+          console.warn("Intento de mostrar partido de otro club detectado.");
+          return;
+        }
+        
+        // Si el partido está activo
+        if (match.status === 'active') {
+          await updateMatchDisplay(match);
+        } 
+        // Si el partido está pendiente
+        else if (match.status === 'pending') {
+          updateMatchStatus('pending');
+        }
+        // Si el partido ha finalizado
+        else if (match.status === 'completed') {
+          resetDisplay();
+        }
+      } else if (payload.eventType === 'DELETE') {
+        // Si se eliminó el partido
+        resetDisplay();
+      }
+    }
     
     // Configurar suscripción en tiempo real
     function setupRealtimeSubscription() {
@@ -536,39 +574,12 @@
               event: '*', 
               schema: 'public', 
               table: 'matches',
-              filter: `court=eq.${matchState.court}`
+              filter: `club_id=eq.${matchState.club_id}`
             }, 
-            handleMatchUpdate)
+            handleMatchUpdate)  // ✅ Ahora esta función está definida
           .subscribe();
           
         console.log("Suscripción a cambios en tiempo real configurada");
-      } catch (error) {
-        console.error("Error al configurar suscripción:", error);
-      }
-    }
-    
-    // Configurar suscripción en tiempo real
-    function setupRealtimeSubscription() {
-      try {
-        // 🔐 FILTRO MEJORADO: Solo suscribirse a partidos del club y cancha específicos
-        const subscription = supabase
-          .channel('matches')
-          .on('postgres_changes', 
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'matches',
-              filter: `club_id=eq.${matchState.club_id}`
-            }, 
-            (payload) => {
-              // 🔐 FILTRADO ADICIONAL: Verificar que el partido es de esta cancha
-              if (payload.new && payload.new.court === matchState.court) {
-                handleMatchUpdate(payload);
-              }
-            })
-          .subscribe();
-          
-        console.log("Suscripción a cambios en tiempo real configurada para club:", matchState.club_id);
       } catch (error) {
         console.error("Error al configurar suscripción:", error);
       }
@@ -971,9 +982,9 @@
       } catch (error) {
         console.error("Error al alternar tiebreak:", error);
       }
-    }    
-    
-    // Finalizar partido
+    }   
+
+    // Finalizar partido - CON MEJOR MANEJO DE ERRORES
     async function endMatch() {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para finalizar");
@@ -1006,19 +1017,30 @@
             updated_at: new Date().toISOString()
           })
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
+          .eq('club_id', window.clubId);
           
         if (error) {
           console.error("Error al finalizar partido:", error);
-          alert("Error al finalizar el partido. Intenta nuevamente.");
+          
+          // Mostrar mensaje de error específico
+          let errorMessage = "Error al finalizar el partido. Intenta nuevamente.";
+          
+          if (error.code === '401' || error.status === 401) {
+            errorMessage = "Error de permisos. Contacte al administrador.";
+          } else if (error.message) {
+            errorMessage = `Error: ${error.message}`;
+          }
+          
+          alert(errorMessage);
         } else {
           console.log("Partido finalizado");
           resetDisplay();
         }
       } catch (error) {
         console.error("Error al finalizar partido:", error);
+        alert("Error inesperado al finalizar el partido.");
       }
-    }
+    }    
     
     // Función para generar QR
     function generateQRCode() {
@@ -1065,11 +1087,11 @@
     // Función para mostrar errores
     function showErrorScreen(message) {
       document.body.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center; padding: 20px;">
-          <h1 style="color: #e74c3c; margin-bottom: 20px;">Error de Configuración</h1>
-          <p style="margin-bottom: 30px; font-size: 18px;">${message}</p>
-          <button onclick="location.reload()" style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Reintentar</button>
-          <p style="margin-top: 30px; color: #7f8c8d; font-size: 14px;">Si el problema persiste, contacte al administrador del sistema.</p>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center; padding: 20px; background: #2c3e50; color: white;">
+          <h1 style="color: #e74c3c; margin-bottom: 20px; font-size: 2rem;">Error de Configuración</h1>
+          <p style="margin-bottom: 30px; font-size: 1.2rem; max-width: 500px;">${message}</p>
+          <button onclick="location.reload()" style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;">Reintentar</button>
+          <p style="margin-top: 30px; color: #7f8c8d; font-size: 0.9rem;">Si el problema persiste, contacte al administrador del sistema.</p>
         </div>
       `;
     }
