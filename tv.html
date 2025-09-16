@@ -488,13 +488,6 @@
           showErrorScreen("URL inválida: falta el identificador del club. Contacte al administrador.");
           return;
         }
-
-        // Verificación adicional al inicio
-        if (!window.clubId) {
-          console.error("No se ha proporcionado clubId en la URL");
-          showErrorScreen("Configuración incorrecta: falta el identificador del club en la URL.");
-          return;
-        }
         
         // Validar formato UUID del club
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
