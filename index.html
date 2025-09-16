@@ -1574,6 +1574,21 @@
 	  }
 	};
 
+	// Agregar función para cerrar la app (especialmente en móviles)
+	window.closeApp = function() {
+	  // Intenta cerrar la ventana (funciona en algunos navegadores móviles)
+	  if (window.history.length > 1) {
+	    window.history.back();
+	  } else {
+	    window.close();
+	  }
+	  
+	  // Mensaje alternativo para iOS
+	  setTimeout(function() {
+	    alert("Puedes cerrar esta ventana manualmente.");
+	  }, 500);
+	};
+
 	// Validar cédula (buscar en Supabase)
 	window.validateCedula = async function(input) {
 	  // Obtener el contenedor .cedula-input
@@ -1765,36 +1780,67 @@
 	  return rifRegex.test(rif);
 	};
 	
-	window.verifyAuth = async function() {
-	    const { data, error } = await window.supabase.auth.getSession();
-	    if (error) {
-	        console.error("Error al verificar sesión:", error);
-	        return false;
-	    }
-	    return !!data.session;
+	// Función verifyAuth para manejar diferentes tipos de acceso
+	window.verifyAuth = async function(requiredRole = 'club') {
+	  const { data, error } = await window.supabase.auth.getSession();
+	  
+	  if (error) {
+	    console.error("Error al verificar sesión:", error);
+	    return false;
+	  }
+	  
+	  // Si no requiere autenticación (modo jugador)
+	  if (requiredRole === 'player') {
+	    return true; // Permitir acceso sin autenticación para jugadores
+	  }
+	  
+	  // Para acceso de club, requiere sesión activa
+	  return !!data.session;
 	};	
 	
 	// Navegación entre pantallas - Versión mejorada con seguridad
 	window.goToScreen = async function(id) {
-	  
-	  // Extraer el ID de pantalla de la URL si existe
+	  // Extraer parámetros de la URL
 	  const urlParams = new URLSearchParams(window.location.search);
 	  const urlScreen = urlParams.get('screen');
+	  const mode = urlParams.get('mode');
+	  const isQrMode = mode === 'qr';
 	  
 	  // Si la URL especifica una pantalla, usarla en lugar del parámetro
 	  const targetScreen = urlScreen || id;
 	  
 	  // Pantallas públicas que no requieren autenticación
-	  const publicScreens = ['login', 'register-screen', 'welcome','tv-mode'];
+	  const publicScreens = ['login', 'register-screen', 'welcome', 'tv-mode'];
 	  
-	  // Si no es una pantalla pública, verificar autenticación
-	  if (!publicScreens.includes(id)) {
-	    const isAuthenticated = await window.verifyAuth();
-	    
-	    if (!isAuthenticated) {
-	      window.showNotification('Por favor, inicia sesión primero');
-	      window.goToScreen('login');
-	      return;									
+	  // Pantallas accesibles para jugadores (modo QR)
+	  const playerScreens = ['scoring-type', 'register', 'match-confirmation'];
+	  
+	  // Pantallas exclusivas para administración del club
+	  const clubScreens = ['home', 'dashboard', 'ranking', 'courts-selection', 'game', 'end'];
+	  
+	  // Verificar si estamos en modo QR (jugador)
+	  if (isQrMode) {
+	    // En modo QR, solo permitir acceso a pantallas de jugador
+	    if (!playerScreens.includes(id) && !publicScreens.includes(id)) {
+	      window.showNotification('Acceso restringido para jugadores');
+	      
+	      // Si intenta acceder a pantalla de administración, redirigir a selección de puntuación
+	      if (clubScreens.includes(id)) {
+	        id = 'scoring-type';
+	      } else {
+	        return;
+	      }
+	    }
+	  } else {
+	    // Si no es modo QR y no es pantalla pública, verificar autenticación
+	    if (!publicScreens.includes(id)) {
+	      const isAuthenticated = await window.verifyAuth();
+	      
+	      if (!isAuthenticated) {
+	        window.showNotification('Por favor, inicia sesión primero');
+	        window.goToScreen('login');
+	        return;
+	      }
 	    }
 	  }
 	  
@@ -1803,11 +1849,6 @@
 	    s.classList.remove('active');
 	    s.style.display = 'none';
 	  });
-	
-	  document.querySelectorAll('.screen').forEach(s => {
-	    s.classList.remove('active');
-	    s.style.display = 'none';
-	  });		  
 	  
 	  // Mostrar la pantalla solicitada
 	  const screen = document.getElementById(id);
@@ -1817,33 +1858,52 @@
 	      screen.classList.add('active');
 	    }, 50);
 	  }
-	
+	  
+	  // Ocultar elementos de administración en modo QR
+	  if (isQrMode) {
+	    document.querySelectorAll('.club-only').forEach(el => {
+	      el.style.display = 'none';
+	    });
+	    
+	    // Ocultar botones de navegación que no son necesarios para jugadores
+	    const backButtons = document.querySelectorAll('.back-btn');
+	    backButtons.forEach(btn => {
+	      if (id !== 'scoring-type' && id !== 'register') {
+	        btn.style.display = 'none';
+	      }
+	    });
+	  } else {
+	    document.querySelectorAll('.club-only').forEach(el => {
+	      el.style.display = 'block';
+	    });
+	  }
+	  
 	  // Limpiar formulario de registro si se está entrando a 'register-screen'
 	  if (id === 'register-screen') {
-	      const clubName = document.getElementById('club-name');
-	      const clubRif = document.getElementById('club-rif');
-	      const courtCount = document.getElementById('court-count');
-	      const registerEmail = document.getElementById('register-email');
-	      const phonePrefix = document.getElementById('phone-prefix');
-	      const phoneSuffix = document.getElementById('phone-suffix');
-	      const registerPassword = document.getElementById('register-password');
-	      const registerConfirm = document.getElementById('register-confirm');
-	  
-	      if (clubName) clubName.value = '';
-	      if (clubRif) clubRif.value = '';
-	      if (courtCount) courtCount.value = '';
-	      if (registerEmail) registerEmail.value = '';
-	      if (phonePrefix) phonePrefix.value = '';
-	      if (phoneSuffix) phoneSuffix.value = '';
-	      if (registerPassword) registerPassword.value = '';
-	      if (registerConfirm) registerConfirm.value = '';
+	    const clubName = document.getElementById('club-name');
+	    const clubRif = document.getElementById('club-rif');
+	    const courtCount = document.getElementById('court-count');
+	    const registerEmail = document.getElementById('register-email');
+	    const phonePrefix = document.getElementById('phone-prefix');
+	    const phoneSuffix = document.getElementById('phone-suffix');
+	    const registerPassword = document.getElementById('register-password');
+	    const registerConfirm = document.getElementById('register-confirm');
+	    
+	    if (clubName) clubName.value = '';
+	    if (clubRif) clubRif.value = '';
+	    if (courtCount) courtCount.value = '';
+	    if (registerEmail) registerEmail.value = '';
+	    if (phonePrefix) phonePrefix.value = '';
+	    if (phoneSuffix) phoneSuffix.value = '';
+	    if (registerPassword) registerPassword.value = '';
+	    if (registerConfirm) registerConfirm.value = '';
 	  }
-	
-	  // Si es la pantalla de selección de canchas, cargarlasPantalla 
+	  
+	  // Si es la pantalla de selección de canchas, cargarlas
 	  if (id === 'courts-selection') {
 	    window.loadCourtsSelection();
-	  }          
-	
+	  }
+	  
 	  // Si es la Pantalla de inicio, actualizar con los datos del club
 	  if (id === 'home' && window.currentUser && window.currentClub) {
 	    window.updateHomeScreen();
@@ -1882,7 +1942,7 @@
 	    if (rankingList) {
 	      rankingList.innerHTML = '<p>Cargando ranking...</p>';
 	    }
-		window.loadRanking();
+	    window.loadRanking();
 	  }
 	  
 	  // Si es la pantalla de bienvenida, actualizar con el nombre del club
@@ -1900,11 +1960,12 @@
 	  if (screen) {
 	    screen.scrollTop = 0;
 	  }
-	};    
+	};	    
 
 	// Función para registrar jugadores
 	window.startGame = async function() {
 	  window.resetGame();
+	  
 	  // Validar que todos los jugadores tengan datos completos
 	  const missingData = [];
 	  Object.keys(window.playersData).forEach(key => {
@@ -1990,7 +2051,7 @@
 	      .from('players')
 	      .insert([
 	        {
-	          club_id: window.currentUser.id,
+	          club_id: clubIdToUse,
 	          cedula: player.cedula,
 	          first_name: firstName,
 	          last_name: lastName,
@@ -2022,7 +2083,7 @@
 	  // ✅ CREAR EL PARTIDO EN LA BASE DE DATOS (AHORA SÍ ES CRÍTICO PARA LOS TVs)
 	  try {
 	    // Determinar el club_id a usar (priorizar gameData.club_id si existe)
-	    const clubIdToUse = window.gameData?.club_id || window.currentUser.id;
+	    const clubIdToUse = window.currentClubId || window.currentUser.id;
 	    
 	    // Obtener nombres de equipos
 	    const teamAName = document.getElementById('teamA-name')?.value || "Equipo A";
@@ -2109,8 +2170,6 @@
 	    }
 	    
 	    // ✅ ACTUALIZACIÓN CRÍTICA: Forzar una actualización para notificar a la TV
-	    // Como no tenemos campos para los nombres de jugadores en la tabla matches,
-	    // actualizamos un campo existente (como team_a_name) con información adicional
 	    const playerNames = {
 	      teamA: [
 	        window.playersData['A1'].firstName + ' ' + window.playersData['A1'].lastName,
@@ -2139,20 +2198,48 @@
 	    // ✅ Actualizar la función addPoint para que use el partido actual
 	    window.updateAddPointFunction();
 	    
-	    // Éxito - resetear marcador y redirigir
-	    window.resetGame();
-	    window.goToScreen('game');
+	    // ✅ DETECTAR MODO DE OPERACIÓN (QR vs CLUB)
+	    const urlParams = new URLSearchParams(window.location.search);
+	    const isQrMode = urlParams.get('mode') === 'qr';
 	    
-	    // ✅ Iniciar temporizador
-	    window.startTimer();
-	    
-	    // Mostrar confirmación
-	    window.showNotification('¡Partido iniciado! La TV se actualizará automáticamente.');
+	    if (isQrMode) {
+	      // MODO QR (JUGADOR): Mostrar confirmación y cerrar
+	      window.showNotification('¡Partido iniciado! La TV se actualizará automáticamente.');
+	      
+	      // Redirigir a pantalla de confirmación
+	      window.goToScreen('match-confirmation');
+	      
+	      // Cerrar automáticamente después de 5 segundos
+	      setTimeout(() => {
+	        window.closeApp();
+	      }, 5000);
+	    } else {
+	      // MODO CLUB: Continuar al juego normal
+	      window.resetGame();
+	      window.goToScreen('game');
+	      window.startTimer();
+	      window.showNotification('¡Partido iniciado! La TV se actualizará automáticamente.');
+	    }
 	    
 	  } catch (error) {
 	    console.error("Error crítico al crear partido:", error);
 	    window.showNotification('Error crítico al crear partido. Inténtalo de nuevo.');
 	  }
+	};
+
+	// Función para cerrar la aplicación (especialmente en móviles)
+	window.closeApp = function() {
+	  // Intenta cerrar la ventana (funciona en algunos navegadores móviles)
+	  if (window.history.length > 1) {
+	    window.history.back();
+	  } else {
+	    window.close();
+	  }
+	  
+	  // Mensaje alternativo para iOS
+	  setTimeout(function() {
+	    alert("Puedes cerrar esta ventana manualmente.");
+	  }, 500);
 	};
 
 	// Actualizar marcador visual
@@ -2572,7 +2659,11 @@
         
         if (mode === 'qr' && courtId) {
           console.log("Modo QR detectado para cancha:", courtId, "club:", clubIdFromUrl);
-        
+          
+          // Establecer que estamos en modo QR
+          window.isQrMode = true;
+          window.selectedCourt = `Cancha ${courtId}`;
+          
           // Validar formato UUID del club
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
           
@@ -2580,12 +2671,11 @@
             window.currentClubId = clubIdFromUrl;
           } else if (!clubIdFromUrl) {
             console.warn("No se proporcionó club_id en la URL");
+            window.showNotification("QR incompleto. Contacte al administrador.");
+            return;
           } else {
             console.error("ID de club inválido en la URL:", clubIdFromUrl);
-            if (typeof window.showNotification === 'function') {
-              window.showNotification("QR inválido. Contacte al administrador.");
-            }
-            window.goToScreen('home');
+            window.showNotification("QR inválido. Contacte al administrador.");
             return;
           }
         
@@ -2593,18 +2683,27 @@
           window.selectedCourt = `Cancha ${courtId}`;
           window.gameData = window.gameData || {};
           window.gameData.court = `Cancha ${courtId}`;
+          window.gameData.club_id = window.currentClubId;
         
-          // ✅ IR A SELECCIÓN DE PUNTUACIÓN, NO A REGISTRO
+          // Ocultar elementos de administración
+          document.querySelectorAll('.club-only').forEach(el => {
+            el.style.display = 'none';
+          });
+        
+          // ✅ IR DIRECTAMENTE A SELECCIÓN DE PUNTUACIÓN
           window.goToScreen('scoring-type');
         
           // Modificar startGame para usar club_id de URL
           const originalStartGame = window.startGame;
           window.startGame = async function() {
-            window.gameData.club_id = window.currentClubId || window.currentUser.id;
+            window.gameData.club_id = window.currentClubId;
             return await originalStartGame.call(this);
           };
         
-          return; // 🔥 Detener ejecución aquí
+          return; // 🔥 Detener ejecución aquí para evitar procesamiento adicional
+        } else {
+          // No estamos en modo QR, comportamiento normal
+          window.isQrMode = false;
         }        
         
         // Función utilitaria para convertir valores a números seguros
@@ -4809,6 +4908,28 @@
         <h3>Escanee para registrar su partido</h3>
         <div id="tv-qrcode"></div>
         <p>Use su smartphone para escanear el código</p>
+      </div>
+    </div>
+
+    <!-- Pantalla de Confirmación de Partido -->
+    <div class="screen" id="match-confirmation">
+      <header>
+        <button class="back-btn btn-header" onclick="window.closeApp()">
+          <i class="fas fa-times"></i>
+        </button>
+      </header>
+      <div style="text-align: center; padding: 40px 20px;">
+        <div style="font-size: 80px; color: #016B3A; margin-bottom: 20px;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h2>¡Partido Iniciado!</h2>
+        <p>El partido ha sido registrado exitosamente y se está mostrando en la TV de la cancha.</p>
+        <p>Puedes cerrar esta ventana.</p>
+        <div style="margin-top: 30px;">
+          <button class="btn" onclick="window.closeApp()">
+            <i class="fas fa-times"></i> Cerrar
+          </button>
+        </div>
       </div>
     </div>
 
