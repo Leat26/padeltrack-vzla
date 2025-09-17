@@ -375,6 +375,87 @@
     .tiebreak-score {
       color: #FF9800; /* Naranja para tiebreak */
     }	
+	
+    /* Estilos para la visualización de GAME */
+    .game-score {
+      font-size: 3.5rem !important;
+      font-weight: bold;
+      color: #4CAF50 !important;
+      animation: pulse 0.5s ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    
+    /* Estilos para ventaja (AD) */
+    .advantage-score {
+      color: #FFD700 !important;
+      font-weight: bold;
+    }	
+	
+    /* Estilos para sets y notificaciones */
+    .sets-display {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 15px 0;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+    
+    .team-a-sets {
+      color: #D32F2F;
+    }
+    
+    .team-b-sets {
+      color: #1976D2;
+    }
+    
+    .set-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      font-size: 1.8rem;
+      font-weight: bold;
+      z-index: 1000;
+      animation: fadeInOut 3s forwards;
+    }
+    
+    @keyframes fadeInOut {
+      0% { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.8); 
+      }
+      20% { 
+        opacity: 1; 
+        transform: translate(-50%, -50%) scale(1.1); 
+      }
+      30% { 
+        transform: translate(-50%, -50%) scale(1); 
+      }
+      80% { 
+        opacity: 1; 
+      }
+      100% { 
+        opacity: 0; 
+      }
+    }
+    
+    .current-set {
+      text-align: center;
+      margin: 10px 0;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #7f8c8d;
+    }	
   </style>
 </head>
 <body>
@@ -462,7 +543,11 @@
     // Configuración de Supabase (reemplaza con tus propias credenciales)
     const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
-      
+
+    // Variables para seguimiento de sets
+    let lastSetsA = 0;
+    let lastSetsB = 0;
+    let currentSetNumber = 1;      
     
     // Inicializar Supabase
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -542,6 +627,23 @@
       }
     });
 
+    // Función para reiniciar puntos después de mostrar GAME
+    function resetPointsAfterGame() {
+      if (matchState.scoring_type === 'traditional') {
+        const scoreA = getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak, true);
+        const scoreB = getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak, false);
+        
+        if (scoreA === 'GAME' || scoreB === 'GAME') {
+          // Esperar un momento para mostrar GAME y luego reiniciar
+          setTimeout(() => {
+            matchState.points_a = 0;
+            matchState.points_b = 0;
+            updateMatchDisplay(matchState);
+          }, 2000);
+        }
+      }
+    }
+
     // Función para verificar el estado de la suscripción
     window.checkSubscriptionStatus = function() {
       console.log("Estado actual:");
@@ -570,23 +672,17 @@
       loadActiveMatch();
     };
 
-    // Función para convertir puntos al formato tradicional
-    function getTraditionalDisplayScore(points, otherPoints, isTiebreak) {
+    // Función para convertir puntos al formato tradicional con visualización de GAME
+    function getTraditionalDisplayScore(points, otherPoints, isTiebreak, isServing = false) {
       if (isTiebreak) {
         return points; // En tiebreak mostrar puntos numéricos
       }
       
-      const traditionalPoints = ['0', '15', '30', '40'];
+      const traditionalPoints = ['0', '15', '30', '40', 'GAME'];
       
-      // Si ambos jugadores tienen 3 o más puntos (40-40 o ventaja)
-      if (points >= 3 && otherPoints >= 3) {
-        if (points === otherPoints) {
-          return '40';
-        } else if (points > otherPoints) {
-          return 'AD';
-        } else {
-          return '40';
-        }
+      // Si el punto es 4 o más, mostramos "GAME"
+      if (points >= 4) {
+        return 'GAME';
       }
       
       return traditionalPoints[points] || '40';
@@ -747,8 +843,92 @@
         console.error("Error al cargar partido activo:", error);
       }
     }    
-    
-    // Actualizar la pantalla con datos del partido - VERSIÓN MODIFICADA
+
+    // Función para mostrar notificación de set ganado
+    function showSetNotification(message) {
+      // Eliminar notificación anterior si existe
+      const existingNotification = document.getElementById('set-notification');
+      if (existingNotification) {
+        existingNotification.remove();
+      }
+      
+      const notification = document.createElement('div');
+      notification.id = 'set-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 10px;
+        font-size: 1.8rem;
+        font-weight: bold;
+        z-index: 1000;
+        animation: fadeInOut 3s forwards;
+      `;
+      
+      notification.innerHTML = `🎉 ${message} 🎉`;
+      
+      // Agregar estilos de animación
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+          20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+          30% { transform: translate(-50%, -50%) scale(1); }
+          80% { opacity: 1; }
+          100% { opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.body.appendChild(notification);
+      
+      // Eliminar después de 3 segundos
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 3000);
+    }
+
+    // Función para mostrar notificación de partido completado
+    function showMatchCompleteNotification(message) {
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(1, 107, 58, 0.95);
+        color: white;
+        padding: 25px 40px;
+        border-radius: 15px;
+        font-size: 2.2rem;
+        font-weight: bold;
+        z-index: 1000;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      `;
+      
+      notification.innerHTML = `
+        <div style="margin-bottom: 15px;">🎾 ${message} 🎾</div>
+        <div style="font-size: 1.4rem;">Preparándose para el próximo partido...</div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Eliminar después de 5 segundos
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 5000);
+    }
+
+    // Actualizar la pantalla con datos del partido - VERSIÓN MEJORADA
     async function updateMatchDisplay(match) {
       try {
         // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
@@ -777,7 +957,8 @@
           team_a_players: match.team_a_players || ["Jugador 1", "Jugador 2"],
           team_b_players: match.team_b_players || ["Jugador 1", "Jugador 2"]
         };
-        
+        		
+		
         // Actualizar nombres de equipos
         document.getElementById('team-a-name').textContent = matchState.team_a_name;
         document.getElementById('team-b-name').textContent = matchState.team_b_name;
@@ -790,20 +971,42 @@
         
         // Actualizar puntuación según el sistema de puntuación
         if (matchState.scoring_type === 'traditional') {
-          // Usar formato tradicional
-          document.getElementById('team-a-score').textContent = 
-            getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
-          document.getElementById('team-b-score').textContent = 
-            getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
+          // Usar formato tradicional con visualización de GAME
+          const scoreA = getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak, true);
+          const scoreB = getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak, false);
+          
+          document.getElementById('team-a-score').textContent = scoreA;
+          document.getElementById('team-b-score').textContent = scoreB;
+          
+          // Aplicar estilos especiales para GAME
+          if (scoreA === 'GAME') {
+            document.getElementById('team-a-score').style.fontSize = '3.5rem';
+            document.getElementById('team-a-score').style.color = '#4CAF50';
+          } else {
+            document.getElementById('team-a-score').style.fontSize = '5rem';
+            document.getElementById('team-a-score').style.color = '#D32F2F';
+          }
+          
+          if (scoreB === 'GAME') {
+            document.getElementById('team-b-score').style.fontSize = '3.5rem';
+            document.getElementById('team-b-score').style.color = '#4CAF50';
+          } else {
+            document.getElementById('team-b-score').style.fontSize = '5rem';
+            document.getElementById('team-b-score').style.color = '#1976D2';
+          }
         } else {
           // Mostrar puntos numéricos para modo americano
           document.getElementById('team-a-score').textContent = matchState.points_a;
           document.getElementById('team-b-score').textContent = matchState.points_b;
+          document.getElementById('team-a-score').style.fontSize = '5rem';
+          document.getElementById('team-b-score').style.fontSize = '5rem';
+          document.getElementById('team-a-score').style.color = '#D32F2F';
+          document.getElementById('team-b-score').style.color = '#1976D2';
         }
         
         document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
         document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
-        
+       
         // Actualizar sistema de puntuación
         document.getElementById('scoring-system').textContent = 
           matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
@@ -814,11 +1017,82 @@
         } else {
           document.getElementById('tiebreak-container').style.display = 'none';
         }
+
+        // Actualizar sets
+        const setsA = match.sets_a || 0;
+        const setsB = match.sets_b || 0;
         
+        // Crear o actualizar elementos de visualización de sets
+        let setsContainer = document.getElementById('sets-container');
+        if (!setsContainer) {
+          setsContainer = document.createElement('div');
+          setsContainer.id = 'sets-container';
+          setsContainer.style.cssText = 'display: flex; justify-content: center; gap: 20px; margin: 15px 0; font-size: 1.5rem; font-weight: bold;';
+          document.querySelector('.scoreboard').parentNode.insertBefore(setsContainer, document.querySelector('.scoreboard'));
+        }
+        
+        setsContainer.innerHTML = `
+          <div style="color: #D32F2F;">Sets: ${setsA}</div>
+          <div style="color: #1976D2;">Sets: ${setsB}</div>
+        `;
+        
+        // Detectar si se ganó un set y mostrar notificación
+        if (typeof lastSetsA === 'undefined') lastSetsA = setsA;
+        if (typeof lastSetsB === 'undefined') lastSetsB = setsB;
+        
+        if (setsA > lastSetsA || setsB > lastSetsB) {
+          const setNumber = setsA + setsB;
+          const winningTeam = setsA > lastSetsA ? matchState.team_a_name : matchState.team_b_name;
+          
+          showSetNotification(`${winningTeam} ganó el set ${setNumber}`);
+          
+          // Actualizar últimos valores
+          lastSetsA = setsA;
+          lastSetsB = setsB;
+        }
+        
+        // Actualizar marcador de juegos dentro del set
+        const gamesElement = document.getElementById('games-score');
+        if (gamesElement) {
+          gamesElement.textContent = `${matchState.games_a}-${matchState.games_b}`;
+          gamesElement.style.fontSize = '1.8rem';
+          gamesElement.style.fontWeight = 'bold';
+          gamesElement.style.margin = '10px 0';
+        }
+        
+        // Actualizar información del set actual
+        const setInfoElement = document.getElementById('set-info');
+        if (!setInfoElement) {
+          const newSetInfoElement = document.createElement('div');
+          newSetInfoElement.id = 'set-info';
+          newSetInfoElement.style.cssText = 'text-align: center; margin: 10px 0; font-size: 1.2rem;';
+          document.querySelector('.scoring-system').parentNode.insertBefore(newSetInfoElement, document.querySelector('.scoring-system'));
+        }
+        
+        const setInfo = document.getElementById('set-info');
+        if (setInfo) {
+          const currentSet = (matchState.sets_a || 0) + (matchState.sets_b || 0) + 1;
+          setInfo.textContent = `Set ${currentSet}`;
+        }		
+		
         // Iniciar temporizador si es un partido activo
         if (matchState.status === 'active' && !matchState.timerInterval) {
           matchState.startTime = new Date(match.created_at);
           startTimer();
+        }
+
+
+        if (matchState.status === 'completed') {
+          // Determinar ganador
+          const winner = matchState.winner === 'teamA' ? matchState.team_a_name : matchState.team_b_name;
+          
+          // Mostrar notificación de partido terminado
+          showMatchCompleteNotification(`¡Partido terminado! Ganador: ${winner}`);
+          
+          // Restablecer para nuevo partido después de un tiempo
+          setTimeout(() => {
+            resetDisplay();
+          }, 5000);
         }
         
         // Actualizar estado
@@ -827,7 +1101,7 @@
       } catch (error) {
         console.error("Error en updateMatchDisplay:", error);
       }
-    }
+    }    
 
     // Actualizar visualización de jugadores
     function updatePlayersDisplay(teamId, players) {
@@ -1011,10 +1285,34 @@
           
           // Actualizar UI - manejar formato tradicional
           if (matchState.scoring_type === 'traditional') {
-            document.getElementById('team-a-score').textContent = 
-              getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
-            document.getElementById('team-b-score').textContent = 
-              getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
+            const scoreA = getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak, true);
+            const scoreB = getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak, false);
+            
+            document.getElementById('team-a-score').textContent = scoreA;
+            document.getElementById('team-b-score').textContent = scoreB;
+            
+            // Aplicar estilos especiales para GAME
+            if (scoreA === 'GAME') {
+              document.getElementById('team-a-score').classList.add('game-score');
+              // Reiniciar después de un tiempo
+              setTimeout(() => {
+                matchState.points_a = 0;
+                matchState.points_b = 0;
+                document.getElementById('team-a-score').textContent = '0';
+                document.getElementById('team-b-score').textContent = '0';
+                document.getElementById('team-a-score').classList.remove('game-score');
+              }, 1500);
+            } else if (scoreB === 'GAME') {
+              document.getElementById('team-b-score').classList.add('game-score');
+              // Reiniciar después de un tiempo
+              setTimeout(() => {
+                matchState.points_a = 0;
+                matchState.points_b = 0;
+                document.getElementById('team-a-score').textContent = '0';
+                document.getElementById('team-b-score').textContent = '0';
+                document.getElementById('team-b-score').classList.remove('game-score');
+              }, 1500);
+            }
           } else {
             document.getElementById('team-a-score').textContent = matchState.points_a;
             document.getElementById('team-b-score').textContent = matchState.points_b;
@@ -1025,7 +1323,7 @@
       } catch (error) {
         console.error("Error al añadir punto:", error);
       }
-    }
+    }    
     
     // Añadir juego (simulación)
     async function addGame(team) {
