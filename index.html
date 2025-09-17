@@ -1523,28 +1523,8 @@
 	  } else {
 	    window.setsB++;
 	  }
-
-	  // 🔄 ACTUALIZAR BASE DE DATOS CON LOS SETS
-	   try {
-	     const { error } = await window.supabase
-	       .from('matches')
-	       .update({ 
-	         sets_a: window.setsA,
-	         sets_b: window.setsB,
-	         updated_at: new Date().toISOString()
-	       })
-	       .eq('id', window.lastMatchId);
-	  
-	     if (error) {
-	       console.error("Error al actualizar sets en BD:", error);
-	     }
-	   } catch (error) {
-	     console.error("Error al actualizar sets:", error);
-	   }
-	  
-	   // Mostrar notificación
-	   const setNumber = window.setsA + window.setsB;
-	   window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
+	
+	  window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
 	
 	  // Verificar si el partido terminó (2 sets)
 	  if (window.setsA === 2 || window.setsB === 2) {
