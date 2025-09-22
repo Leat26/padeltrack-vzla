@@ -1130,21 +1130,21 @@
 	    return;
 	  }
 	
-	  // Si está en tiebreak, manejar puntos de tiebreak
+	  // Si está en tiebreak
 	  if (window.inTiebreak) {
 	    if (team === 'A') window.tiebreakPointsA++;
 	    else window.tiebreakPointsB++;
 	  
-	    // En pádel, el tiebreak se gana con diferencia de 2 puntos (mínimo 7 puntos)
 	    const pointsA = window.tiebreakPointsA;
 	    const pointsB = window.tiebreakPointsB;
 	    const diff = Math.abs(pointsA - pointsB);
 	    
+	    // ✅ CORRECTO: Tiebreak necesita 7 puntos con diferencia de 2
 	    if ((pointsA >= 7 || pointsB >= 7) && diff >= 2) {
 	      if (pointsA > pointsB) {
-	        window.gamesA = 7;
+	        window.gamesA = 7; // Para mostrar 7-6
 	      } else {
-	        window.gamesB = 7;
+	        window.gamesB = 7; // Para mostrar 6-7
 	      }
 	      window.completeSet();
 	      return;
@@ -1153,7 +1153,7 @@
 	    return;
 	  }
 	
-	  // ✅ CORRECCIÓN PÁDEL: Lógica simplificada sin AD
+	  // Incrementar puntos
 	  if (team === 'A') {
 	    window.scoreA++;
 	  } else {
@@ -1163,54 +1163,116 @@
 	  const scoreA = window.scoreA;
 	  const scoreB = window.scoreB;
 	
-	  // ✅ CORRECCIÓN: En pádel, en 40-40 el siguiente punto gana directamente
-	  if (scoreA >= 3 && scoreB >= 3) {
-	    // Punto de oro: el equipo que anota gana el juego
-	    if (team === 'A' && scoreA > scoreB) {
-	      window.gamesA++;
-	      window.scoreA = 0;
-	      window.scoreB = 0;
-	    } else if (team === 'B' && scoreB > scoreA) {
-	      window.gamesB++;
-	      window.scoreA = 0;
-	      window.scoreB = 0;
-	    }
-	  } 
-	  // Ganar por diferencia de 2 puntos
-	  else if (scoreA >= 4 && scoreA - scoreB >= 2) {
+	  console.log(`Punto para equipo ${team}. Marcador: ${scoreA}-${scoreB}`);
+	
+	  // ✅ CORRECCIÓN: LÓGICA EXACTA DEL PÁDEL PARA JUEGOS
+	  
+	  // 1. PUNTO DE ORO (40-40) - Gana inmediatamente
+	  if (scoreA >= 3 && scoreB >= 3 && scoreA === scoreB) {
+	    // Estamos en 40-40, el siguiente punto gana inmediatamente
+	    console.log("40-40 - Punto de oro: el siguiente punto gana el juego");
+	    // No hacemos nada aquí, el punto ya se incrementó arriba
+	    // La victoria se detectará en las condiciones siguientes
+	  }
+	  
+	  // 2. VICTORIA NORMAL (sin llegar a 40-40)
+	  // Se gana al llegar a 40 (3 puntos) con al menos 1 punto de ventaja
+	  if (scoreA >= 3 && scoreA - scoreB >= 1) {
+	    // Equipo A gana el juego
 	    window.gamesA++;
 	    window.scoreA = 0;
 	    window.scoreB = 0;
-	  } else if (scoreB >= 4 && scoreB - scoreA >= 2) {
+	    console.log("Equipo A gana el juego");
+	  } else if (scoreB >= 3 && scoreB - scoreA >= 1) {
+	    // Equipo B gana el juego
 	    window.gamesB++;
 	    window.scoreA = 0;
 	    window.scoreB = 0;
+	    console.log("Equipo B gana el juego");
 	  }
 	
-	  // Verificar si se ganó el set (lógica sin cambios)
-	  const minWinGames = 6;
-	  const maxGame = 7;
-	  const minDiff = 2;
+	  // ✅ VERIFICAR SI SE GANÓ EL SET (CON VENTAJA DE 2 JUEGOS)
+	  const checkSetWin = () => {
+	    const gamesA = window.gamesA;
+	    const gamesB = window.gamesB;
+	    const diff = Math.abs(gamesA - gamesB);
 	
-	  if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) ||
-	      (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
-	    window.completeSet();
-	    return;
-	  }
-	  else if ((window.gamesA === maxGame && window.gamesB === maxGame - minDiff) ||
-	           (window.gamesB === maxGame && window.gamesA === maxGame - minDiff)) {
-	    window.completeSet();
-	    return;
-	  }
-	  else if (window.gamesA === 6 && window.gamesB === 6) {
-	    window.inTiebreak = true;
-	    window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
-	    window.updateScoreboard();
-	    return;
+	    // Caso 1: Gana con 6 juegos y diferencia de 2
+	    if ((gamesA >= 6 || gamesB >= 6) && diff >= 2) {
+	      console.log(`Set ganado por diferencia de 2 juegos: ${gamesA}-${gamesB}`);
+	      window.completeSet();
+	      return true;
+	    }
+	    
+	    // Caso 2: Gana con 7-5
+	    if ((gamesA === 7 && gamesB === 5) || (gamesB === 7 && gamesA === 5)) {
+	      console.log("Set ganado 7-5");
+	      window.completeSet();
+	      return true;
+	    }
+	    
+	    // Caso 3: 6-6 → activar tiebreak
+	    if (gamesA === 6 && gamesB === 6 && !window.inTiebreak) {
+	      window.inTiebreak = true;
+	      window.tiebreakPointsA = 0;
+	      window.tiebreakPointsB = 0;
+	      window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+	      console.log("Tiebreak activado: 6-6");
+	      
+	      // ✅ Actualizar BD inmediatamente
+	      if (window.lastMatchId) {
+	        window.supabase
+	          .from('matches')
+	          .update({
+	            tiebreak: true,
+	            tiebreak_points_a: 0,
+	            tiebreak_points_b: 0,
+	            updated_at: new Date().toISOString()
+	          })
+	          .eq('id', window.lastMatchId);
+	      }
+	      
+	      window.updateScoreboard();
+	      return true;
+	    }
+	    
+	    return false;
+	  };
+	
+	  // Verificar set solo si se ganó un juego en este punto
+	  if ((team === 'A' && window.scoreA === 0) || (team === 'B' && window.scoreB === 0)) {
+	    checkSetWin();
 	  }
 	
 	  window.updateScoreboard();
-	};		
+	  
+	  // ✅ ACTUALIZAR BASE DE DATOS INMEDIATAMENTE
+	  if (window.lastMatchId) {
+	    const updateData = {
+	      games_a: window.gamesA,
+	      games_b: window.gamesB,
+	      points_a: window.scoreA,
+	      points_b: window.scoreB,
+	      updated_at: new Date().toISOString()
+	    };
+	    
+	    if (window.inTiebreak) {
+	      updateData.tiebreak = true;
+	      updateData.tiebreak_points_a = window.tiebreakPointsA;
+	      updateData.tiebreak_points_b = window.tiebreakPointsB;
+	    }
+	    
+	    window.supabase
+	      .from('matches')
+	      .update(updateData)
+	      .eq('id', window.lastMatchId)
+	      .then(({ error }) => {
+	        if (error) {
+	          console.error('Error al actualizar marcador:', error);
+	        }
+	      });
+	  }
+	};			
 	
 	// Manejar puntos en modo americano
 	window.addAmericanPoint = function(team) {
@@ -1460,22 +1522,11 @@
 	
 	// Funcion varios sets
 	window.completeSet = function() {
+	  // ✅ DETERMINAR GANADOR DEL SET CORRECTAMENTE
 	  let winnerSet = '';
-	  let setScoreA = window.gamesA;
-	  let setScoreB = window.gamesB;
 	  
 	  if (window.inTiebreak) {
-	    // En tiebreak, el ganador es quien tiene más puntos
 	    winnerSet = window.tiebreakPointsA > window.tiebreakPointsB ? 'A' : 'B';
-	    
-	    // Ajustar el marcador para mostrar 7-6 o 6-7
-	    if (winnerSet === 'A') {
-	      setScoreA = 7;
-	      setScoreB = 6;
-	    } else {
-	      setScoreA = 6;
-	      setScoreB = 7;
-	    }
 	  } else {
 	    winnerSet = window.gamesA > window.gamesB ? 'A' : 'B';
 	  }
@@ -1483,31 +1534,25 @@
 	  const teamName = winnerSet === 'A' ? window.teamNames.teamA : window.teamNames.teamB;
 	  const setNumber = (window.setsA + window.setsB) + 1;
 	
-	  // Guardar el resultado del set en el historial
-	  window.setHistory.push({
-	    gamesA: setScoreA,
-	    gamesB: setScoreB,
-	    tiebreak: window.inTiebreak,
-	    tiebreakA: window.inTiebreak ? window.tiebreakPointsA : 0,
-	    tiebreakB: window.inTiebreak ? window.tiebreakPointsB : 0
-	  });
-	
-	  // Aumentar sets ganados
+	  // ✅ INCREMENTAR SETS
 	  if (winnerSet === 'A') {
 	    window.setsA++;
 	  } else {
 	    window.setsB++;
 	  }
 	
-	  window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
+	  console.log(`Set ${setNumber} ganado por ${teamName}. Sets: ${window.setsA}-${window.setsB}`);
 	
-	  // Verificar si el partido terminó (2 sets)
+	  // ✅ VERIFICAR FIN DEL PARTIDO (2 sets)
 	  if (window.setsA === 2 || window.setsB === 2) {
+	    window.showNotification(`¡Partido terminado! Ganador: ${teamName}`);
 	    window.finalizeGame();
 	    return;
 	  }
 	
-	  // Resetear para el próximo set
+	  window.showNotification(`Set ${setNumber} ganado por <strong>${teamName}</strong>`, 3000);
+	
+	  // ✅ RESETEAR PARA NUEVO SET
 	  window.gamesA = 0;
 	  window.gamesB = 0;
 	  window.scoreA = 0;
@@ -1515,31 +1560,35 @@
 	  window.inTiebreak = false;
 	  window.tiebreakPointsA = 0;
 	  window.tiebreakPointsB = 0;
-
-	  // ✅ AGREGAR: Actualizar sets en la base de datos
+	
+	  // ✅ ACTUALIZAR BASE DE DATOS CON SETS INMEDIATAMENTE
 	  if (window.lastMatchId) {
+	    const updateData = {
+	      sets_a: window.setsA,
+	      sets_b: window.setsB,
+	      games_a: 0,
+	      games_b: 0,
+	      points_a: 0,
+	      points_b: 0,
+	      tiebreak: false,
+	      tiebreak_points_a: 0,
+	      tiebreak_points_b: 0,
+	      updated_at: new Date().toISOString()
+	    };
+	    
 	    window.supabase
 	      .from('matches')
-	      .update({
-	        sets_a: window.setsA,
-	        sets_b: window.setsB,
-	        games_a: 0,  // Resetear juegos para nuevo set
-	        games_b: 0,
-	        points_a: 0,
-	        points_b: 0,
-	        tiebreak: false,
-	        tiebreak_points_a: 0,
-	        tiebreak_points_b: 0,
-	        updated_at: new Date().toISOString()
-	      })
+	      .update(updateData)
 	      .eq('id', window.lastMatchId)
 	      .then(({ error }) => {
 	        if (error) {
 	          console.error('Error al actualizar sets:', error);
+	        } else {
+	          console.log('✅ Sets actualizados en BD:', window.setsA, '-', window.setsB);
 	        }
 	      });
 	  }
-
+	
 	  window.updateScoreboard();
 	};
 					
@@ -2125,12 +2174,18 @@
 	    };
 	    
 	    // Insertar en la base de datos
-	    const { data: matchData, error: matchError } = await window.supabase
+	    const finalMatchData = {
+	      ...matchToInsert,  // Todos los datos iniciales
+	      team_a_players: playerNames.teamA,
+	      team_b_players: playerNames.teamB,
+	      id: matchData.id   // Mantener el mismo ID
+	    };
+		
+	    const { error: updateError } = await window.supabase
 	      .from('matches')
-	      .insert([matchToInsert])
-	      .select('id')
-	      .single();
-	    
+	      .update(finalMatchData)
+	      .eq('id', matchData.id);
+  
 	    if (matchError) {
 	      console.error("Error al crear partido:", matchError);
 	      window.showNotification('Error al iniciar el partido. Inténtalo de nuevo.');
