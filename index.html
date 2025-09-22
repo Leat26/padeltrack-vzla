@@ -2174,18 +2174,12 @@
 	    };
 	    
 	    // Insertar en la base de datos
-	    const finalMatchData = {
-	      ...matchToInsert,  // Todos los datos iniciales
-	      team_a_players: playerNames.teamA,
-	      team_b_players: playerNames.teamB,
-	      id: matchData.id   // Mantener el mismo ID
-	    };
-		
-	    const { error: updateError } = await window.supabase
+	    const { data: matchData, error: matchError } = await window.supabase
 	      .from('matches')
-	      .update(finalMatchData)
-	      .eq('id', matchData.id);
-  
+	      .insert([matchToInsert])
+	      .select('id')
+	      .single();
+	    
 	    if (matchError) {
 	      console.error("Error al crear partido:", matchError);
 	      window.showNotification('Error al iniciar el partido. Inténtalo de nuevo.');
