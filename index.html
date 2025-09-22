@@ -1105,7 +1105,7 @@
 	  if (window.scoringType === 'traditional' && !window.inTiebreak) {
 	    const traditionalPoints = ['0', '15', '30', '40'];
 	    
-	    // ✅ CORRECCIÓN PÁDEL: No existe AD, siempre mostrar 40 para 3+ puntos
+	    // ✅ CORRECCIÓN: Máximo 40 puntos
 	    if (points >= 3) {
 	      return '40';
 	    }
@@ -1124,6 +1124,60 @@
 	  }
 	};
 
+
+	// AGREGAR esta función auxiliar para verificar victoria de set
+	window.checkSetWin = function() {
+	  const gamesA = window.gamesA;
+	  const gamesB = window.gamesB;
+	  const diff = Math.abs(gamesA - gamesB);
+	
+	  console.log(`Verificando set: ${gamesA}-${gamesB}, diferencia: ${diff}`);
+	
+	  // Caso 1: Gana con 6 juegos y diferencia de 2
+	  if ((gamesA >= 6 || gamesB >= 6) && diff >= 2) {
+	    console.log(`Set ganado por diferencia de 2 juegos: ${gamesA}-${gamesB}`);
+	    window.completeSet();
+	    return true;
+	  }
+	  
+	  // Caso 2: Gana con 7-5
+	  if ((gamesA === 7 && gamesB === 5) || (gamesB === 7 && gamesA === 5)) {
+	    console.log("Set ganado 7-5");
+	    window.completeSet();
+	    return true;
+	  }
+	  
+	  // Caso 3: 6-6 → activar tiebreak
+	  if (gamesA === 6 && gamesB === 6 && !window.inTiebreak) {
+	    console.log("6-6 - Activando tiebreak");
+	    window.inTiebreak = true;
+	    window.tiebreakPointsA = 0;
+	    window.tiebreakPointsB = 0;
+	    window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+	    
+	    // ✅ ACTUALIZACIÓN INMEDIATA
+	    if (window.lastMatchId) {
+	      window.supabase
+	        .from('matches')
+	        .update({
+	          tiebreak: true,
+	          tiebreak_points_a: 0,
+	          tiebreak_points_b: 0,
+	          updated_at: new Date().toISOString()
+	        })
+	        .eq('id', window.lastMatchId)
+	        .then(() => {
+	          window.updateScoreboard();
+	        });
+	    }
+	    
+	    return true;
+	  }
+	  
+	  console.log("Set aún no terminado");
+	  return false;
+	};
+	
 	// Manejar puntos en modo tradicional
 	window.addTraditionalPoint = function(team) {
 	  if (window.gameEnded) {
@@ -1241,7 +1295,10 @@
 	
 	  // Verificar set solo si se ganó un juego en este punto
 	  if ((team === 'A' && window.scoreA === 0) || (team === 'B' && window.scoreB === 0)) {
-	    checkSetWin();
+	    // Pequeño delay para asegurar que la BD se actualizó primero
+	    setTimeout(() => {
+	      window.checkSetWin();
+	    }, 100);
 	  }
 	
 	  window.updateScoreboard();
@@ -1541,7 +1598,7 @@
 	    window.setsB++;
 	  }
 	
-	  console.log(`Set ${setNumber} ganado por ${teamName}. Sets: ${window.setsA}-${window.setsB}`);
+	  console.log(`🎉 Set ${setNumber} ganado por ${teamName}. Sets: ${window.setsA}-${window.setsB}`);
 	
 	  // ✅ VERIFICAR FIN DEL PARTIDO (2 sets)
 	  if (window.setsA === 2 || window.setsB === 2) {
@@ -1561,7 +1618,7 @@
 	  window.tiebreakPointsA = 0;
 	  window.tiebreakPointsB = 0;
 	
-	  // ✅ ACTUALIZAR BASE DE DATOS CON SETS INMEDIATAMENTE
+	  // ✅ ACTUALIZACIÓN SÍNCRONA MEJORADA
 	  if (window.lastMatchId) {
 	    const updateData = {
 	      sets_a: window.setsA,
@@ -1576,15 +1633,18 @@
 	      updated_at: new Date().toISOString()
 	    };
 	    
+	    console.log('🔄 Actualizando BD con nuevo set:', updateData);
+	    
 	    window.supabase
 	      .from('matches')
 	      .update(updateData)
 	      .eq('id', window.lastMatchId)
 	      .then(({ error }) => {
 	        if (error) {
-	          console.error('Error al actualizar sets:', error);
+	          console.error('❌ Error al actualizar sets:', error);
 	        } else {
 	          console.log('✅ Sets actualizados en BD:', window.setsA, '-', window.setsB);
+	          window.updateScoreboard();
 	        }
 	      });
 	  }
