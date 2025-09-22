@@ -608,7 +608,7 @@
           return;
         }
         
-        // Actualizar estado interno con TODOS los campos
+        // ✅ ACTUALIZACIÓN COMPLETA DEL ESTADO
         matchState = {
           ...matchState,
           id: match.id,
@@ -620,7 +620,7 @@
           winner: match.winner,
           games_a: match.games_a || 0,
           games_b: match.games_b || 0,
-          sets_a: match.sets_a || 0,
+          sets_a: match.sets_a || 0,  // ✅ GARANTIZAR QUE SETS SE ACTUALIZAN
           sets_b: match.sets_b || 0,
           points_a: match.points_a || 0,
           points_b: match.points_b || 0,
@@ -633,22 +633,28 @@
           team_b_players: match.team_b_players || ["Jugador 1", "Jugador 2"]
         };
         
-        // Actualizar nombres de equipos
+        console.log("📊 Actualizando pantalla TV:", {
+          sets: `${matchState.sets_a}-${matchState.sets_b}`,
+          games: `${matchState.games_a}-${matchState.games_b}`,
+          points: `${matchState.points_a}-${matchState.points_b}`,
+          tiebreak: matchState.tiebreak
+        });
+        
+        // ✅ ACTUALIZAR NOMBRES DE EQUIPOS
         document.getElementById('team-a-name').textContent = matchState.team_a_name;
         document.getElementById('team-b-name').textContent = matchState.team_b_name;
         document.getElementById('team-a-display').textContent = matchState.team_a_name;
         document.getElementById('team-b-display').textContent = matchState.team_b_name;
         
-        // Actualizar jugadores
+        // ✅ ACTUALIZAR JUGADORES
         updatePlayersDisplay('team-a', matchState.team_a_players);
         updatePlayersDisplay('team-b', matchState.team_b_players);
         
-        // ✅ CORRECCIÓN: Actualizar puntuación correctamente
+        // ✅ ACTUALIZAR PUNTUACIÓN CORRECTAMENTE
         const scoreAElement = document.getElementById('team-a-score');
         const scoreBElement = document.getElementById('team-b-score');
         
         if (matchState.scoring_type === 'traditional') {
-          // Usar formato tradicional para pádel (sin AD)
           scoreAElement.textContent = getTraditionalDisplayScore(
             matchState.points_a, 
             matchState.tiebreak,
@@ -660,23 +666,22 @@
             matchState.tiebreak_points_b
           );
           
-          // ✅ CORRECCIÓN: Siempre el mismo estilo (no hay AD en pádel)
           scoreAElement.className = 'score traditional-score';
           scoreBElement.className = 'score traditional-score';
         } else {
-          // Modo americano: puntos numéricos
           scoreAElement.textContent = matchState.tiebreak ? matchState.tiebreak_points_a : matchState.points_a;
           scoreBElement.textContent = matchState.tiebreak ? matchState.tiebreak_points_b : matchState.points_b;
           scoreAElement.className = 'score';
           scoreBElement.className = 'score';
         }
         
-        // ✅ CORRECCIÓN: Actualizar juegos y sets
+        // ✅ ACTUALIZAR JUEGOS Y SETS (CORRECCIÓN CRÍTICA)
         document.getElementById('team-a-games').textContent = matchState.games_a;
         document.getElementById('team-b-games').textContent = matchState.games_b;
         document.getElementById('team-a-sets').textContent = matchState.sets_a;
         document.getElementById('team-b-sets').textContent = matchState.sets_b;
         
+        // ✅ ACTUALIZAR PUNTOS TOTALES
         document.getElementById('total-points').textContent = matchState.tiebreak ? 
           (matchState.tiebreak_points_a + matchState.tiebreak_points_b) : 
           (matchState.points_a + matchState.points_b);
@@ -684,14 +689,14 @@
         document.getElementById('scoring-system').textContent = 
           matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
         
-        // Actualizar tiebreak
+        // ✅ ACTUALIZAR TIEBREAK
         if (matchState.tiebreak) {
           document.getElementById('tiebreak-container').style.display = 'block';
         } else {
           document.getElementById('tiebreak-container').style.display = 'none';
         }
         
-        // Iniciar temporizador si es necesario
+        // ✅ INICIAR TEMPORIZADOR SI ES NECESARIO
         if (matchState.status === 'active' && !matchState.timerInterval && match.created_at) {
           matchState.startTime = new Date(match.created_at);
           startTimer();
@@ -700,9 +705,9 @@
         updateMatchStatus(matchState.status);
         
       } catch (error) {
-        console.error("Error en updateMatchDisplay:", error);
+        console.error("❌ Error en updateMatchDisplay:", error);
       }
-    }
+    }    
 
     // Configurar suscripción en tiempo real
     function setupRealtimeSubscription() {
@@ -744,28 +749,34 @@
 	
     // ✅ AGREGAR ESTA FUNCIÓN DE DEPURACIÓN EN tv.html
     function debugMatchData(match, eventType) {
-      console.log("=== DEBUG MATCH DATA ===");
+      console.log("=== 🎾 DEBUG MATCH DATA ===");
       console.log("Evento:", eventType);
       console.log("ID:", match.id);
+      console.log("Status:", match.status);
       console.log("Sets:", match.sets_a, "-", match.sets_b);
       console.log("Games:", match.games_a, "-", match.games_b);
       console.log("Points:", match.points_a, "-", match.points_b);
       console.log("Tiebreak:", match.tiebreak);
       console.log("Tiebreak Points:", match.tiebreak_points_a, "-", match.tiebreak_points_b);
-      console.log("========================");
-    }	
-
-    // ✅ MODIFICAR handleMatchUpdate para incluir depuración
+      console.log("Scoring Type:", match.scoring_type);
+      console.log("Court:", match.court);
+      console.log("============================");
+    }
+    
+    // MODIFICAR handleMatchUpdate para mejor depuración
     async function handleMatchUpdate(payload) {
       try {
         console.log("📡 Evento recibido:", payload.eventType, payload.new?.id);
         
         if (payload.new && payload.new.court === matchState.court) {
-          // ✅ DEPURACIÓN: Ver qué datos llegan
+          // ✅ DEPURACIÓN EXTENDIDA
           debugMatchData(payload.new, payload.eventType);
           
           console.log("✅ Partido coincide con esta cancha, actualizando...");
           await updateMatchDisplay(payload.new);
+          
+          // ✅ LOG DE CONFIRMACIÓN
+          console.log("✅ Pantalla TV actualizada correctamente");
         }
       } catch (error) {
         console.error("❌ Error en handleMatchUpdate:", error);
