@@ -707,6 +707,8 @@
     // Configurar suscripción en tiempo real
     function setupRealtimeSubscription() {
       try {
+        console.log("🔔 Suscribiendo a cambios en tiempo real...");
+        
         const subscription = supabase
           .channel('matches-channel')
           .on('postgres_changes', 
@@ -717,39 +719,56 @@
               filter: `club_id=eq.${matchState.club_id}`
             }, 
             (payload) => {
+              console.log("📡 Evento recibido:", payload.eventType, payload.new?.id);
+              
               if (payload.new && payload.new.court === matchState.court) {
-                handleMatchUpdate(payload);
+                console.log("✅ Partido coincide con esta cancha, actualizando...");
+                // ✅ FORZAR ACTUALIZACIÓN INMEDIATA
+                setTimeout(() => {
+                  handleMatchUpdate(payload);
+                }, 100);
               }
             })
-          .subscribe();
+          .subscribe((status) => {
+            console.log("📊 Estado de suscripción:", status);
+            if (status === 'SUBSCRIBED') {
+              console.log("🎉 Suscripción activa - Listo para recibir actualizaciones");
+            }
+          });
           
       } catch (error) {
-        console.error("Error al configurar suscripción:", error);
+        console.error("❌ Error al configurar suscripción:", error);
         setTimeout(setupRealtimeSubscription, 5000);
       }
     }
+	
+    // ✅ AGREGAR ESTA FUNCIÓN DE DEPURACIÓN EN tv.html
+    function debugMatchData(match, eventType) {
+      console.log("=== DEBUG MATCH DATA ===");
+      console.log("Evento:", eventType);
+      console.log("ID:", match.id);
+      console.log("Sets:", match.sets_a, "-", match.sets_b);
+      console.log("Games:", match.games_a, "-", match.games_b);
+      console.log("Points:", match.points_a, "-", match.points_b);
+      console.log("Tiebreak:", match.tiebreak);
+      console.log("Tiebreak Points:", match.tiebreak_points_a, "-", match.tiebreak_points_b);
+      console.log("========================");
+    }	
 
+    // ✅ MODIFICAR handleMatchUpdate para incluir depuración
     async function handleMatchUpdate(payload) {
       try {
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          const match = payload.new;
+        console.log("📡 Evento recibido:", payload.eventType, payload.new?.id);
+        
+        if (payload.new && payload.new.court === matchState.court) {
+          // ✅ DEPURACIÓN: Ver qué datos llegan
+          debugMatchData(payload.new, payload.eventType);
           
-          if (match.club_id !== matchState.club_id) {
-            return;
-          }
-          
-          if (match.status === 'active') {
-            await updateMatchDisplay(match);
-          } else if (match.status === 'pending') {
-            updateMatchStatus('pending');
-          } else if (match.status === 'completed') {
-            resetDisplay();
-          }
-        } else if (payload.eventType === 'DELETE') {
-          resetDisplay();
+          console.log("✅ Partido coincide con esta cancha, actualizando...");
+          await updateMatchDisplay(payload.new);
         }
       } catch (error) {
-        console.error("Error en handleMatchUpdate:", error);
+        console.error("❌ Error en handleMatchUpdate:", error);
       }
     }
 
