@@ -1,4 +1,5 @@
-g="es">
+<!DOCTYPE html>
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -282,6 +283,53 @@ g="es">
       background-color: #7f8c8d;
     }
     
+    /* NUEVOS ESTILOS PARA JUEGOS Y SETS */
+    .games-sets-container {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin: 20px 0;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 10px;
+    }
+    
+    .games-display, .sets-display {
+      text-align: center;
+    }
+    
+    .games-display h3, .sets-display h3 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      opacity: 0.8;
+    }
+    
+    .games-values, .sets-values {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+    
+    .games-a, .sets-a {
+      color: #3498db;
+    }
+    
+    .games-b, .sets-b {
+      color: #e74c3c;
+    }
+    
+    /* Estilos para puntuación tradicional */
+    .traditional-score {
+      font-size: 4rem;
+      font-weight: bold;
+    }
+    
+    .tiebreak-score {
+      color: #FF9800;
+    }
+
     /* Responsive adjustments for TV */
     @media (max-width: 1200px) {
       .team-a .score, .team-b .score {
@@ -294,6 +342,10 @@ g="es">
       
       .vs {
         font-size: 2.5rem;
+      }
+      
+      .games-values, .sets-values {
+        font-size: 2rem;
       }
     }
     
@@ -318,6 +370,11 @@ g="es">
       
       .simulation-buttons {
         flex-direction: column;
+      }
+      
+      .games-sets-container {
+        flex-direction: column;
+        gap: 20px;
       }
     }
 
@@ -358,22 +415,11 @@ g="es">
       .info-box span:last-child {
         font-size: 1.5rem;
       }
+      
+      .games-values, .sets-values {
+        font-size: 2rem;
+      }
     }
-	
-    /* Estilos para puntuación tradicional */
-    .traditional-score {
-      font-size: 4rem;
-      font-weight: bold;
-    }
-    
-    .advantage-score {
-      color: #FFD700; /* Dorado para ventaja */
-      font-size: 3.5rem;
-    }
-    
-    .tiebreak-score {
-      color: #FF9800; /* Naranja para tiebreak */
-    }	
   </style>
 </head>
 <body>
@@ -392,7 +438,7 @@ g="es">
               <div class="player">Jugador 1</div>
               <div class="player">Jugador 2</div>
             </div>
-            <div class="score" id="team-a-score">0</div>
+            <div class="score traditional-score" id="team-a-score">0</div>
           </div>
           
           <div class="vs">VS</div>
@@ -403,7 +449,26 @@ g="es">
               <div class="player">Jugador 1</div>
               <div class="player">Jugador 2</div>
             </div>
-            <div class="score" id="team-b-score">0</div>
+            <div class="score traditional-score" id="team-b-score">0</div>
+          </div>
+        </div>
+        
+        <!-- NUEVA SECCIÓN: JUEGOS Y SETS -->
+        <div class="games-sets-container">
+          <div class="games-display">
+            <h3>JUEGOS</h3>
+            <div class="games-values">
+              <div class="games-a" id="team-a-games">0</div>
+              <div class="games-b" id="team-b-games">0</div>
+            </div>
+          </div>
+          
+          <div class="sets-display">
+            <h3>SETS</h3>
+            <div class="sets-values">
+              <div class="sets-a" id="team-a-sets">0</div>
+              <div class="sets-b" id="team-b-sets">0</div>
+            </div>
           </div>
         </div>
         
@@ -417,18 +482,14 @@ g="es">
             <span id="total-points">0</span>
           </div>
           <div class="info-box">
-            <span>Juegos</span>
-            <span id="games-score">0-0</span>
+            <span>Sistema</span>
+            <span id="scoring-system">Tradicional</span>
           </div>
-        </div>
-        
-        <div class="scoring-system" id="scoring-system">
-          Sistema Tradicional
         </div>
         
         <div id="tiebreak-container" style="display: none;">
           <div class="tiebreak-indicator">
-            <i class="fas fa-bolt"></i> Tiebreak en progreso
+            ⚡ TIEBREAK ACTIVO - Juega a 7 puntos
           </div>
         </div>
 
@@ -462,12 +523,11 @@ g="es">
     const supabaseUrl = 'https://omizjfxbxkfkxlxdkbej.supabase.co'; // ¡REEMPLAZA ESTO!
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9taXpqZnhieGtma3hseGRrYmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NzkyMjIsImV4cCI6MjA3MTA1NTIyMn0.UAj61BfHqIF8Gg9bHYsEF_ocTM8Og4oJN2bWT11N6Rg'; // ¡REEMPLAZA ESTO!
       
-    
     // Inicializar Supabase
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-	window.supabase = supabase;
+    window.supabase = supabase;
     
-    // Estado del partido
+    // Estado del partido - ACTUALIZADO CON SETS
     let matchState = {
       id: null,
       club_id: null,
@@ -478,9 +538,13 @@ g="es">
       winner: null,
       games_a: 0,
       games_b: 0,
+      sets_a: 0,
+      sets_b: 0,
       points_a: 0,
       points_b: 0,
       tiebreak: false,
+      tiebreak_points_a: 0,
+      tiebreak_points_b: 0,
       duration: "00:00",
       status: "waiting",
       team_a_players: ["Jugador 1", "Jugador 2"],
@@ -489,50 +553,46 @@ g="es">
       timerInterval: null
     };
 
-    // === INICIALIZACIÓN ===
+    // ✅ CORRECCIÓN PÁDEL: Función sin AD
+    function getTraditionalDisplayScore(points, isTiebreak, tiebreakPoints = 0) {
+      if (isTiebreak) {
+        return tiebreakPoints.toString();
+      }
+      
+      const traditionalPoints = ['0', '15', '30', '40'];
+      
+      // ✅ CORRECCIÓN: En pádel no existe AD, siempre mostrar 40 para 3+ puntos
+      if (points >= 3) {
+        return '40';
+      }
+      
+      return traditionalPoints[points] || '40';
+    }
+
+    // INICIALIZACIÓN
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        // Obtener parámetros de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const clubId = urlParams.get('club');
         const courtId = urlParams.get('court') || "2";
         
-        // 🔐 VALIDACIÓN CRÍTICA: Verificar que tenemos clubId
         if (!clubId) {
-          showErrorScreen("URL inválida: falta el identificador del club. Contacte al administrador.");
+          showErrorScreen("URL inválida: falta el identificador del club.");
           return;
         }
         
-        // Validar formato UUID del club
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(clubId)) {
-          showErrorScreen("URL inválida: identificador de club incorrecto. Contacte al administrador.");
-          return;
-        }
-        
-        // Configurar variables globales con validación
         window.clubId = clubId;
         matchState.club_id = clubId;
         matchState.court = `Cancha ${courtId}`;
         
-        // Actualizar interfaz
         const tvCourtNumber = document.getElementById('court-number');
         if (tvCourtNumber) {
           tvCourtNumber.textContent = courtId;
         }
         
-        console.log("TV inicializada para:", clubId, matchState.court);
-        
-        // Inicializar con estado en espera
         resetDisplay();
-        
-        // Configurar suscripción a cambios en la base de datos
         setupRealtimeSubscription();
-        
-        // Cargar partido activo si existe
         await loadActiveMatch();
-        
-        // Generar QR
         setTimeout(generateQRCode, 100);
         
       } catch (error) {
@@ -541,236 +601,32 @@ g="es">
       }
     });
 
-    // Función para verificar el estado de la suscripción
-    window.checkSubscriptionStatus = function() {
-      console.log("Estado actual:");
-      console.log("- Club ID:", matchState.club_id);
-      console.log("- Cancha:", matchState.court);
-      console.log("- Partido ID:", matchState.id);
-      console.log("- Estado:", matchState.status);
-      
-      // Verificar conexión con Supabase
-      supabase
-        .from('matches')
-        .select('count', { count: 'exact' })
-        .eq('club_id', matchState.club_id)
-        .then(({ count, error }) => {
-          if (error) {
-            console.error("Error de conexión a Supabase:", error);
-          } else {
-            console.log(`Total de partidos del club: ${count}`);
-          }
-        });
-    };
-    
-    // Función para forzar una actualización
-    window.forceRefresh = function() {
-      console.log("Forzando actualización...");
-      loadActiveMatch();
-    };
-
-    // Función para convertir puntos al formato tradicional
-    function getTraditionalDisplayScore(points, otherPoints, isTiebreak) {
-      if (isTiebreak) {
-        return points; // En tiebreak mostrar puntos numéricos
-      }
-      
-      const traditionalPoints = ['0', '15', '30', '40'];
-      
-      // Si ambos jugadores tienen 3 o más puntos (40-40 o ventaja)
-      if (points >= 3 && otherPoints >= 3) {
-        if (points === otherPoints) {
-          return '40';
-        } else if (points > otherPoints) {
-          return 'AD';
-        } else {
-          return '40';
-        }
-      }
-      
-      return traditionalPoints[points] || '40';
-    }
-    
-    // Agregar botones de depuración a la interfaz (opcional)
-    function addDebugButtons() {
-      const debugDiv = document.createElement('div');
-      debugDiv.style.position = 'fixed';
-      debugDiv.style.bottom = '10px';
-      debugDiv.style.right = '10px';
-      debugDiv.style.zIndex = '1000';
-      
-      debugDiv.innerHTML = `
-        <button onclick="checkSubscriptionStatus()" style="padding: 5px 10px; margin: 2px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">Estado</button>
-        <button onclick="forceRefresh()" style="padding: 5px 10px; margin: 2px; background: #2ecc71; color: white; border: none; border-radius: 3px; cursor: pointer;">Actualizar</button>
-      `;
-      
-      document.body.appendChild(debugDiv);
-    }
-    
-    // Llamar a addDebugButtons después de que se cargue la página
-    setTimeout(addDebugButtons, 3000);
-
-    async function handleMatchUpdate(payload) {
-      try {
-        console.log("Actualización recibida:", payload.eventType, payload.new);
-        
-        // Si es un nuevo partido o una actualización
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          const match = payload.new;
-          
-          // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
-          if (match.club_id !== matchState.club_id) {
-            console.warn("Intento de mostrar partido de otro club detectado.");
-            return;
-          }
-          
-          // Si el partido está activo
-          if (match.status === 'active') {
-            console.log("Partido activo detectado, actualizando pantalla...");
-            await updateMatchDisplay(match);
-          } 
-          // Si el partido está pendiente
-          else if (match.status === 'pending') {
-            console.log("Partido pendiente detectado");
-            updateMatchStatus('pending');
-          }
-          // Si el partido ha finalizado
-          else if (match.status === 'completed') {
-            console.log("Partido completado detectado, reiniciando pantalla...");
-            resetDisplay();
-          }
-        } else if (payload.eventType === 'DELETE') {
-          // Si se eliminó el partido
-          console.log("Partido eliminado detectado, reiniciando pantalla...");
-          resetDisplay();
-        }
-      } catch (error) {
-        console.error("Error en handleMatchUpdate:", error);
-      }
-    }
-    
-    // Configurar suscripción en tiempo real - VERSIÓN CORREGIDA
-    function setupRealtimeSubscription() {
-      try {
-        console.log("Configurando suscripción para club:", matchState.club_id);
-        
-        // 🔄 SUSCRIPCIÓN MEJORADA: Filtrar por club Y cancha
-        const subscription = supabase
-          .channel('matches-channel')
-          .on('postgres_changes', 
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'matches',
-              filter: `club_id=eq.${matchState.club_id}`
-            }, 
-            (payload) => {
-              console.log("Evento recibido:", payload.eventType, payload.new);
-              
-              // 🔄 FILTRADO ADICIONAL: Verificar que el partido es de esta cancha
-              if (payload.new && payload.new.court === matchState.court) {
-                console.log("Partido coincide con esta cancha, procesando...");
-                handleMatchUpdate(payload);
-              } else if (payload.new) {
-                console.log("Partido ignorado (diferente cancha):", payload.new.court);
-              }
-            })
-          .subscribe((status) => {
-            console.log("Estado de suscripción:", status);
-          });
-          
-        console.log("Suscripción a cambios en tiempo real configurada correctamente");
-      } catch (error) {
-        console.error("Error al configurar suscripción:", error);
-        // Reintentar después de 5 segundos
-        setTimeout(setupRealtimeSubscription, 5000);
-      }
-    }
-    
-    // Cargar partido activo - VERSIÓN MEJORADA
-    async function loadActiveMatch() {
-      try {
-        console.log("Buscando partido activo para:", matchState.club_id, matchState.court);
-        
-        const { data: match, error } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('club_id', matchState.club_id)
-          .eq('court', matchState.court)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error al cargar partido activo:", error);
-          return;
-        }
-        
-        if (match) {
-          console.log("Partido activo encontrado:", match.id);
-          // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
-          if (match.club_id !== matchState.club_id) {
-            console.warn("Intento de cargar partido de otro club detectado.");
-            return;
-          }
-          
-          await updateMatchDisplay(match);
-        } else {
-          console.log("No hay partidos activos para esta cancha");
-          // Verificar si hay un partido pendiente
-          const { data: pendingMatch, error: pendingError } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('club_id', matchState.club_id)
-            .eq('court', matchState.court)
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-          if (pendingMatch && !pendingError) {
-            // 🔐 VERIFICACIÓN ADICIONAL: Asegurar que el partido pertenece al club
-            if (pendingMatch.club_id !== matchState.club_id) {
-              console.warn("Intento de cargar partido de otro club detectado.");
-              return;
-            }
-            
-            console.log("Partido pendiente encontrado:", pendingMatch.id);
-            updateMatchStatus('pending');
-          } else {
-            console.log("No hay partidos pendientes para esta cancha");
-          }
-        }
-      } catch (error) {
-        console.error("Error al cargar partido activo:", error);
-      }
-    }    
-    
-    // Actualizar la pantalla con datos del partido - VERSIÓN MODIFICADA
+    // ✅ CORRECCIÓN: Función mejorada para mostrar partido
     async function updateMatchDisplay(match) {
       try {
-        // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que el partido pertenece al club
         if (match.club_id !== matchState.club_id) {
-          console.warn("Intento de mostrar partido de otro club detectado.");
           return;
         }
         
-        // Actualizar estado interno
+        // Actualizar estado interno con TODOS los campos
         matchState = {
           ...matchState,
           id: match.id,
           club_id: match.club_id,
           court: match.court,
-          scoring_type: match.scoring_type,
+          scoring_type: match.scoring_type || "traditional",
           team_a_name: match.team_a_name || "EQUIPO A",
           team_b_name: match.team_b_name || "EQUIPO B",
           winner: match.winner,
           games_a: match.games_a || 0,
           games_b: match.games_b || 0,
+          sets_a: match.sets_a || 0,
+          sets_b: match.sets_b || 0,
           points_a: match.points_a || 0,
           points_b: match.points_b || 0,
           tiebreak: match.tiebreak || false,
+          tiebreak_points_a: match.tiebreak_points_a || 0,
+          tiebreak_points_b: match.tiebreak_points_b || 0,
           duration: match.duration || "00:00",
           status: match.status,
           team_a_players: match.team_a_players || ["Jugador 1", "Jugador 2"],
@@ -787,23 +643,44 @@ g="es">
         updatePlayersDisplay('team-a', matchState.team_a_players);
         updatePlayersDisplay('team-b', matchState.team_b_players);
         
-        // Actualizar puntuación según el sistema de puntuación
+        // ✅ CORRECCIÓN: Actualizar puntuación correctamente
+        const scoreAElement = document.getElementById('team-a-score');
+        const scoreBElement = document.getElementById('team-b-score');
+        
         if (matchState.scoring_type === 'traditional') {
-          // Usar formato tradicional
-          document.getElementById('team-a-score').textContent = 
-            getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
-          document.getElementById('team-b-score').textContent = 
-            getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
+          // Usar formato tradicional para pádel (sin AD)
+          scoreAElement.textContent = getTraditionalDisplayScore(
+            matchState.points_a, 
+            matchState.tiebreak,
+            matchState.tiebreak_points_a
+          );
+          scoreBElement.textContent = getTraditionalDisplayScore(
+            matchState.points_b, 
+            matchState.tiebreak,
+            matchState.tiebreak_points_b
+          );
+          
+          // ✅ CORRECCIÓN: Siempre el mismo estilo (no hay AD en pádel)
+          scoreAElement.className = 'score traditional-score';
+          scoreBElement.className = 'score traditional-score';
         } else {
-          // Mostrar puntos numéricos para modo americano
-          document.getElementById('team-a-score').textContent = matchState.points_a;
-          document.getElementById('team-b-score').textContent = matchState.points_b;
+          // Modo americano: puntos numéricos
+          scoreAElement.textContent = matchState.tiebreak ? matchState.tiebreak_points_a : matchState.points_a;
+          scoreBElement.textContent = matchState.tiebreak ? matchState.tiebreak_points_b : matchState.points_b;
+          scoreAElement.className = 'score';
+          scoreBElement.className = 'score';
         }
         
-        document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
-        document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
+        // ✅ CORRECCIÓN: Actualizar juegos y sets
+        document.getElementById('team-a-games').textContent = matchState.games_a;
+        document.getElementById('team-b-games').textContent = matchState.games_b;
+        document.getElementById('team-a-sets').textContent = matchState.sets_a;
+        document.getElementById('team-b-sets').textContent = matchState.sets_b;
         
-        // Actualizar sistema de puntuación
+        document.getElementById('total-points').textContent = matchState.tiebreak ? 
+          (matchState.tiebreak_points_a + matchState.tiebreak_points_b) : 
+          (matchState.points_a + matchState.points_b);
+        
         document.getElementById('scoring-system').textContent = 
           matchState.scoring_type === 'american' ? 'Sistema Americano' : 'Sistema Tradicional';
         
@@ -814,13 +691,12 @@ g="es">
           document.getElementById('tiebreak-container').style.display = 'none';
         }
         
-        // Iniciar temporizador si es un partido activo
-        if (matchState.status === 'active' && !matchState.timerInterval) {
+        // Iniciar temporizador si es necesario
+        if (matchState.status === 'active' && !matchState.timerInterval && match.created_at) {
           matchState.startTime = new Date(match.created_at);
           startTimer();
         }
         
-        // Actualizar estado
         updateMatchStatus(matchState.status);
         
       } catch (error) {
@@ -828,7 +704,102 @@ g="es">
       }
     }
 
-    // Actualizar visualización de jugadores
+    // Configurar suscripción en tiempo real
+    function setupRealtimeSubscription() {
+      try {
+        const subscription = supabase
+          .channel('matches-channel')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'matches',
+              filter: `club_id=eq.${matchState.club_id}`
+            }, 
+            (payload) => {
+              if (payload.new && payload.new.court === matchState.court) {
+                handleMatchUpdate(payload);
+              }
+            })
+          .subscribe();
+          
+      } catch (error) {
+        console.error("Error al configurar suscripción:", error);
+        setTimeout(setupRealtimeSubscription, 5000);
+      }
+    }
+
+    async function handleMatchUpdate(payload) {
+      try {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const match = payload.new;
+          
+          if (match.club_id !== matchState.club_id) {
+            return;
+          }
+          
+          if (match.status === 'active') {
+            await updateMatchDisplay(match);
+          } else if (match.status === 'pending') {
+            updateMatchStatus('pending');
+          } else if (match.status === 'completed') {
+            resetDisplay();
+          }
+        } else if (payload.eventType === 'DELETE') {
+          resetDisplay();
+        }
+      } catch (error) {
+        console.error("Error en handleMatchUpdate:", error);
+      }
+    }
+
+    async function loadActiveMatch() {
+      try {
+        const { data: match, error } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('club_id', matchState.club_id)
+          .eq('court', matchState.court)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error al cargar partido activo:", error);
+          return;
+        }
+        
+        if (match) {
+          if (match.club_id !== matchState.club_id) {
+            return;
+          }
+          
+          await updateMatchDisplay(match);
+        } else {
+          const { data: pendingMatch, error: pendingError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('club_id', matchState.club_id)
+            .eq('court', matchState.court)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (pendingMatch && !pendingError) {
+            if (pendingMatch.club_id !== matchState.club_id) {
+              return;
+            }
+            
+            updateMatchStatus('pending');
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar partido activo:", error);
+      }
+    }
+
     function updatePlayersDisplay(teamId, players) {
       const playersContainer = document.getElementById(`${teamId}-players`);
       playersContainer.innerHTML = '';
@@ -849,7 +820,6 @@ g="es">
       });
     }
     
-    // Actualizar estado del partido
     function updateMatchStatus(status) {
       const statusElement = document.getElementById('match-status');
       statusElement.className = 'match-status';
@@ -875,14 +845,12 @@ g="es">
       matchState.status = status;
     }
     
-    // Reiniciar visualización
     function resetDisplay() {
       if (matchState.timerInterval) {
         clearInterval(matchState.timerInterval);
         matchState.timerInterval = null;
       }
       
-      // Restablecer estado
       matchState = {
         ...matchState,
         id: null,
@@ -891,9 +859,13 @@ g="es">
         winner: null,
         games_a: 0,
         games_b: 0,
+        sets_a: 0,
+        sets_b: 0,
         points_a: 0,
         points_b: 0,
         tiebreak: false,
+        tiebreak_points_a: 0,
+        tiebreak_points_b: 0,
         duration: "00:00",
         status: "waiting",
         team_a_players: ["Jugador 1", "Jugador 2"],
@@ -901,11 +873,13 @@ g="es">
         startTime: null
       };
       
-      // Actualizar UI
       document.getElementById('team-a-score').textContent = '0';
       document.getElementById('team-b-score').textContent = '0';
+      document.getElementById('team-a-games').textContent = '0';
+      document.getElementById('team-b-games').textContent = '0';
+      document.getElementById('team-a-sets').textContent = '0';
+      document.getElementById('team-b-sets').textContent = '0';
       document.getElementById('total-points').textContent = '0';
-      document.getElementById('games-score').textContent = '0-0';
       document.getElementById('match-duration').textContent = '00:00';
       document.getElementById('tiebreak-container').style.display = 'none';
       
@@ -920,7 +894,6 @@ g="es">
       updateMatchStatus('waiting');
     }
     
-    // Iniciar temporizador
     function startTimer() {
       if (matchState.timerInterval) {
         clearInterval(matchState.timerInterval);
@@ -935,14 +908,12 @@ g="es">
         matchState.duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         document.getElementById('match-duration').textContent = matchState.duration;
         
-        // Actualizar duración en la base de datos cada minuto
         if (seconds === 0 && matchState.id) {
           updateMatchDuration();
         }
       }, 1000);
     }
     
-    // Actualizar duración en la base de datos
     async function updateMatchDuration() {
       try {
         const { error } = await supabase
@@ -960,26 +931,22 @@ g="es">
         console.error("Error al actualizar duración:", error);
       }
     }
-    
-    // Añadir punto (simulación) - VERSIÓN MEJORADA
+
     async function addPoint(team) {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para añadir puntos");
         return;
       }
       
-      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
       if (matchState.club_id !== window.clubId) {
         alert("No tiene permisos para modificar este partido.");
         return;
       }
       
       try {
-        // Determinar qué campo actualizar según el equipo
         const field = team === 'A' ? 'points_a' : 'points_b';
         const newValue = team === 'A' ? matchState.points_a + 1 : matchState.points_b + 1;
         
-        // Actualizar en la base de datos
         const { error } = await supabase
           .from('matches')
           .update({ 
@@ -991,60 +958,27 @@ g="es">
           
         if (error) {
           console.error("Error al actualizar punto:", error);
-          
-          // Manejo específico de error 401 (No autorizado)
-          if (error.code === '401' || error.status === 401) {
-            alert("Error de permisos. Contacte al administrador para configurar las políticas de seguridad.");
-          } else {
-            alert("Error al registrar el punto. Intenta nuevamente.");
-          }
-        } else {
-          console.log(`Punto registrado para equipo ${team}`);
-          
-          // Actualizar estado local
-          if (team === 'A') {
-            matchState.points_a = newValue;
-          } else {
-            matchState.points_b = newValue;
-          }
-          
-          // Actualizar UI - manejar formato tradicional
-          if (matchState.scoring_type === 'traditional') {
-            document.getElementById('team-a-score').textContent = 
-              getTraditionalDisplayScore(matchState.points_a, matchState.points_b, matchState.tiebreak);
-            document.getElementById('team-b-score').textContent = 
-              getTraditionalDisplayScore(matchState.points_b, matchState.points_a, matchState.tiebreak);
-          } else {
-            document.getElementById('team-a-score').textContent = matchState.points_a;
-            document.getElementById('team-b-score').textContent = matchState.points_b;
-          }
-          
-          document.getElementById('total-points').textContent = matchState.points_a + matchState.points_b;
         }
       } catch (error) {
         console.error("Error al añadir punto:", error);
       }
     }
-    
-    // Añadir juego (simulación)
+
     async function addGame(team) {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para añadir juegos");
         return;
       }
       
-      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
       if (matchState.club_id !== window.clubId) {
         alert("No tiene permisos para modificar este partido.");
         return;
       }
       
       try {
-        // Determinar qué campo actualizar según el equipo
         const field = team === 'A' ? 'games_a' : 'games_b';
         const newValue = team === 'A' ? matchState.games_a + 1 : matchState.games_b + 1;
         
-        // Actualizar en la base de datos
         const { error } = await supabase
           .from('matches')
           .update({ 
@@ -1052,37 +986,22 @@ g="es">
             updated_at: new Date().toISOString()
           })
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
+          .eq('club_id', window.clubId);
         
         if (error) {
           console.error("Error al actualizar juego:", error);
-          alert("Error al registrar el juego. Intenta nuevamente.");
-        } else {
-          console.log(`Juego registrado para equipo ${team}`);
-          
-          // Actualizar estado local
-          if (team === 'A') {
-            matchState.games_a = newValue;
-          } else {
-            matchState.games_b = newValue;
-          }
-          
-          // Actualizar UI
-          document.getElementById('games-score').textContent = `${matchState.games_a}-${matchState.games_b}`;
         }
       } catch (error) {
         console.error("Error al añadir juego:", error);
       }
-    }    
-    
-    // Alternar tiebreak
+    }
+
     async function toggleTiebreak() {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para modificar el tiebreak");
         return;
       }
       
-      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
       if (matchState.club_id !== window.clubId) {
         alert("No tiene permisos para modificar este partido.");
         return;
@@ -1091,7 +1010,6 @@ g="es">
       try {
         const newTiebreakValue = !matchState.tiebreak;
         
-        // Actualizar en la base de datos
         const { error } = await supabase
           .from('matches')
           .update({ 
@@ -1099,54 +1017,35 @@ g="es">
             updated_at: new Date().toISOString()
           })
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId); // 🔐 Filtro adicional de seguridad
+          .eq('club_id', window.clubId);
           
         if (error) {
           console.error("Error al actualizar tiebreak:", error);
-          alert("Error al modificar el tiebreak. Intenta nuevamente.");
-        } else {
-          console.log(`Tiebreak ${newTiebreakValue ? 'activado' : 'desactivado'}`);
-          
-          // Actualizar estado local
-          matchState.tiebreak = newTiebreakValue;
-          
-          // Actualizar UI
-          if (matchState.tiebreak) {
-            document.getElementById('tiebreak-container').style.display = 'block';
-          } else {
-            document.getElementById('tiebreak-container').style.display = 'none';
-          }
         }
       } catch (error) {
         console.error("Error al alternar tiebreak:", error);
       }
-    }   
+    }
 
-    // Finalizar partido - CON MEJOR MANEJO DE ERRORES
     async function endMatch() {
       if (!matchState.id || matchState.status !== 'active') {
         alert("No hay un partido activo para finalizar");
         return;
       }
       
-      // 🔐 VERIFICACIÓN DE SEGURIDAD: Asegurar que estamos modificando un partido de nuestro club
       if (matchState.club_id !== window.clubId) {
         alert("No tiene permisos para modificar este partido.");
         return;
       }
       
       try {
-        // Determinar ganador
         let winner = null;
         if (matchState.scoring_type === 'traditional') {
-          // Lógica para determinar ganador en sistema tradicional
           winner = matchState.games_a > matchState.games_b ? 'team_a' : 'team_b';
         } else {
-          // Lógica para determinar ganador en sistema americano
           winner = matchState.points_a > matchState.points_b ? 'team_a' : 'team_b';
         }
         
-        // Actualizar en la base de datos
         const { error } = await supabase
           .from('matches')
           .update({ 
@@ -1159,32 +1058,16 @@ g="es">
           
         if (error) {
           console.error("Error al finalizar partido:", error);
-          
-          // Mostrar mensaje de error específico
-          let errorMessage = "Error al finalizar el partido. Intenta nuevamente.";
-          
-          if (error.code === '401' || error.status === 401) {
-            errorMessage = "Error de permisos. Contacte al administrador.";
-          } else if (error.message) {
-            errorMessage = `Error: ${error.message}`;
-          }
-          
-          alert(errorMessage);
         } else {
-          console.log("Partido finalizado");
           resetDisplay();
         }
       } catch (error) {
         console.error("Error al finalizar partido:", error);
-        alert("Error inesperado al finalizar el partido.");
       }
-    }    
-    
-    // Función para generar QR
+    }
+
     function generateQRCode() {
-      // 🔐 GENERACIÓN SEGURA: Usar solo el club_id de la URL actual
       if (!window.clubId) {
-        console.error("No se puede generar QR: falta clubId");
         return;
       }
       
@@ -1194,14 +1077,11 @@ g="es">
       const qrElement = document.getElementById('qrcode');
       if (!qrElement) return;
     
-      // Limpiar contenido previo
       qrElement.innerHTML = '';      
     
-      // Crear un elemento canvas para el QR
       const canvas = document.createElement('canvas');
       qrElement.appendChild(canvas);
     
-      // Generar QR
       try {
         QRCode.toCanvas(canvas, registrationUrl, {
           width: 200,
@@ -1210,26 +1090,18 @@ g="es">
             dark: '#2c3e50',
             light: '#ffffff'
           }
-        }, function(error) {
-          if (error) {
-            console.error("Error al generar QR:", error);
-            qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error al generar QR</div>';
-          }
         });
       } catch (error) {
-        console.error("Error en QRCode.toCanvas:", error);
         qrElement.innerHTML = '<div style="color: white; padding: 20px; text-align: center;">Error al generar QR</div>';
       }
-    }       
-    
-    // Función para mostrar errores
+    }
+
     function showErrorScreen(message) {
       document.body.innerHTML = `
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center; padding: 20px; background: #2c3e50; color: white;">
           <h1 style="color: #e74c3c; margin-bottom: 20px; font-size: 2rem;">Error de Configuración</h1>
           <p style="margin-bottom: 30px; font-size: 1.2rem; max-width: 500px;">${message}</p>
           <button onclick="location.reload()" style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem;">Reintentar</button>
-          <p style="margin-top: 30px; color: #7f8c8d; font-size: 0.9rem;">Si el problema persiste, contacte al administrador del sistema.</p>
         </div>
       `;
     }
