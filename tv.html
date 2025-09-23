@@ -746,6 +746,22 @@
         setTimeout(setupRealtimeSubscription, 5000);
       }
     }
+
+    // ✅ AGREGA esta función en tv.html (antes de handleMatchUpdate)
+    function debugMatchData(match, eventType) {
+      console.log("=== 🎾 DEBUG MATCH DATA ===");
+      console.log("Evento:", eventType);
+      console.log("ID:", match.id);
+      console.log("Status:", match.status);
+      console.log("Sets:", match.sets_a, "-", match.sets_b);
+      console.log("Games:", match.games_a, "-", match.games_b);
+      console.log("Points:", match.points_a, "-", match.points_b);
+      console.log("Tiebreak:", match.tiebreak);
+      console.log("Tiebreak Points:", match.tiebreak_points_a, "-", match.tiebreak_points_b);
+      console.log("Scoring Type:", match.scoring_type);
+      console.log("Court:", match.court);
+      console.log("============================");
+    }
 	
     // ✅ AGREGAR en tv.html para mejor seguimiento
     function debugScoreUpdate(match) {
