@@ -1181,28 +1181,21 @@
 	  if (window.gameEnded) {
 	    return;
 	  }
-	
-	  console.log(`=== PUNTO PARA EQUIPO ${team} ===`);
-	  console.log(`Antes: Points: ${window.scoreA}-${window.scoreB}, Games: ${window.gamesA}-${window.gamesB}, Sets: ${window.setsA}-${window.setsB}`);
-	
+	  
 	  // Si está en tiebreak
 	  if (window.inTiebreak) {
 	    if (team === 'A') window.tiebreakPointsA++;
 	    else window.tiebreakPointsB++;
-	  
 	    const pointsA = window.tiebreakPointsA;
 	    const pointsB = window.tiebreakPointsB;
 	    const diff = Math.abs(pointsA - pointsB);
 	    
-	    console.log(`Tiebreak: ${pointsA}-${pointsB}, diff: ${diff}`);
-	    
-	    // ✅ Tiebreak a 7 puntos con diferencia de 2
+	    // ✅ CORRECTO: Tiebreak necesita 7 puntos con diferencia de 2
 	    if ((pointsA >= 7 || pointsB >= 7) && diff >= 2) {
-	      console.log(`Tiebreak ganado por equipo ${team}`);
 	      if (pointsA > pointsB) {
-	        window.gamesA++;
+	        window.gamesA = 7; // Para mostrar 7-6
 	      } else {
-	        window.gamesB++;
+	        window.gamesB = 7; // Para mostrar 6-7
 	      }
 	      window.completeSet();
 	      return;
@@ -1210,118 +1203,87 @@
 	    window.updateScoreboard();
 	    return;
 	  }
-	
-	  // ✅ INCREMENTAR PUNTOS CORRECTAMENTE
+	  
+	  // Incrementar puntos
 	  if (team === 'A') {
 	    window.scoreA++;
 	  } else {
 	    window.scoreB++;
 	  }
-	
+	  
 	  const scoreA = window.scoreA;
 	  const scoreB = window.scoreB;
-	
-	  console.log(`Después de incremento: ${scoreA}-${scoreB}`);
-	
-	  // ✅ LÓGICA CORREGIDA DE VICTORIA DEL JUEGO
-	  let gameWon = false;
-	  let winningTeam = '';
-	
-	  // Caso 1: VICTORIA NORMAL (al menos 4 puntos con ventaja de 2)
-	  if (scoreA >= 4 && scoreA - scoreB >= 2) {
-	    gameWon = true;
-	    winningTeam = 'A';
-	    console.log("Victoria normal - Equipo A");
-	  } else if (scoreB >= 4 && scoreB - scoreA >= 2) {
-	    gameWon = true;
-	    winningTeam = 'B';
-	    console.log("Victoria normal - Equipo B");
-	  }
+	  console.log(`Punto para equipo ${team}. Marcador: ${scoreA}-${scoreB}`);
 	  
-	  // Caso 2: PUNTO DE ORO (40-40 -> siguiente punto gana)
-	  else if (scoreA >= 3 && scoreB >= 3) {
-	    if (scoreA === scoreB + 1) {
-	      gameWon = true;
-	      winningTeam = 'A';
-	      console.log("Punto de oro - Equipo A");
-	    } else if (scoreB === scoreA + 1) {
-	      gameWon = true;
-	      winningTeam = 'B';
-	      console.log("Punto de oro - Equipo B");
-	    }
-	  }
-	
-	  // ✅ SI SE GANÓ EL JUEGO
-	  if (gameWon) {
-	    if (winningTeam === 'A') {
+	  // PRIMERO: Verificar si se llegó a 40-40 y se marcó un punto (punto de oro)
+	  if (scoreA >= 3 && scoreB >= 3 && Math.abs(scoreA - scoreB) === 1) {
+	    console.log("PUNTO DE ORO: Se marcó un punto después del 40-40");
+	    if (scoreA > scoreB) {
 	      window.gamesA++;
-	      console.log(`Equipo A gana el juego. Juegos: ${window.gamesA}-${window.gamesB}`);
+	      window.scoreA = 0;
+	      window.scoreB = 0;
+	      console.log("Equipo A gana el juego (punto de oro)");
 	    } else {
 	      window.gamesB++;
-	      console.log(`Equipo B gana el juego. Juegos: ${window.gamesB}-${window.gamesA}`);
-	    }
-	    
-	    // ✅ RESETEAR PUNTOS INMEDIATAMENTE
-	    window.scoreA = 0;
-	    window.scoreB = 0;
-	    
-	    console.log(`Puntos reseteados a: ${window.scoreA}-${window.scoreB}`);
-	
-	    // ✅ VERIFICAR VICTORIA DEL SET
-	    setTimeout(() => {
-	      window.checkSetWin();
-	    }, 50);
-	
-	    // ✅ ACTUALIZAR BASE DE DATOS INMEDIATAMENTE
-	    if (window.lastMatchId) {
-	      const updateData = {
-	        games_a: window.gamesA,
-	        games_b: window.gamesB,
-	        points_a: 0, // ✅ CRÍTICO: Resetear a 0
-	        points_b: 0,
-	        updated_at: new Date().toISOString()
-	      };
-	      
-	      console.log('🔄 Actualizando BD después de juego ganado:', updateData);
-	      
-	      window.supabase
-	        .from('matches')
-	        .update(updateData)
-	        .eq('id', window.lastMatchId)
-	        .then(({ error }) => {
-	          if (error) {
-	            console.error('❌ Error al actualizar BD:', error);
-	          } else {
-	            console.log('✅ BD actualizada correctamente después de juego');
-	          }
-	        });
+	      window.scoreA = 0;
+	      window.scoreB = 0;
+	      console.log("Equipo B gana el juego (punto de oro)");
 	    }
 	  }
-	
-	  // ✅ ACTUALIZAR INTERFAZ
+	  // SEGUNDO: Verificar victoria normal (sin llegar a 40-40)
+	  else if (scoreA >= 3 && scoreA - scoreB >= 1) {
+	    window.gamesA++;
+	    window.scoreA = 0;
+	    window.scoreB = 0;
+	    console.log("Equipo A gana el juego");
+	  } 
+	  else if (scoreB >= 3 && scoreB - scoreA >= 1) {
+	    window.gamesB++;
+	    window.scoreA = 0;
+	    window.scoreB = 0;
+	    console.log("Equipo B gana el juego");
+	  }
+	  // TERCERO: Verificar si estamos entrando a 40-40
+	  else if (scoreA >= 3 && scoreB >= 3 && scoreA === scoreB) {
+	    console.log("40-40 - Punto de oro: el siguiente punto gana el juego");
+	  }
+	  
+	  // Verificar set solo si se ganó un juego en este punto
+	  if ((team === 'A' && window.scoreA === 0) || (team === 'B' && window.scoreB === 0)) {
+	    // Pequeño delay para asegurar que la BD se actualizó primero
+	    setTimeout(() => {
+	      window.checkSetWin();
+	    }, 100);
+	  }
+	  
 	  window.updateScoreboard();
 	  
-	  // ✅ ACTUALIZAR BD CON PUNTOS ACTUALES (si no se ganó juego)
-	  if (!gameWon && window.lastMatchId) {
+	  // ✅ ACTUALIZAR BASE DE DATOS INMEDIATAMENTE
+	  if (window.lastMatchId) {
 	    const updateData = {
+	      games_a: window.gamesA,
+	      games_b: window.gamesB,
 	      points_a: window.scoreA,
 	      points_b: window.scoreB,
 	      updated_at: new Date().toISOString()
 	    };
 	    
+	    if (window.inTiebreak) {
+	      updateData.tiebreak = true;
+	      updateData.tiebreak_points_a = window.tiebreakPointsA;
+	      updateData.tiebreak_points_b = window.tiebreakPointsB;
+	    }
+	    
 	    window.supabase
 	      .from('matches')
 	      .update(updateData)
 	      .eq('id', window.lastMatchId)
-	      .then(({ error }) => {
-	        if (error) {
-	          console.error('Error al actualizar puntos:', error);
-	        }
+	      .then(() => {
+	        console.log("Puntuación actualizada en BD");
 	      });
 	  }
-	
-	  console.log(`Final: Points: ${window.scoreA}-${window.scoreB}, Games: ${window.gamesA}-${window.gamesB}`);
-	};			
+	};
+			
 	
 	// Manejar puntos en modo americano
 	window.addAmericanPoint = function(team) {
