@@ -1178,25 +1178,20 @@
 	
 	// Manejar puntos en modo tradicional
 	window.addTraditionalPoint = function(team) {
-	  if (window.gameEnded) {
-	    return;
-	  }
+	  if (window.gameEnded) return;
 	  
 	  // Si está en tiebreak
 	  if (window.inTiebreak) {
 	    if (team === 'A') window.tiebreakPointsA++;
 	    else window.tiebreakPointsB++;
+	    
 	    const pointsA = window.tiebreakPointsA;
 	    const pointsB = window.tiebreakPointsB;
 	    const diff = Math.abs(pointsA - pointsB);
 	    
-	    // ✅ CORRECTO: Tiebreak necesita 7 puntos con diferencia de 2
 	    if ((pointsA >= 7 || pointsB >= 7) && diff >= 2) {
-	      if (pointsA > pointsB) {
-	        window.gamesA = 7; // Para mostrar 7-6
-	      } else {
-	        window.gamesB = 7; // Para mostrar 6-7
-	      }
+	      if (pointsA > pointsB) window.gamesA = 7;
+	      else window.gamesB = 7;
 	      window.completeSet();
 	      return;
 	    }
@@ -1205,60 +1200,42 @@
 	  }
 	  
 	  // Incrementar puntos
-	  if (team === 'A') {
-	    window.scoreA++;
-	  } else {
-	    window.scoreB++;
-	  }
+	  if (team === 'A') window.scoreA++;
+	  else window.scoreB++;
 	  
 	  const scoreA = window.scoreA;
 	  const scoreB = window.scoreB;
-	  console.log(`Punto para equipo ${team}. Marcador: ${scoreA}-${scoreB}`);
 	  
-	  // PRIMERO: Verificar si se llegó a 40-40 y se marcó un punto (punto de oro)
-	  if (scoreA >= 3 && scoreB >= 3 && Math.abs(scoreA - scoreB) === 1) {
-	    console.log("PUNTO DE ORO: Se marcó un punto después del 40-40");
+	  console.log(`🎾 Punto para equipo ${team}. Puntos: ${scoreA}-${scoreB}`);
+	  
+	  // ✅ LÓGICA CORREGIDA PARA PÁDEL (SIN AD)
+	  // Condiciones para ganar un juego:
+	  // 1. Tener al menos 4 puntos y ventaja de al menos 1 punto
+	  // 2. Después de 40-40, el siguiente punto gana
+	  
+	  if ((scoreA >= 4 && scoreA - scoreB >= 1) || (scoreB >= 4 && scoreB - scoreA >= 1)) {
+	    // Verificar si es después de 40-40 o victoria normal
 	    if (scoreA > scoreB) {
 	      window.gamesA++;
-	      window.scoreA = 0;
-	      window.scoreB = 0;
-	      console.log("Equipo A gana el juego (punto de oro)");
+	      console.log("✅ Equipo A gana el juego");
 	    } else {
 	      window.gamesB++;
-	      window.scoreA = 0;
-	      window.scoreB = 0;
-	      console.log("Equipo B gana el juego (punto de oro)");
+	      console.log("✅ Equipo B gana el juego");
 	    }
-	  }
-	  // SEGUNDO: Verificar victoria normal (sin llegar a 40-40)
-	  else if (scoreA >= 3 && scoreA - scoreB >= 1) {
-	    window.gamesA++;
+	    
+	    // Reiniciar puntos
 	    window.scoreA = 0;
 	    window.scoreB = 0;
-	    console.log("Equipo A gana el juego");
-	  } 
-	  else if (scoreB >= 3 && scoreB - scoreA >= 1) {
-	    window.gamesB++;
-	    window.scoreA = 0;
-	    window.scoreB = 0;
-	    console.log("Equipo B gana el juego");
-	  }
-	  // TERCERO: Verificar si estamos entrando a 40-40
-	  else if (scoreA >= 3 && scoreB >= 3 && scoreA === scoreB) {
-	    console.log("40-40 - Punto de oro: el siguiente punto gana el juego");
-	  }
-	  
-	  // Verificar set solo si se ganó un juego en este punto
-	  if ((team === 'A' && window.scoreA === 0) || (team === 'B' && window.scoreB === 0)) {
-	    // Pequeño delay para asegurar que la BD se actualizó primero
-	    setTimeout(() => {
-	      window.checkSetWin();
-	    }, 100);
+	    
+	    console.log(`📊 Juegos actualizados: ${window.gamesA}-${window.gamesB}`);
+	    
+	    // Verificar set
+	    setTimeout(() => window.checkSetWin(), 100);
 	  }
 	  
 	  window.updateScoreboard();
 	  
-	  // ✅ ACTUALIZAR BASE DE DATOS INMEDIATAMENTE
+	  // Actualizar BD
 	  if (window.lastMatchId) {
 	    const updateData = {
 	      games_a: window.gamesA,
@@ -1274,16 +1251,9 @@
 	      updateData.tiebreak_points_b = window.tiebreakPointsB;
 	    }
 	    
-	    window.supabase
-	      .from('matches')
-	      .update(updateData)
-	      .eq('id', window.lastMatchId)
-	      .then(() => {
-	        console.log("Puntuación actualizada en BD");
-	      });
+	    window.supabase.from('matches').update(updateData).eq('id', window.lastMatchId);
 	  }
-	};
-			
+	};		
 	
 	// Manejar puntos en modo americano
 	window.addAmericanPoint = function(team) {
