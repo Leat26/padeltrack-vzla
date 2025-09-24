@@ -1278,32 +1278,33 @@
 	    window.updateScoreboard();
 	    return;
 	  }
-	
+	  
 	  window.updateScoreboard();
-
-  	  if (window.lastMatch	  Id) {
-  	    const updateData = {
-  	      games_a: window.gamesA,
-  	      games_b: window.gamesB,
-  	      points_a: window.scoreA,
-  	      points_b: window.scoreB,
-  	      updated_at: new Date().toISOString()
-  	    };
-  	    
-  	    if (window.inTiebreak) {
-  	      updateData.tiebreak = true;
-  	      updateData.tiebreak_points_a = window.tiebreakPointsA;
-  	      updateData.tiebreak_points_b = window.tiebreakPointsB;
-  	    }
-  	    
-  	    window.supabase
-  	      .from('matches')
-  	      .update(updateData)
-  	      .eq('id', window.lastMatchId)
-  	      .then(() => {
-  	        console.log("📊 Puntuación actualizada en BD");
-  	      });
-  	  }	  	  
+	    
+	  // ✅ CORRECCIÓN: Sin espacio en lastMatchId
+	  if (window.lastMatchId) {
+	    const updateData = {
+	      games_a: window.gamesA,
+	      games_b: window.gamesB,
+	      points_a: window.scoreA,
+	      points_b: window.scoreB,
+	      updated_at: new Date().toISOString()
+	    };
+	    
+	    if (window.inTiebreak) {
+	      updateData.tiebreak = true;
+	      updateData.tiebreak_points_a = window.tiebreakPointsA;
+	      updateData.tiebreak_points_b = window.tiebreakPointsB;
+	    }
+	    
+	    window.supabase
+	      .from('matches')
+	      .update(updateData)
+	      .eq('id', window.lastMatchId)
+	      .then(() => {
+	        console.log("📊 Puntuación actualizada en BD");
+	      });
+	  }      
 	};	
 	
 	// Manejar puntos en modo americano
