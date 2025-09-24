@@ -1178,82 +1178,133 @@
 	
 	// Manejar puntos en modo tradicional
 	window.addTraditionalPoint = function(team) {
-	  if (window.gameEnded) return;
-	  
-	  // Si está en tiebreak
+	  if (window.gameEnded) {
+	    return;
+	  }
+	
+	  // Si está en tiebreak, manejar puntos de tiebreak
 	  if (window.inTiebreak) {
 	    if (team === 'A') window.tiebreakPointsA++;
 	    else window.tiebreakPointsB++;
-	    
+	  
+	    // En pádel, el tiebreak se gana con diferencia de 2 puntos (mínimo 7 puntos)
 	    const pointsA = window.tiebreakPointsA;
 	    const pointsB = window.tiebreakPointsB;
 	    const diff = Math.abs(pointsA - pointsB);
 	    
 	    if ((pointsA >= 7 || pointsB >= 7) && diff >= 2) {
-	      if (pointsA > pointsB) window.gamesA = 7;
-	      else window.gamesB = 7;
+	      // Determinar ganador del tiebreak y del set
+	      if (pointsA > pointsB) {
+	        window.gamesA = 7; // Para mostrar 7-6 en el marcador
+	      } else {
+	        window.gamesB = 7; // Para mostrar 6-7 en el marcador
+	      }
 	      window.completeSet();
 	      return;
 	    }
 	    window.updateScoreboard();
 	    return;
 	  }
-	  
-	  // Incrementar puntos
-	  if (team === 'A') window.scoreA++;
-	  else window.scoreB++;
-	  
+	
+	  // Lógica de puntuación tradicional para pádel
+	  if (team === 'A') {
+	    window.scoreA++;
+	  } else {
+	    window.scoreB++;
+	  }
+	
+	  // Verificar si se ganó el juego
 	  const scoreA = window.scoreA;
 	  const scoreB = window.scoreB;
-	  
-	  console.log(`🎾 Punto para equipo ${team}. Puntos: ${scoreA}-${scoreB}`);
-	  
-	  // ✅ LÓGICA CORREGIDA PARA PÁDEL (SIN AD)
-	  // Condiciones para ganar un juego:
-	  // 1. Tener al menos 4 puntos y ventaja de al menos 1 punto
-	  // 2. Después de 40-40, el siguiente punto gana
-	  
-	  if ((scoreA >= 4 && scoreA - scoreB >= 1) || (scoreB >= 4 && scoreB - scoreA >= 1)) {
-	    // Verificar si es después de 40-40 o victoria normal
-	    if (scoreA > scoreB) {
+	
+	  // En pádel, se aplica el punto de oro: en deuce (40-40), el siguiente punto gana
+	  if (scoreA >= 3 && scoreB >= 3) {
+	    // Si ambos tienen al menos 40 puntos (3 puntos)
+	    if (scoreA === scoreB + 1 || scoreB === scoreA + 1) {
+	      // Punto de oro: el siguiente punto gana
+	      if (scoreA > scoreB && team === 'A') {
+	        window.gamesA++;
+	        window.scoreA = 0;
+	        window.scoreB = 0;
+	      } else if (scoreB > scoreA && team === 'B') {
+	        window.gamesB++;
+	        window.scoreA = 0;
+	        window.scoreB = 0;
+	      }
+	    } else if (scoreA > scoreB + 1 || scoreB > scoreA + 1) {
+	      // Si ya había ventaja de 2 puntos (no debería ocurrir con punto de oro)
+	      if (team === 'A') {
+	        window.gamesA++;
+	      } else {
+	        window.gamesB++;
+	      }
+	      window.scoreA = 0;
+	      window.scoreB = 0;
+	    }
+	  } else if (scoreA >= 4 || scoreB >= 4) {
+	    // Si un jugador llega a 4 puntos con ventaja de al menos 2
+	    if (scoreA >= scoreB + 2) {
 	      window.gamesA++;
-	      console.log("✅ Equipo A gana el juego");
-	    } else {
+	      window.scoreA = 0;
+	      window.scoreB = 0;
+	    } else if (scoreB >= scoreA + 2) {
 	      window.gamesB++;
-	      console.log("✅ Equipo B gana el juego");
+	      window.scoreA = 0;
+	      window.scoreB = 0;
 	    }
-	    
-	    // Reiniciar puntos
-	    window.scoreA = 0;
-	    window.scoreB = 0;
-	    
-	    console.log(`📊 Juegos actualizados: ${window.gamesA}-${window.gamesB}`);
-	    
-	    // Verificar set
-	    setTimeout(() => window.checkSetWin(), 100);
 	  }
-	  
+	
+	  // Verificar si se ganó el set
+	  const minWinGames = 6;
+	  const maxGame = 7;
+	  const minDiff = 2;
+	
+	  // Caso 1: Gana con 6 juegos (6-0, 6-1, 6-2, 6-3, 6-4)
+	  if ((window.gamesA === minWinGames && window.gamesB <= minWinGames - minDiff) ||
+	      (window.gamesB === minWinGames && window.gamesA <= minWinGames - minDiff)) {
+	    window.completeSet();
+	    return;
+	  }
+	  // Caso 2: Gana con 7-5
+	  else if ((window.gamesA === maxGame && window.gamesB === maxGame - minDiff) ||
+	           (window.gamesB === maxGame && window.gamesA === maxGame - minDiff)) {
+	    window.completeSet();
+	    return;
+	  }
+	  // Caso 3: 6-6 → activar tiebreak
+	  else if (window.gamesA === 6 && window.gamesB === 6) {
+	    window.inTiebreak = true;
+	    window.showNotification('¡Tiebreak activado! Juega a 7 puntos');
+	    window.updateScoreboard();
+	    return;
+	  }
+	
 	  window.updateScoreboard();
-	  
-	  // Actualizar BD
-	  if (window.lastMatchId) {
-	    const updateData = {
-	      games_a: window.gamesA,
-	      games_b: window.gamesB,
-	      points_a: window.scoreA,
-	      points_b: window.scoreB,
-	      updated_at: new Date().toISOString()
-	    };
-	    
-	    if (window.inTiebreak) {
-	      updateData.tiebreak = true;
-	      updateData.tiebreak_points_a = window.tiebreakPointsA;
-	      updateData.tiebreak_points_b = window.tiebreakPointsB;
-	    }
-	    
-	    window.supabase.from('matches').update(updateData).eq('id', window.lastMatchId);
-	  }
-	};		
+
+  	  if (window.lastMatch	  Id) {
+  	    const updateData = {
+  	      games_a: window.gamesA,
+  	      games_b: window.gamesB,
+  	      points_a: window.scoreA,
+  	      points_b: window.scoreB,
+  	      updated_at: new Date().toISOString()
+  	    };
+  	    
+  	    if (window.inTiebreak) {
+  	      updateData.tiebreak = true;
+  	      updateData.tiebreak_points_a = window.tiebreakPointsA;
+  	      updateData.tiebreak_points_b = window.tiebreakPointsB;
+  	    }
+  	    
+  	    window.supabase
+  	      .from('matches')
+  	      .update(updateData)
+  	      .eq('id', window.lastMatchId)
+  	      .then(() => {
+  	        console.log("📊 Puntuación actualizada en BD");
+  	      });
+  	  }	  	  
+	};	
 	
 	// Manejar puntos en modo americano
 	window.addAmericanPoint = function(team) {
@@ -1325,7 +1376,8 @@
 	    }
 	  });
 	}
-		
+
+/* Se comenta momentaneamente la funcion updateAddPointFunction
 	// ✅ Función mejorada: Actualizar addPoint para usar el partido actual
 	window.updateAddPointFunction = function() {
 	  // Verificar que window.addPoint exista y sea una función
@@ -1399,7 +1451,8 @@
 	  // Marcar como modificada para evitar múltiples envolturas
 	  window.addPoint.hasBeenWrapped = true;
 	};
-	
+*/
+
 	// Resetear el juego (marcador, temporizador, variables)
 	window.resetGame = function() {
 	
@@ -2249,7 +2302,7 @@
 	    }
 	    
 	    // ✅ Actualizar la función addPoint para que use el partido actual
-	    window.updateAddPointFunction();
+	    //window.updateAddPointFunction();
 	    
 	    // ✅ DETECTAR MODO DE OPERACIÓN (QR vs CLUB)
 	    const urlParams = new URLSearchParams(window.location.search);
