@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PadelTrack - Pantalla TV</title>
@@ -494,15 +495,21 @@
         </div>
 
         <div class="simulation-controls">
-          <h3>Simulación de Puntos (Para pruebas)</h3>
+          <h3>Controles de Simulación (Modo Pruebas)</h3>
           <div class="simulation-buttons">
-            <button class="sim-btn team-a" onclick="addPoint('A')">Punto Equipo A</button>
-            <button class="sim-btn team-b" onclick="addPoint('B')">Punto Equipo B</button>
-            <button class="sim-btn secondary" onclick="addGame('A')">Juego Equipo A</button>
-            <button class="sim-btn secondary" onclick="addGame('B')">Juego Equipo B</button>
-            <button class="sim-btn" style="background-color: #9b59b6;" onclick="toggleTiebreak()">Toggle Tiebreak</button>
-            <button class="sim-btn" style="background-color: #e74c3c;" onclick="endMatch()">Finalizar Partido</button>
+            <button class="sim-btn team-a" onclick="addPoint('A')">
+              <i class="fas fa-plus"></i> Punto Equipo A
+            </button>
+            <button class="sim-btn team-b" onclick="addPoint('B')">
+              <i class="fas fa-plus"></i> Punto Equipo B
+            </button>
+            <button class="sim-btn" style="background-color: #e74c3c;" onclick="endMatch()">
+              <i class="fas fa-flag-checkered"></i> Finalizar Partido
+            </button>
           </div>
+          <p style="font-size: 12px; opacity: 0.7; margin-top: 10px;">
+            Estos controles simulan la lógica real de pádel y actualizan la base de datos
+          </p>
         </div>
       </div>
       
@@ -974,94 +981,234 @@
 
     async function addPoint(team) {
       if (!matchState.id || matchState.status !== 'active') {
-        alert("No hay un partido activo para añadir puntos");
-        return;
-      }
-      
-      if (matchState.club_id !== window.clubId) {
-        alert("No tiene permisos para modificar este partido.");
+        console.log("❌ No hay partido activo para añadir puntos");
         return;
       }
       
       try {
-        const field = team === 'A' ? 'points_a' : 'points_b';
-        const newValue = team === 'A' ? matchState.points_a + 1 : matchState.points_b + 1;
-        
-        const { error } = await supabase
+        // Obtener el estado actual del partido
+        const { data: currentMatch, error } = await supabase
           .from('matches')
-          .update({ 
-            [field]: newValue,
-            updated_at: new Date().toISOString()
-          })
+          .select('*')
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId);
+          .single();
           
         if (error) {
-          console.error("Error al actualizar punto:", error);
+          console.error("Error al obtener partido:", error);
+          return;
         }
+        
+        // Calcular nuevos puntos según la lógica de pádel
+        let newPointsA = currentMatch.points_a || 0;
+        let newPointsB = currentMatch.points_b || 0;
+        let newGamesA = currentMatch.games_a || 0;
+        let newGamesB = currentMatch.games_b || 0;
+        let newSetsA = currentMatch.sets_a || 0;
+        let newSetsB = currentMatch.sets_b || 0;
+        let tiebreak = currentMatch.tiebreak || false;
+        let tiebreakPointsA = currentMatch.tiebreak_points_a || 0;
+        let tiebreakPointsB = currentMatch.tiebreak_points_b || 0;
+        
+        console.log(`🎯 Simulando punto para equipo ${team}`);
+        console.log(`Estado actual: Puntos ${newPointsA}-${newPointsB}, Juegos ${newGamesA}-${newGamesB}`);
+        
+        // ✅ LÓGICA IDÉNTICA A index.html - PÁDEL SIN AD
+        if (tiebreak) {
+          // Lógica de tiebreak
+          if (team === 'A') tiebreakPointsA++;
+          else tiebreakPointsB++;
+          
+          const diff = Math.abs(tiebreakPointsA - tiebreakPointsB);
+          if ((tiebreakPointsA >= 7 || tiebreakPointsB >= 7) && diff >= 2) {
+            // Ganador del tiebreak
+            if (tiebreakPointsA > tiebreakPointsB) newGamesA = 7;
+            else newGamesB = 7;
+            
+            // Determinar ganador del set
+            const setWinner = tiebreakPointsA > tiebreakPointsB ? 'A' : 'B';
+            if (setWinner === 'A') newSetsA++;
+            else newSetsB++;
+            
+            // Resetear para nuevo set
+            tiebreak = false;
+            tiebreakPointsA = 0;
+            tiebreakPointsB = 0;
+            newPointsA = 0;
+            newPointsB = 0;
+            newGamesA = 0;
+            newGamesB = 0;
+          }
+        } else {
+          // Lógica normal de puntos
+          if (team === 'A') newPointsA++;
+          else newPointsB++;
+          
+          const scoreA = newPointsA;
+          const scoreB = newPointsB;
+          
+          // ✅ LÓGICA DE PÁDEL: 4 puntos con ventaja de 1, o punto de oro después de 40-40
+          if ((scoreA >= 4 && scoreA - scoreB >= 1) || (scoreB >= 4 && scoreB - scoreA >= 1)) {
+            if (scoreA > scoreB) {
+              newGamesA++;
+              console.log("✅ Equipo A gana el juego");
+            } else {
+              newGamesB++;
+              console.log("✅ Equipo B gana el juego");
+            }
+            
+            // Resetear puntos
+            newPointsA = 0;
+            newPointsB = 0;
+            
+            // Verificar si se ganó el set
+            const gamesDiff = Math.abs(newGamesA - newGamesB);
+            if ((newGamesA >= 6 || newGamesB >= 6) && gamesDiff >= 2) {
+              // Ganador del set
+              if (newGamesA > newGamesB) newSetsA++;
+              else newSetsB++;
+              
+              // Resetear juegos para nuevo set
+              newGamesA = 0;
+              newGamesB = 0;
+            } else if (newGamesA === 6 && newGamesB === 6) {
+              // Activar tiebreak
+              tiebreak = true;
+              console.log("⚡ Tiebreak activado");
+            }
+          }
+        }
+        
+        // Actualizar la base de datos
+        const updateData = {
+          points_a: newPointsA,
+          points_b: newPointsB,
+          games_a: newGamesA,
+          games_b: newGamesB,
+          sets_a: newSetsA,
+          sets_b: newSetsB,
+          tiebreak: tiebreak,
+          tiebreak_points_a: tiebreakPointsA,
+          tiebreak_points_b: tiebreakPointsB,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update(updateData)
+          .eq('id', matchState.id);
+          
+        if (updateError) {
+          console.error("Error al actualizar punto:", updateError);
+        } else {
+          console.log("📊 Punto simulado correctamente");
+          console.log(`Nuevo estado: Puntos ${newPointsA}-${newPointsB}, Juegos ${newGamesA}-${newGamesB}, Sets ${newSetsA}-${newSetsB}`);
+        }
+        
       } catch (error) {
-        console.error("Error al añadir punto:", error);
+        console.error("Error en simulación de punto:", error);
       }
-    }
+    }    
 
     async function addGame(team) {
       if (!matchState.id || matchState.status !== 'active') {
-        alert("No hay un partido activo para añadir juegos");
-        return;
-      }
-      
-      if (matchState.club_id !== window.clubId) {
-        alert("No tiene permisos para modificar este partido.");
+        console.log("❌ No hay partido activo para añadir juegos");
         return;
       }
       
       try {
-        const field = team === 'A' ? 'games_a' : 'games_b';
-        const newValue = team === 'A' ? matchState.games_a + 1 : matchState.games_b + 1;
-        
-        const { error } = await supabase
+        const { data: currentMatch, error } = await supabase
           .from('matches')
-          .update({ 
-            [field]: newValue,
-            updated_at: new Date().toISOString()
-          })
+          .select('games_a, games_b, sets_a, sets_b')
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId);
+          .single();
+          
+        if (error) throw error;
         
-        if (error) {
-          console.error("Error al actualizar juego:", error);
+        let newGamesA = currentMatch.games_a || 0;
+        let newGamesB = currentMatch.games_b || 0;
+        let newSetsA = currentMatch.sets_a || 0;
+        let newSetsB = currentMatch.sets_b || 0;
+        
+        if (team === 'A') newGamesA++;
+        else newGamesB++;
+        
+        // Verificar si se ganó el set
+        const gamesDiff = Math.abs(newGamesA - newGamesB);
+        if ((newGamesA >= 6 || newGamesB >= 6) && gamesDiff >= 2) {
+          if (newGamesA > newGamesB) newSetsA++;
+          else newSetsB++;
+          
+          // Resetear para nuevo set
+          newGamesA = 0;
+          newGamesB = 0;
         }
+        
+        const updateData = {
+          games_a: newGamesA,
+          games_b: newGamesB,
+          sets_a: newSetsA,
+          sets_b: newSetsB,
+          points_a: 0,
+          points_b: 0,
+          tiebreak: false,
+          tiebreak_points_a: 0,
+          tiebreak_points_b: 0,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update(updateData)
+          .eq('id', matchState.id);
+          
+        if (updateError) {
+          console.error("Error al actualizar juego:", updateError);
+        } else {
+          console.log(`✅ Juego simulado para equipo ${team}`);
+        }
+        
       } catch (error) {
-        console.error("Error al añadir juego:", error);
+        console.error("Error en simulación de juego:", error);
       }
-    }
+    }   
 
     async function toggleTiebreak() {
       if (!matchState.id || matchState.status !== 'active') {
-        alert("No hay un partido activo para modificar el tiebreak");
-        return;
-      }
-      
-      if (matchState.club_id !== window.clubId) {
-        alert("No tiene permisos para modificar este partido.");
+        console.log("❌ No hay partido activo para modificar tiebreak");
         return;
       }
       
       try {
-        const newTiebreakValue = !matchState.tiebreak;
-        
-        const { error } = await supabase
+        const { data: currentMatch, error } = await supabase
           .from('matches')
-          .update({ 
-            tiebreak: newTiebreakValue,
-            updated_at: new Date().toISOString()
-          })
+          .select('tiebreak')
           .eq('id', matchState.id)
-          .eq('club_id', window.clubId);
+          .single();
           
-        if (error) {
-          console.error("Error al actualizar tiebreak:", error);
+        if (error) throw error;
+        
+        const newTiebreakValue = !currentMatch.tiebreak;
+        
+        const updateData = {
+          tiebreak: newTiebreakValue,
+          tiebreak_points_a: 0,
+          tiebreak_points_b: 0,
+          points_a: 0,
+          points_b: 0,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update(updateData)
+          .eq('id', matchState.id);
+          
+        if (updateError) {
+          console.error("Error al alternar tiebreak:", updateError);
+        } else {
+          console.log(`🔀 Tiebreak ${newTiebreakValue ? 'activado' : 'desactivado'}`);
         }
+        
       } catch (error) {
         console.error("Error al alternar tiebreak:", error);
       }
@@ -1069,38 +1216,46 @@
 
     async function endMatch() {
       if (!matchState.id || matchState.status !== 'active') {
-        alert("No hay un partido activo para finalizar");
-        return;
-      }
-      
-      if (matchState.club_id !== window.clubId) {
-        alert("No tiene permisos para modificar este partido.");
+        console.log("❌ No hay partido activo para finalizar");
         return;
       }
       
       try {
+        const { data: currentMatch, error } = await supabase
+          .from('matches')
+          .select('games_a, games_b, points_a, points_b, tiebreak, tiebreak_points_a, tiebreak_points_b')
+          .eq('id', matchState.id)
+          .single();
+          
+        if (error) throw error;
+        
         let winner = null;
-        if (matchState.scoring_type === 'traditional') {
-          winner = matchState.games_a > matchState.games_b ? 'team_a' : 'team_b';
+        
+        // Determinar ganador según la lógica de pádel
+        if (currentMatch.tiebreak) {
+          winner = currentMatch.tiebreak_points_a > currentMatch.tiebreak_points_b ? 'teamA' : 'teamB';
         } else {
-          winner = matchState.points_a > matchState.points_b ? 'team_a' : 'team_b';
+          winner = currentMatch.games_a > currentMatch.games_b ? 'teamA' : 'teamB';
         }
         
-        const { error } = await supabase
+        const updateData = {
+          status: 'completed',
+          winner: winner,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: updateError } = await supabase
           .from('matches')
-          .update({ 
-            status: 'completed',
-            winner: winner,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', matchState.id)
-          .eq('club_id', window.clubId);
+          .update(updateData)
+          .eq('id', matchState.id);
           
-        if (error) {
-          console.error("Error al finalizar partido:", error);
+        if (updateError) {
+          console.error("Error al finalizar partido:", updateError);
         } else {
+          console.log(`🏆 Partido finalizado. Ganador: ${winner}`);
           resetDisplay();
         }
+        
       } catch (error) {
         console.error("Error al finalizar partido:", error);
       }
