@@ -1567,6 +1567,19 @@
 	    console.log(`🎾 Set ganado por juegos: Equipo ${winnerSet}`);
 	  }
 	
+	  // ✅ GUARDAR HISTORIAL DEL SET (NUEVO)
+	  if (!window.setHistory) window.setHistory = [];
+	  
+	  window.setHistory.push({
+	    setNumber: window.setHistory.length + 1,
+	    gamesA: window.gamesA,
+	    gamesB: window.gamesB,
+	    tiebreak: window.inTiebreak,
+	    tiebreakA: window.tiebreakPointsA,
+	    tiebreakB: window.tiebreakPointsB,
+	    winner: winnerSet
+	  });
+	
 	  // ✅ INCREMENTAR SETS
 	  if (winnerSet === 'A') {
 	    window.setsA++;
@@ -1587,7 +1600,6 @@
 	
 	  // ✅ RESETEAR PARA NUEVO SET
 	  const oldGames = `${window.gamesA}-${window.gamesB}`;
-	  const oldPoints = `${window.scoreA}-${window.scoreB}`;
 	  
 	  window.gamesA = 0;
 	  window.gamesB = 0;
@@ -1597,9 +1609,9 @@
 	  window.tiebreakPointsA = 0;
 	  window.tiebreakPointsB = 0;
 	
-	  console.log(`🔄 Reset para nuevo set. Antes: Games ${oldGames}, Points ${oldPoints}. Ahora: 0-0`);
+	  console.log(`🔄 Reset para nuevo set. Antes: Games ${oldGames}. Ahora: 0-0`);
 	
-	  // ✅ ACTUALIZAR BASE DE DATOS
+	  // ✅ ACTUALIZAR BASE DE DATOS CON HISTORIAL
 	  if (window.lastMatchId) {
 	    const updateData = {
 	      sets_a: window.setsA,
@@ -1611,10 +1623,9 @@
 	      tiebreak: false,
 	      tiebreak_points_a: 0,
 	      tiebreak_points_b: 0,
+	      set_history: window.setHistory, // ✅ NUEVO CAMPO
 	      updated_at: new Date().toISOString()
 	    };
-	    
-	    console.log('💾 Guardando nuevo set en BD:', updateData);
 	    
 	    window.supabase
 	      .from('matches')
@@ -1631,7 +1642,7 @@
 	  }
 	
 	  window.updateScoreboard();
-	};	
+	};		
 					
 	// Seleccionar sistema de puntuación
 	window.selectScoring = function(type) {
