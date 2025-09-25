@@ -964,6 +964,11 @@
 
     function updatePlayersDisplay(teamId, players) {
       const playersContainer = document.getElementById(`${teamId}-players`);
+      if (!playersContainer) {
+        console.error(`❌ Elemento '${teamId}-players' no encontrado`);
+        return;
+      }
+      
       playersContainer.innerHTML = '';
       
       if (!players || players.length === 0) {
@@ -1008,11 +1013,15 @@
     }
     
     function resetDisplay() {
+      console.log("🔄 Reiniciando pantalla TV...");
+      
+      // Detener temporizador
       if (matchState.timerInterval) {
         clearInterval(matchState.timerInterval);
         matchState.timerInterval = null;
       }
       
+      // Reiniciar estado
       matchState = {
         ...matchState,
         id: null,
@@ -1035,26 +1044,37 @@
         startTime: null
       };
       
-      document.getElementById('team-a-score').textContent = '0';
-      document.getElementById('team-b-score').textContent = '0';
-      document.getElementById('team-a-games').textContent = '0';
-      document.getElementById('team-b-games').textContent = '0';
-      document.getElementById('team-a-sets').textContent = '0';
-      document.getElementById('team-b-sets').textContent = '0';
-      document.getElementById('total-points').textContent = '0';
-      document.getElementById('match-duration').textContent = '00:00';
-      document.getElementById('tiebreak-container').style.display = 'none';
+      // Lista de elementos a actualizar con verificación de existencia
+      const elementsToUpdate = [
+        { id: 'team-a-score', action: (el) => el.textContent = '0' },
+        { id: 'team-b-score', action: (el) => el.textContent = '0' },
+        { id: 'total-points', action: (el) => el.textContent = '0' },
+        { id: 'match-duration', action: (el) => el.textContent = '00:00' },
+        { id: 'tiebreak-container', action: (el) => el.style.display = 'none' },
+        { id: 'team-a-name', action: (el) => el.textContent = 'EQUIPO A' },
+        { id: 'team-b-name', action: (el) => el.textContent = 'EQUIPO B' },
+        { id: 'team-a-display', action: (el) => el.textContent = 'EQUIPO A' },
+        { id: 'team-b-display', action: (el) => el.textContent = 'EQUIPO B' }
+      ];
       
-      document.getElementById('team-a-name').textContent = 'EQUIPO A';
-      document.getElementById('team-b-name').textContent = 'EQUIPO B';
-      document.getElementById('team-a-display').textContent = 'EQUIPO A';
-      document.getElementById('team-b-display').textContent = 'EQUIPO B';
+      // Actualizar cada elemento si existe
+      elementsToUpdate.forEach(item => {
+        const element = document.getElementById(item.id);
+        if (element) {
+          item.action(element);
+        } else {
+          console.warn(`⚠️ Elemento '${item.id}' no encontrado`);
+        }
+      });
       
+      // Actualizar jugadores y sets
       updatePlayersDisplay('team-a', matchState.team_a_players);
       updatePlayersDisplay('team-b', matchState.team_b_players);
-      
+      updateSetsHistory(0, 0, 0, 0);
       updateMatchStatus('waiting');
-    }
+      
+      console.log("✅ Pantalla TV reiniciada correctamente");
+    }    
     
     function startTimer() {
       if (matchState.timerInterval) {
